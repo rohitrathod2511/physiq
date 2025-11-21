@@ -26,25 +26,21 @@ class RecentMealsList extends StatelessWidget {
 
   // Simplified the placeholder to be a single, clean card.
   Widget _buildPlaceholder(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(AppRadii.bigCard),
-        boxShadow: [AppShadows.card],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.food_bank_outlined, size: 48, color: AppColors.secondaryText),
-          const SizedBox(height: 16),
-          Text(
-            'Tap + to add your first meal of the day',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.label,
-          ),
-        ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.food_bank_outlined, size: 48, color: AppColors.secondaryText),
+            const SizedBox(height: 16),
+            Text(
+              'Tap + to add your first meal of the day',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.label,
+            ),
+          ],
+        ),
       ),
     );
   }

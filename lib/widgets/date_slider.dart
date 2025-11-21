@@ -38,11 +38,11 @@ class _DateSliderState extends State<DateSlider> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 65, // Made the slider shorter to fix the overflow.
+      height: 55, // Reduced height
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         controller: _scrollController,
-        itemCount: _totalDays, // Use a wider, more "live" range of days.
+        itemCount: _totalDays,
         itemBuilder: (context, index) {
           final date = DateTime.now().add(Duration(days: index - _centerIndex));
           final isSelected =
@@ -56,8 +56,8 @@ class _DateSliderState extends State<DateSlider> {
               widget.onDateSelected(date);
             },
             child: Container(
-              width: 50,
-              margin: const EdgeInsets.symmetric(horizontal: 6),
+              width: 45, // Reduced width
+              margin: const EdgeInsets.symmetric(horizontal: 4),
               color: Colors.transparent,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -71,12 +71,12 @@ class _DateSliderState extends State<DateSlider> {
                     child: Text(
                       DateFormat.E().format(date).toUpperCase(),
                       style: AppTextStyles.smallLabel.copyWith(
+                        fontSize: 10, // Smaller font
                         color: isSelected ? AppColors.accent : AppColors.secondaryText,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                       ),
                     ),
                   ),
-                  // Reduced the vertical spacing to fix the overflow.
                   const SizedBox(height: 2),
                   _buildDateBubble(date, isSelected),
                 ],
@@ -91,8 +91,8 @@ class _DateSliderState extends State<DateSlider> {
   Widget _buildDateBubble(DateTime date, bool isSelected) {
     if (isSelected) {
       return Container(
-        width: 40,
-        height: 40,
+        width: 32, // Reduced size
+        height: 32,
         decoration: BoxDecoration(
           color: AppColors.card,
           shape: BoxShape.circle,
@@ -102,26 +102,27 @@ class _DateSliderState extends State<DateSlider> {
         child: Center(
           child: Text(
             date.day.toString(),
-            style: AppTextStyles.button.copyWith(fontSize: 16),
+            style: AppTextStyles.button.copyWith(fontSize: 14, color: AppColors.textPrimary),
           ),
         ),
       );
     } else {
-      return DottedBorder(
-        borderType: BorderType.RRect,
-        radius: const Radius.circular(20),
-        color: AppColors.secondaryText.withOpacity(0.4),
-        strokeWidth: 1.5,
-        dashPattern: const [4, 4],
-        child: SizedBox(
-          width: 38,
-          height: 38,
-          child: Center(
-            child: Text(
-              date.day.toString(),
-              style: AppTextStyles.label.copyWith(
-                color: AppColors.secondaryText,
-              ),
+      return Container(
+        width: 30, // Reduced size
+        height: 30,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppColors.secondaryText.withOpacity(0.2), // Very light solid border
+            width: 1.5,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            date.day.toString(),
+            style: AppTextStyles.label.copyWith(
+              fontSize: 12, // Smaller font
+              color: AppColors.secondaryText,
             ),
           ),
         ),

@@ -11,6 +11,7 @@ class AppColors {
   static Color shadow = Colors.black.withOpacity(0.08);
   static const Color water = Color(0xFF5AC8FA); // A more vibrant blue
   static const Color steps = Color(0xFFA5D6A7); // A soft green
+  static const Color textPrimary = primaryText; // Alias for compatibility
 }
 
 // --- TEXT STYLES ---

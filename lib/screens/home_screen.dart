@@ -30,43 +30,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final homeState = ref.watch(homeViewModelProvider);
     final homeViewModel = ref.read(homeViewModelProvider.notifier);
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            children: [
-              const HeaderWidget(),
-              const SizedBox(height: 16),
-              DateSlider(onDateSelected: homeViewModel.selectDate),
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 280, // Adjusted height for the PageView
-                child: homeState.dailySummary != null
-                    ? PageView(
-                        controller: _pageController,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentPage = index;
-                          });
-                        },
-                        children: [
-                          // This new widget contains the properly arranged cards.
-                          CalorieAndMacrosPage(dailySummary: homeState.dailySummary!),
-                          WaterStepsCard(dailySummary: homeState.dailySummary!),
-                        ],
-                      )
-                    : const Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // Sticky Header
+            SliverAppBar(
+              pinned: true,
+              floating: false,
+              backgroundColor: AppColors.background,
+              scrolledUnderElevation: 0, // Prevents color change on scroll
+              elevation: 0,
+              toolbarHeight: 80, // Adjusted height for header
+              titleSpacing: 0,
+              title: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                child: HeaderWidget(),
               ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(2, (index) => _buildDot(index, context)),
+            ),
+            
+            // Scrollable Content
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    // Reduced spacing between header and slider
+                    const SizedBox(height: 4), 
+                    DateSlider(onDateSelected: homeViewModel.selectDate),
+                    const SizedBox(height: 16), // Reduced spacing
+                    SizedBox(
+                      height: 340, // Reduced height to show more meals
+                      child: homeState.dailySummary != null
+                          ? PageView(
+                              controller: _pageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _currentPage = index;
+                                });
+                              },
+                              children: [
+                                CalorieAndMacrosPage(dailySummary: homeState.dailySummary!),
+                                WaterStepsCard(dailySummary: homeState.dailySummary!),
+                              ],
+                            )
+                          : const Center(child: CircularProgressIndicator()),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(2, (index) => _buildDot(index, context)),
+                    ),
+                    const SizedBox(height: 24),
+                    // Recent Meals List
+                    RecentMealsList(meals: homeState.recentMeals),
+                    // Extra padding at bottom for scrolling
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-              RecentMealsList(meals: homeState.recentMeals),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
