@@ -11,7 +11,9 @@ class AppColors {
   static Color shadow = Colors.black.withOpacity(0.08);
   static const Color water = Color(0xFF5AC8FA); // A more vibrant blue
   static const Color steps = Color(0xFFA5D6A7); // A soft green
-  static const Color textPrimary = primaryText; // Alias for compatibility
+  static const Color textPrimary = primaryText;
+
+  static get primary => null; // Alias for compatibility
 }
 
 // --- TEXT STYLES ---
@@ -91,6 +93,8 @@ class AppTextStyles {
 class AppRadii {
   static const double bigCard = 24.0;
   static const double smallCard = 16.0;
+
+  static double? get card => null;
 }
 
 class AppShadows {
