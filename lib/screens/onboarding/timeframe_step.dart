@@ -11,7 +11,7 @@ class TimeframeStep extends StatelessWidget {
   Widget build(BuildContext context) {
     // Map slider value (0-4) to months
     final steps = [1, 3, 6, 9, 12];
-    double sliderValue = 1.0; // Default index 1 -> 3 months
+    double sliderValue = 2.0; // Default index 1 -> 3 months
     
     if (timeframe != null) {
       int index = steps.indexOf(timeframe!);
@@ -23,22 +23,23 @@ class TimeframeStep extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Timeframe', style: AppTextStyles.h2),
+          Text('Timeframe', style: AppTextStyles.h1),
           const SizedBox(height: 8),
           Text(
             'How quickly do you want to reach your goal?',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.label.copyWith(fontSize: 16, color: AppColors.secondaryText),
           ),
           const SizedBox(height: 48),
           
-          Text(
-            '${steps[sliderValue.toInt()]} Months',
-            style: AppTextStyles.h1.copyWith(color: AppColors.primary),
+          Center(
+            child: Text(
+              '${steps[sliderValue.toInt()]} Months',
+              style: AppTextStyles.h1.copyWith(color: AppColors.primary, fontSize: 48),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 48),
           
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
@@ -46,7 +47,9 @@ class TimeframeStep extends StatelessWidget {
               inactiveTrackColor: Colors.grey[300],
               thumbColor: AppColors.primary,
               overlayColor: AppColors.primary.withOpacity(0.2),
-              trackHeight: 6.0,
+              trackHeight: 8.0,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12.0),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 24.0),
             ),
             child: Slider(
               value: sliderValue,
@@ -59,11 +62,11 @@ class TimeframeStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Faster'),
-              Text('Slower'),
+              Text('Faster', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold)),
+              Text('Slower', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
         ],

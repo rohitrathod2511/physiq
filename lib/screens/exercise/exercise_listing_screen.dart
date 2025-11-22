@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/services/exercise_repository.dart';
 import 'package:physiq/utils/design_system.dart';
 import 'package:physiq/screens/exercise/category_detail_screen.dart';
+import 'package:physiq/screens/exercise/workout_history_screen.dart';
+import 'package:physiq/screens/exercise/create_exercise_screen.dart';
 
 class ExerciseListingScreen extends ConsumerWidget {
   const ExerciseListingScreen({super.key});
@@ -14,6 +16,31 @@ class ExerciseListingScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history, color: AppColors.primaryText),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WorkoutHistoryScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateExerciseScreen()),
+          );
+        },
+        backgroundColor: AppColors.accent,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

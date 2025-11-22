@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'widgets/choice_card.dart';
 
 class GoalStep extends StatelessWidget {
   final String? goal;
@@ -10,47 +11,33 @@ class GoalStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('What is Your Goal?', style: AppTextStyles.h2),
+          Text('What is Your Goal?', style: AppTextStyles.h1),
+          const SizedBox(height: 8),
+          Text(
+            'We will calculate your calories based on this.',
+            style: AppTextStyles.label.copyWith(fontSize: 16, color: AppColors.secondaryText),
+          ),
           const SizedBox(height: 32),
-          _buildOption('Lose Weight', 'lose'),
-          const SizedBox(height: 16),
-          _buildOption('Maintain Weight', 'maintain'),
-          const SizedBox(height: 16),
-          _buildOption('Gain Weight', 'gain'),
+          ChoiceCard(
+            text: 'Lose Weight',
+            isSelected: goal == 'lose',
+            onTap: () => onChanged('lose'),
+          ),
+          ChoiceCard(
+            text: 'Maintain Weight',
+            isSelected: goal == 'maintain',
+            onTap: () => onChanged('maintain'),
+          ),
+          ChoiceCard(
+            text: 'Gain Weight',
+            isSelected: goal == 'gain',
+            onTap: () => onChanged('gain'),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildOption(String label, String value) {
-    final isSelected = goal == value;
-    return InkWell(
-      onTap: () => onChanged(value),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.white,
-          border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey[200]!,
-            width: 2,
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: AppTextStyles.body.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isSelected ? AppColors.primary : Colors.black,
-            ),
-          ),
-        ),
       ),
     );
   }

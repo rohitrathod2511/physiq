@@ -11,7 +11,7 @@ class BirthYearStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentYear = DateTime.now().year;
-    final startYear = 2000;
+    final startYear = 1950;
     final years = List.generate(currentYear - startYear + 1, (index) => startYear + index);
     
     // Default to middle if not set
@@ -28,26 +28,42 @@ class BirthYearStep extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Birth Year', style: AppTextStyles.h2),
+          Text('Birth Year', style: AppTextStyles.h1),
+          const SizedBox(height: 8),
+          Text(
+            'This helps us calculate your age accurately.',
+            style: AppTextStyles.label.copyWith(fontSize: 16, color: AppColors.secondaryText),
+          ),
           const SizedBox(height: 32),
-          SizedBox(
-            height: 200,
-            child: CupertinoPicker(
-              itemExtent: 40,
-              scrollController: FixedExtentScrollController(initialItem: initialIndex),
-              onSelectedItemChanged: (index) {
-                onChanged(years[index]);
-              },
-              children: years.map((year) => Center(
-                child: Text(
-                  year.toString(),
-                  style: AppTextStyles.h3,
+          Expanded(
+            child: Center(
+              child: SizedBox(
+                height: 300,
+                child: CupertinoPicker(
+                  itemExtent: 50,
+                  scrollController: FixedExtentScrollController(initialItem: initialIndex),
+                  onSelectedItemChanged: (index) {
+                    onChanged(years[index]);
+                  },
+                  selectionOverlay: Container(
+                    decoration: BoxDecoration(
+                      border: Border.symmetric(
+                        horizontal: BorderSide(color: AppColors.primary.withOpacity(0.2)),
+                      ),
+                    ),
+                  ),
+                  children: years.map((year) => Center(
+                    child: Text(
+                      year.toString(),
+                      style: AppTextStyles.h3.copyWith(fontSize: 24),
+                    ),
+                  )).toList(),
                 ),
-              )).toList(),
+              ),
             ),
           ),
         ],

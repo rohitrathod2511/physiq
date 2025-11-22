@@ -87,6 +87,8 @@ class AppTextStyles {
     size: 16,
     color: AppColors.secondaryText,
   );
+
+  static get h1 => null;
 }
 
 // --- RADII & SHADOWS ---
@@ -94,7 +96,7 @@ class AppRadii {
   static const double bigCard = 24.0;
   static const double smallCard = 16.0;
 
-  static double? get card => null;
+  static const double card = 24.0;
 }
 
 class AppShadows {

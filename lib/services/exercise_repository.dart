@@ -61,10 +61,24 @@ class ExerciseRepository {
     return [];
   }
 
+  // Mock logs
+  final List<ExerciseLog> _mockLogs = [];
+
+  Future<List<ExerciseLog>> getWorkoutHistory() async {
+    if (AppConfig.useMockBackend) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      // Return sorted by date desc
+      _mockLogs.sort((a, b) => b.endedAt.compareTo(a.endedAt));
+      return _mockLogs;
+    }
+    // TODO: Implement Firestore fetch
+    return [];
+  }
+
   Future<void> saveExerciseLog(ExerciseLog log) async {
     if (AppConfig.useMockBackend) {
       print('Saving log locally: ${log.title}, ${log.exerciseCalories} kcal');
-      // In a real app, save to local DB and queue sync
+      _mockLogs.add(log);
       return;
     }
     // TODO: Implement Firestore save

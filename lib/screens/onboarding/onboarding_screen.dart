@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:physiq/services/auth_service.dart';
+import 'package:physiq/services/firestore_service.dart';
+import 'package:physiq/services/local_storage.dart';
 import 'package:physiq/theme/design_system.dart';
-import 'package:physiq/viewmodels/onboarding_viewmodel.dart';
 
 // Importing all the individual step widgets
 import 'gender_step.dart';
@@ -13,34 +14,65 @@ import 'goal_step.dart';
 import 'target_weight_step.dart';
 import 'timeframe_step.dart';
 
-class OnboardingScreen extends ConsumerStatefulWidget {
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
+  final LocalStorageService _localStorage = LocalStorageService();
+  final AuthService _authService = AuthService();
+
+  Map<String, dynamic> _draft = {};
   int _currentStep = 0;
+  late List<Widget> _steps;
+
+  bool _isMetric = true; // Default to metric
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _initializeSteps();
+    _loadDraft();
+  }
+
+  Future<void> _loadDraft() async {
+    final draft = await _localStorage.loadOnboardingDraft();
+    if (draft != null && mounted) {
+      setState(() {
+        _draft = draft;
+        // Restore isMetric if saved, otherwise default
+        if (_draft.containsKey('isMetric')) {
+          _isMetric = _draft['isMetric'];
+        }
+        _initializeSteps();
+      });
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    _draft['isMetric'] = _isMetric; // Save unit preference
+    await _localStorage.saveOnboardingDraft(_draft);
+    final user = _authService.getCurrentUser();
+    if (user != null && !AppConfig.useMockBackend) {
+      // In a real app, you'd save this to Firestore.
+    }
   }
 
   void _onNext() {
-    final state = ref.read(onboardingProvider);
-    if (_isStepValid(state)) {
-      if (_currentStep < 6) { // 7 steps total (0-6)
-        _pageController.nextPage(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      } else {
-        _onComplete();
-      }
+    if (!_isStepValid()) return;
+
+    if (_currentStep < _steps.length - 1) {
+      _saveDraft();
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _onComplete();
     }
   }
 
@@ -55,163 +87,118 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  bool _isStepValid(OnboardingState state) {
-    switch (_currentStep) {
-      case 0: // Gender
-        if (state.gender == null) {
-          _showError('Please select a gender.');
-          return false;
-        }
-        return true;
-      case 1: // Birth Year
-        if (state.birthYear == null) {
-          _showError('Please select your birth year.');
-          return false;
-        }
-        return true;
-      case 2: // Height & Weight
-        if (state.height == null || state.weight == null) {
-          _showError('Please enter your height and weight.');
-          return false;
-        }
-        // Validate ranges
-        if (state.height! < 100 || state.height! > 230) {
-          _showError('Height must be between 100cm and 230cm.');
-          return false;
-        }
-        if (state.weight! < 30 || state.weight! > 300) {
-          _showError('Weight must be between 30kg and 300kg.');
-          return false;
-        }
-        return true;
-      case 3: // Activity
-        if (state.activityLevel == null) {
-          _showError('Please select your activity level.');
-          return false;
-        }
-        return true;
-      case 4: // Goal
-        if (state.goal == null) {
-          _showError('Please select a goal.');
-          return false;
-        }
-        return true;
-      case 5: // Target Weight
-        if (state.targetWeight == null) {
-          _showError('Please enter a target weight.');
-          return false;
-        }
-        // Validate within +/- 50% of current weight
-        final currentWeight = state.weight!;
-        final min = currentWeight * 0.5;
-        final max = currentWeight * 1.5;
-        if (state.targetWeight! < min || state.targetWeight! > max) {
-           _showError('Target weight must be within 50% of your current weight ($min - $max).');
-           return false;
-        }
-        return true;
-      case 6: // Timeframe
-        if (state.timeframeMonths == null) {
-          _showError('Please select a timeframe.');
-          return false;
-        }
-        return true;
-      default:
-        return true;
-    }
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
   Future<void> _onComplete() async {
-    // Navigate to Loading Screen which will trigger generation
-    context.go('/loading');
+    await _saveDraft();
+    await _localStorage.clearOnboardingDraft();
+    if (mounted) context.go('/loading');
+  }
+
+  void _updateDraft(String key, dynamic value) {
+    setState(() {
+      _draft[key] = value;
+      // Re-initialize steps to pass down the new state
+      _initializeSteps();
+    });
+  }
+
+  bool _isStepValid() {
+    // Simple validation: check if the key for the current step exists in the draft.
+    const stepKeys = ['gender', 'birthYear', 'height', 'activityLevel', 'goal', 'targetWeight', 'timeframe'];
+    if (_currentStep < stepKeys.length) {
+        return _draft.containsKey(stepKeys[_currentStep]);
+    }
+    return false;
+  }
+
+  void _initializeSteps() {
+    _steps = [
+      GenderStep(gender: _draft['gender'], onChanged: (v) => _updateDraft('gender', v)),
+      BirthYearStep(birthYear: _draft['birthYear'], onChanged: (v) => _updateDraft('birthYear', v)),
+      HeightWeightStep(
+        height: _draft['height'],
+        weight: _draft['weight'],
+        isMetric: _isMetric,
+        onChanged: (h, w) {
+          _updateDraft('height', h);
+          _updateDraft('weight', w);
+        },
+        onUnitChanged: (val) {
+          setState(() {
+            _isMetric = val;
+            // Optional: Convert existing values when switching units
+            // For now, we just switch the view mode
+            _initializeSteps();
+          });
+        },
+      ),
+      ActivityStep(activityLevel: _draft['activityLevel'], onChanged: (v) => _updateDraft('activityLevel', v)),
+      GoalStep(goal: _draft['goal'], onChanged: (v) => _updateDraft('goal', v)),
+      TargetWeightStep(
+        targetWeight: _draft['targetWeight'], 
+        isMetric: _isMetric,
+        onChanged: (v) => _updateDraft('targetWeight', v),
+        onUnitChanged: (val) {
+          setState(() {
+            _isMetric = val;
+            _initializeSteps();
+          });
+        },
+      ),
+      TimeframeStep(timeframe: _draft['timeframe'], onChanged: (v) => _updateDraft('timeframe', v)),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(onboardingProvider);
-    final viewModel = ref.read(onboardingProvider.notifier);
+    final bool isStepComplete = _isStepValid();
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _onBack,
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: GestureDetector(
+            onTap: _onBack,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.card,
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+              ),
+              child: const Icon(Icons.arrow_back, color: AppColors.primary),
+            ),
+          ),
         ),
         title: LinearProgressIndicator(
-          value: (_currentStep + 1) / 7,
-          backgroundColor: AppColors.surface,
+          value: (_currentStep + 1) / _steps.length,
+          backgroundColor: Colors.grey[200],
           color: AppColors.primary,
+          minHeight: 6,
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
       ),
-      body: PageView(
+      body: PageView.builder(
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(),
-        onPageChanged: (index) {
-          setState(() {
-            _currentStep = index;
-          });
-        },
-        children: [
-          GenderStep(
-            gender: state.gender,
-            onChanged: viewModel.updateGender,
-          ),
-          BirthYearStep(
-            birthYear: state.birthYear,
-            onChanged: viewModel.updateBirthYear,
-          ),
-          HeightWeightStep(
-            height: state.height,
-            weight: state.weight,
-            isMetric: state.isMetric,
-            onMetricChanged: viewModel.toggleMetric,
-            onChanged: (h, w) {
-              viewModel.updateHeight(h);
-              viewModel.updateWeight(w);
-            },
-          ),
-          ActivityStep(
-            activityLevel: state.activityLevel,
-            onChanged: viewModel.updateActivityLevel,
-          ),
-          GoalStep(
-            goal: state.goal,
-            onChanged: viewModel.updateGoal,
-          ),
-          TargetWeightStep(
-            targetWeight: state.targetWeight,
-            onChanged: viewModel.updateTargetWeight,
-            isMetric: state.isMetric,
-          ),
-          TimeframeStep(
-            timeframe: state.timeframeMonths,
-            onChanged: viewModel.updateTimeframe,
-          ),
-        ],
+        itemCount: _steps.length,
+        onPageChanged: (index) => setState(() => _currentStep = index),
+        itemBuilder: (context, index) => _steps[index],
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: isStepComplete ? AppColors.primary : Colors.grey[300],
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
           ),
-          onPressed: _onNext,
+          onPressed: isStepComplete ? _onNext : null, // Disable button if step is not complete
           child: Text(
-            _currentStep == 6 ? 'Generate Plan' : 'Continue',
-            style: AppTextStyles.button,
+            'Continue',
+            style: AppTextStyles.button.copyWith(
+              color: isStepComplete ? Colors.white : Colors.grey[500],
+            ),
           ),
         ),
       ),
