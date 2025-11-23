@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
 import 'package:physiq/widgets/header_widget.dart';
 import 'package:physiq/widgets/date_slider.dart';

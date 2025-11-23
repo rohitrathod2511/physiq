@@ -37,8 +37,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
       print(stack);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating plan: $e')),
-        );
+          SnackBar(content: Text('Error generating plan: $e')),        );
         // Fallback or retry logic could go here
       }
     }
@@ -73,7 +72,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
             const SizedBox(height: 16),
             Text(
               'Applying BMR formula...',
-              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
             ),
           ],
         ),

@@ -12,8 +12,8 @@ class FloatingAddButton extends ConsumerWidget {
     final isPremium = true; // Hardcoded for UI-only task
 
     return SizedBox(
-      width: 64,
-      height: 64,
+      width: 72, // Larger size
+      height: 72,
       child: FloatingActionButton(
         onPressed: () {
           if (isPremium) {
@@ -22,11 +22,11 @@ class FloatingAddButton extends ConsumerWidget {
             context.go('/paywall');
           }
         },
-        backgroundColor: AppColors.accent,
+        backgroundColor: const Color(0xFF111827), // Dark/Black color
         foregroundColor: Colors.white,
-        elevation: 8.0,
+        elevation: 10.0,
         shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 32, weight: 700),
+        child: const Icon(Icons.add, size: 36, weight: 400), // Thinner plus icon
         heroTag: null, // Avoids tag conflicts
       ),
     );

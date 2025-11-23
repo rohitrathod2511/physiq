@@ -22,33 +22,41 @@ class _HeaderWidgetState extends State<HeaderWidget> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Editable Name (Moved to left, icon removed)
+              // App Logo / Name
               GestureDetector(
                 onTap: _showEditNameDialog,
-                child: Text(
-                  _userName,
-                  style: AppTextStyles.heading1.copyWith(fontSize: 28), // Increased size slightly
+                child: Row(
+                  children: [
+                    const Icon(Icons.apple, size: 32, color: AppColors.primaryText), // Placeholder logo
+                    const SizedBox(width: 8),
+                    Text(
+                      'Cal AI', // Hardcoded to match image, but could be _userName
+                      style: AppTextStyles.heading1.copyWith(fontSize: 26),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           Row(
             children: [
-              IconButton(
-                onPressed: () => showStreakCalendar(context),
-                icon: const Icon(Icons.calendar_today_outlined, color: AppColors.secondaryText),
-              ),
-              const SizedBox(width: 4),
+              // Streak Pill
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(100),
-                  boxShadow: [AppShadows.card],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
+                    const Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 20),
                     const SizedBox(width: 6),
                     Text('0', style: AppTextStyles.button.copyWith(fontSize: 16)),
                   ],

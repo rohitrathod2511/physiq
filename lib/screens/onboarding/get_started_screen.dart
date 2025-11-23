@@ -28,7 +28,7 @@ class GetStartedScreen extends StatelessWidget {
                 'Your personalized plan to reach your fitness goals starts here.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.body.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.secondaryText,
                   fontSize: 16,
                 ),
               ),

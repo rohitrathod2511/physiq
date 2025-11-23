@@ -4,14 +4,14 @@ import 'package:physiq/screens/home_screen.dart';
 import 'package:physiq/screens/progress_screen.dart';
 import 'package:physiq/screens/exercise_screen.dart';
 import 'package:physiq/screens/settings_screen.dart';
-import 'package:physiq/screens/paywall_screen.dart';
+import 'package:physiq/screens/onboarding/paywall_screen.dart';
 import 'package:physiq/screens/meal_history_screen.dart';
-import 'package:physiq/screens/splash_screen.dart';
-import 'package:physiq/screens/get_started_screen.dart';
-import 'package:physiq/screens/sign_in_screen.dart';
+import 'package:physiq/screens/onboarding/splash_screen.dart';
+import 'package:physiq/screens/onboarding/get_started_screen.dart';
+import 'package:physiq/screens/onboarding/sign_in_screen.dart';
 import 'package:physiq/screens/onboarding/onboarding_screen.dart';
-import 'package:physiq/screens/loading_screen.dart';
-import 'package:physiq/screens/review_screen.dart';
+import 'package:physiq/screens/onboarding/loading_screen.dart';
+import 'package:physiq/screens/onboarding/review_screen.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart'; // Import added
 import 'package:physiq/widgets/scaffold_with_nav_bar.dart';
 

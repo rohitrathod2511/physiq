@@ -35,6 +35,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
+    _draft = {
+      'height_metric': 160.0,
+      'weight_metric': 60.0,
+    };
     _initializeSteps();
     _loadDraft();
   }
@@ -46,6 +50,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         _draft = draft;
         // Restore isMetric if saved, otherwise default
         if (_draft.containsKey('isMetric')) {
+          // Ensure legacy values are handled. New structure has separate metric/imperial keys.
+          if (!_draft.containsKey('height_metric')) {
+            _draft['height_metric'] = 160.0;
+            _draft['weight_metric'] = 60.0;
+          }
+
           _isMetric = _draft['isMetric'];
         }
         _initializeSteps();
@@ -96,14 +106,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _updateDraft(String key, dynamic value) {
     setState(() {
       _draft[key] = value;
+      _autoConvert(key, value);
       // Re-initialize steps to pass down the new state
       _initializeSteps();
     });
   }
 
+  void _autoConvert(String updatedKey, dynamic value) {
+    const double kgToLbs = 2.20462;
+    const double cmToInches = 0.393701;
+
+    if (value is! double) return;
+
+    switch (updatedKey) {
+      case 'height_metric':
+        _draft['height_imperial'] = value * cmToInches;
+        break;
+      case 'height_imperial':
+        _draft['height_metric'] = value / cmToInches;
+        break;
+      case 'weight_metric':
+        _draft['weight_imperial'] = value * kgToLbs;
+        break;
+      case 'weight_imperial':
+        _draft['weight_metric'] = value / kgToLbs;
+        break;
+      case 'targetWeight_metric':
+        _draft['targetWeight_imperial'] = value * kgToLbs;
+        break;
+      case 'targetWeight_imperial':
+        _draft['targetWeight_metric'] = value / kgToLbs;
+        break;
+    }
+  }
+
   bool _isStepValid() {
     // Simple validation: check if the key for the current step exists in the draft.
-    const stepKeys = ['gender', 'birthYear', 'height', 'activityLevel', 'goal', 'targetWeight', 'timeframe'];
+    // For height/weight, we check the metric key as it's the base.
+    const stepKeys = ['gender', 'birthYear', 'height_metric', 'activityLevel', 'goal', 'targetWeight_metric', 'timeframe'];
     if (_currentStep < stepKeys.length) {
         return _draft.containsKey(stepKeys[_currentStep]);
     }
@@ -115,18 +155,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       GenderStep(gender: _draft['gender'], onChanged: (v) => _updateDraft('gender', v)),
       BirthYearStep(birthYear: _draft['birthYear'], onChanged: (v) => _updateDraft('birthYear', v)),
       HeightWeightStep(
-        height: _draft['height'],
-        weight: _draft['weight'],
+        height: _isMetric ? _draft['height_metric'] : _draft['height_imperial'],
+        weight: _isMetric ? _draft['weight_metric'] : _draft['weight_imperial'],
         isMetric: _isMetric,
         onChanged: (h, w) {
-          _updateDraft('height', h);
-          _updateDraft('weight', w);
+          if (_isMetric) {
+            _updateDraft('height_metric', h);
+            _updateDraft('weight_metric', w);
+          } else {
+            _updateDraft('height_imperial', h);
+            _updateDraft('weight_imperial', w);
+          }
         },
         onUnitChanged: (val) {
           setState(() {
             _isMetric = val;
-            // Optional: Convert existing values when switching units
-            // For now, we just switch the view mode
             _initializeSteps();
           });
         },
@@ -134,11 +177,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ActivityStep(activityLevel: _draft['activityLevel'], onChanged: (v) => _updateDraft('activityLevel', v)),
       GoalStep(goal: _draft['goal'], onChanged: (v) => _updateDraft('goal', v)),
       TargetWeightStep(
-        targetWeight: _draft['targetWeight'], 
+        targetWeight: _isMetric ? _draft['targetWeight_metric'] : _draft['targetWeight_imperial'],
         isMetric: _isMetric,
-        onChanged: (v) => _updateDraft('targetWeight', v),
+        onChanged: (v) {
+          if (_isMetric) {
+            _updateDraft('targetWeight_metric', v);
+          } else {
+            _updateDraft('targetWeight_imperial', v);
+          }
+        },
         onUnitChanged: (val) {
           setState(() {
+            // Auto-populate target weight if empty when switching units
+            if (!_draft.containsKey('targetWeight_metric')) _draft['targetWeight_metric'] = _draft['weight_metric'];
             _isMetric = val;
             _initializeSteps();
           });

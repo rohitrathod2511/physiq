@@ -24,14 +24,8 @@ class WaterStepsCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppRadii.bigCard),
+        boxShadow: [AppShadows.card],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -54,19 +48,11 @@ class WaterStepsCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '$steps',
-                        style: GoogleFonts.inter(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF111827),
-                        ),
+                        style: AppTextStyles.heading2.copyWith(fontSize: 20),
                       ),
                       Text(
                         '/$stepsGoal',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF9CA3AF),
-                        ),
+                        style: AppTextStyles.smallLabel,
                       ),
                     ],
                   ),
@@ -82,11 +68,7 @@ class WaterStepsCard extends StatelessWidget {
                   children: [
                     Text(
                       'Steps Today',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF111827),
-                      ),
+                      style: AppTextStyles.bodyBold,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -95,22 +77,14 @@ class WaterStepsCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           '0 kcal', // Placeholder calculation
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6B7280),
-                          ),
+                          style: AppTextStyles.label,
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                      Text(
                       'Connect Health',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.blue,
-                      ),
+                      style: AppTextStyles.label.copyWith(color: Colors.blue),
                     ),
                   ],
                 )
@@ -142,21 +116,13 @@ class WaterStepsCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           'Water Intake',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF111827),
-                          ),
+                          style: AppTextStyles.bodyBold,
                         ),
                       ],
                     ),
                     Text(
                       '$waterConsumed / $waterGoal fl oz',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF6B7280),
-                      ),
+                      style: AppTextStyles.label,
                     ),
                   ],
                 ),
@@ -180,11 +146,7 @@ class WaterStepsCard extends StatelessWidget {
                     const SizedBox(width: 24),
                     Text(
                       '8 fl oz',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF111827),
-                      ),
+                      style: AppTextStyles.bodyBold,
                     ),
                     const SizedBox(width: 24),
                     _buildWaterButton(Icons.add, () {}),

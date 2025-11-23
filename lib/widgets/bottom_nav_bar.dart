@@ -10,18 +10,19 @@ class BottomNavBar extends StatelessWidget {
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
       notchMargin: 8.0,
-      color: AppColors.card,
-      elevation: 8,
+      color: Colors.white, // Pure white
+      elevation: 20, // Higher elevation for shadow
+      shadowColor: Colors.black.withOpacity(0.1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: <Widget>[
           _buildNavItem(context,
-              activeIcon: Icons.home,
+              activeIcon: Icons.home_filled, // Filled icon for active
               inactiveIcon: Icons.home_outlined,
               label: 'Home',
               route: '/home'),
           _buildNavItem(context,
-              activeIcon: Icons.bar_chart,
+              activeIcon: Icons.bar_chart_rounded,
               inactiveIcon: Icons.bar_chart_outlined,
               label: 'Progress',
               route: '/progress'),
@@ -66,16 +67,16 @@ class BottomNavBar extends StatelessWidget {
           children: <Widget>[
             Icon(
               isSelected ? activeIcon : inactiveIcon,
-              color: isSelected ? AppColors.accent : AppColors.secondaryText,
-              size: 24,
+              color: isSelected ? const Color(0xFF111827) : const Color(0xFF9CA3AF), // Black active, Grey inactive
+              size: 26, // Slightly larger icons
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: AppTextStyles.label.copyWith(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppColors.accent : AppColors.secondaryText,
+                fontSize: 10, // Smaller font
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
               ),
             ),
           ],

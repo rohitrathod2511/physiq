@@ -91,38 +91,49 @@ class _DateSliderState extends State<DateSlider> {
   Widget _buildDateBubble(DateTime date, bool isSelected) {
     if (isSelected) {
       return Container(
-        width: 32, // Reduced size
-        height: 32,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
           color: AppColors.card,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.accent, width: 2),
-          boxShadow: [AppShadows.card],
+          borderRadius: BorderRadius.circular(16), // Rounded rectangle
+          border: Border.all(color: Colors.transparent, width: 0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Center(
           child: Text(
             date.day.toString(),
-            style: AppTextStyles.button.copyWith(fontSize: 14, color: AppColors.textPrimary),
+            style: AppTextStyles.button.copyWith(fontSize: 16, color: AppColors.primaryText),
           ),
         ),
       );
     } else {
-      return Container(
-        width: 30, // Reduced size
-        height: 30,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: AppColors.secondaryText.withOpacity(0.2), // Very light solid border
-            width: 1.5,
+      return DottedBorder(
+        borderType: BorderType.Circle,
+        color: AppColors.secondaryText.withOpacity(0.4),
+        strokeWidth: 1.5,
+        dashPattern: const [4, 4],
+        padding: EdgeInsets.zero,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.transparent,
           ),
-        ),
-        child: Center(
-          child: Text(
-            date.day.toString(),
-            style: AppTextStyles.label.copyWith(
-              fontSize: 12, // Smaller font
-              color: AppColors.secondaryText,
+          child: Center(
+            child: Text(
+              date.day.toString(),
+              style: AppTextStyles.label.copyWith(
+                fontSize: 14,
+                color: AppColors.primaryText,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
