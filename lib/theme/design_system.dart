@@ -91,6 +91,14 @@ class AppTextStyles {
   static final TextStyle h1 = heading1; // Alias
   static final TextStyle h2 = heading2; // Alias
   static final TextStyle h3 = _base(weight: FontWeight.w600, size: 18, color: AppColors.primaryText); // Added h3
+  
+  static final TextStyle heading3 = h3;
+
+  static final TextStyle secondaryLabel = _base(
+    weight: FontWeight.w500,
+    size: 14,
+    color: AppColors.secondaryText,
+  );
 }
 
 // --- RADII & SHADOWS ---

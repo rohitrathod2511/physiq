@@ -146,7 +146,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           onUnitChanged: (val) => setState(() => _isMetric = val),
         );
       case 6:
-        return TimeframeStep(
+        return TimeframeScreen(
           timeframe: _draft['timeframe'],
           onChanged: (v) => _updateDraft('timeframe', v),
         );

@@ -57,14 +57,8 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
           children: [
             const Spacer(),
             Text(
-              "How active are you?",
+              "Activity Level",
               style: AppTextStyles.h1,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              "This helps us calculate your daily calorie needs.",
-              style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),

@@ -22,14 +22,13 @@ class GetStartedScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
               // Headline
               Text(
-                'Build your dream body',
+                'Build Your Dream Body',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.h1.copyWith(fontSize: 32),
               ),
@@ -56,24 +55,7 @@ class GetStartedScreen extends StatelessWidget {
                 ),
               ),
               
-              const SizedBox(height: 24),
-              
-              // Separator
-              Container(
-                height: 1,
-                width: 100,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.grey.withOpacity(0.5),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               // Sign In Row
               Row(
@@ -81,18 +63,17 @@ class GetStartedScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Already have an account?',
-                    style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
+                    style: AppTextStyles.body.copyWith(color: AppColors.secondaryText, fontSize: 14),
                   ),
                   TextButton(
                     onPressed: () => _showSignInSheet(context),
                     child: Text(
                       'Sign in',
-                      style: AppTextStyles.button.copyWith(color: Colors.blue),
+                      style: AppTextStyles.button.copyWith(color: Colors.blue, fontSize: 14),
                     ),
                   ),
                 ],
               ),
-              const Spacer(),
             ],
           ),
         ),

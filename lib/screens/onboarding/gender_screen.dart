@@ -51,7 +51,7 @@ class _GenderScreenState extends ConsumerState<GenderScreen> {
           children: [
             const Spacer(),
             Text(
-              "What's your gender?",
+              "Gender",
               style: AppTextStyles.h1,
               textAlign: TextAlign.center,
             ),

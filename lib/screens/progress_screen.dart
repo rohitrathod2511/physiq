@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/utils/design_system.dart';
 import 'package:physiq/viewmodels/progress_viewmodel.dart';
+import 'package:physiq/widgets/header_widget.dart';
 import 'package:physiq/widgets/progress/weight_goal_card.dart';
 import 'package:physiq/widgets/progress/progress_ring_card.dart';
 import 'package:physiq/widgets/progress/ecg_graph_card.dart';
@@ -26,60 +27,75 @@ class ProgressScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text('Progress', style: AppTextStyles.heading2),
-        backgroundColor: AppColors.background,
-        scrolledUnderElevation: 0, // Prevents color change on scroll
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Cards
-            Row(
-              children: [
-                Expanded(
-                  child: WeightGoalCard(
-                    currentWeight: state.currentWeight,
-                    goalWeight: state.goalWeight,
-                    onTap: () => _showSetWeightDialog(context, viewModel, state.currentWeight),
-                  ),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            const SliverAppBar(
+              pinned: true,
+              floating: false,
+              backgroundColor: AppColors.background,
+              scrolledUnderElevation: 0,
+              elevation: 0,
+              toolbarHeight: 80,
+              titleSpacing: 0,
+              title: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                child: HeaderWidget(title: 'Progress'),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: WeightGoalCard(
+                            currentWeight: state.currentWeight,
+                            goalWeight: state.goalWeight,
+                            onTap: () => _showSetWeightDialog(context, viewModel, state.currentWeight),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ProgressRingCard(percent: state.progressPercent),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Graph
+                    EcgGraphCard(
+                      history: state.weightHistory,
+                      selectedRange: state.selectedRange,
+                      onRangeChanged: (range) => viewModel.setRange(range),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Photos
+                    ProgressPhotoCard(
+                      photos: state.photos,
+                      onUploadTap: () => _showUploadPhotoDialog(context, viewModel, state.currentWeight),
+                      onPhotoTap: (photo) {
+                        // TODO: Open comparison viewer
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Comparison viewer coming soon!')));
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // BMI
+                    BmiCard(
+                      bmi: state.bmi,
+                      category: state.bmiCategory,
+                    ),
+                    const SizedBox(height: 80), // Bottom padding
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ProgressRingCard(percent: state.progressPercent),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 14),
-
-            // Graph
-            EcgGraphCard(
-              history: state.weightHistory,
-              selectedRange: state.selectedRange,
-              onRangeChanged: (range) => viewModel.setRange(range),
-            ),
-            const SizedBox(height: 14),
-
-            // Photos
-            ProgressPhotoCard(
-              photos: state.photos,
-              onUploadTap: () => _showUploadPhotoDialog(context, viewModel, state.currentWeight),
-              onPhotoTap: (photo) {
-                // TODO: Open comparison viewer
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Comparison viewer coming soon!')));
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // BMI
-            BmiCard(
-              bmi: state.bmi,
-              category: state.bmiCategory,
-            ),
-            const SizedBox(height: 80), // Bottom padding
           ],
         ),
       ),

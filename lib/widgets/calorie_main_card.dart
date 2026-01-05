@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class CalorieMainCard extends StatefulWidget {
   final Map<String, dynamic> dailySummary;
@@ -23,19 +23,30 @@ class _CalorieMainCardState extends State<CalorieMainCard>
       duration: const Duration(milliseconds: 800),
     );
 
-    final double caloriesEaten = (widget.dailySummary['caloriesEaten'] ?? 0)
-        .toDouble();
+    updateAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant CalorieMainCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.dailySummary != oldWidget.dailySummary) {
+      updateAnimation();
+    }
+  }
+
+  void updateAnimation() {
+    final double caloriesEaten =
+        (widget.dailySummary['caloriesEaten'] ?? 0).toDouble();
     final double calorieTarget =
         (widget.dailySummary['macroTarget']?['calories'] ?? 2800).toDouble();
-    final double endProgress = calorieTarget > 0
-        ? caloriesEaten / calorieTarget
-        : 0;
+    final double endProgress =
+        calorieTarget > 0 ? (caloriesEaten / calorieTarget) : 0;
 
     _progressAnimation = Tween<double>(begin: 0, end: endProgress).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    _animationController.forward();
+    _animationController.forward(from: 0);
   }
 
   @override
@@ -46,13 +57,21 @@ class _CalorieMainCardState extends State<CalorieMainCard>
 
   @override
   Widget build(BuildContext context) {
+    final double caloriesEaten =
+        (widget.dailySummary['caloriesEaten'] ?? 0).toDouble();
+    final double caloriesBurned =
+        (widget.dailySummary['caloriesBurned'] ?? 0).toDouble();
+    final double calorieTarget =
+        (widget.dailySummary['macroTarget']?['calories'] ?? 2800).toDouble();
+    final double caloriesLeft = calorieTarget - caloriesEaten + caloriesBurned;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.card.withOpacity(0.9), AppColors.card],
+          colors: [AppColors.card.withAlpha(230), AppColors.card],
         ),
         borderRadius: BorderRadius.circular(AppRadii.bigCard),
         boxShadow: [AppShadows.card],
@@ -64,14 +83,17 @@ class _CalorieMainCardState extends State<CalorieMainCard>
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('1429', style: AppTextStyles.largeNumber),
+              Text(caloriesLeft.round().toString(),
+                  style: AppTextStyles.largeNumber),
               Text('Calories left', style: AppTextStyles.label),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Text('666 eaten', style: AppTextStyles.label),
+                  Text('${caloriesEaten.round()} eaten',
+                      style: AppTextStyles.label),
                   const SizedBox(width: 16),
-                  Text('108 burned', style: AppTextStyles.label),
+                  Text('${caloriesBurned.round()} burned',
+                      style: AppTextStyles.label),
                 ],
               ),
             ],
@@ -93,11 +115,21 @@ class _CalorieMainCardState extends State<CalorieMainCard>
                         AppColors.accent,
                       ),
                     ),
-                    const Center(
-                      child: Icon(
-                        Icons.local_fire_department,
-                        color: AppColors.accent,
-                        size: 28,
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            caloriesLeft.round().toString(),
+                            style: AppTextStyles.h3.copyWith(
+                                color: AppColors.primaryText,
+                                fontWeight: FontWeight.w700),
+                          ),
+                          Text(
+                            'LEFT',
+                            style: AppTextStyles.smallLabel,
+                          ),
+                        ],
                       ),
                     ),
                   ],

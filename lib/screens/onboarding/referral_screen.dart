@@ -28,7 +28,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
           children: [
             const Spacer(),
             Text(
-              "Have a referral code?",
+              "Referral Code(Optional)",
               style: AppTextStyles.h1,
               textAlign: TextAlign.center,
             ),

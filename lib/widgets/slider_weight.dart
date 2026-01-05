@@ -24,7 +24,7 @@ class SliderWeight extends StatelessWidget {
         Text(
           '${value.toStringAsFixed(1)} $unit',
           style: const TextStyle(
-            fontSize: 32,
+            fontSize: 40,
             fontWeight: FontWeight.bold,
             fontFamily: 'Inter',
           ),

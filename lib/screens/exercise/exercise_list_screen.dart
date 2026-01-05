@@ -23,10 +23,16 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Exercise', style: AppTextStyles.heading2),
-        backgroundColor: Colors.transparent,
+        title: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: Text('Exercise', style: AppTextStyles.heading1), // Bigger font
+        ),
+        backgroundColor: AppColors.background,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        scrolledUnderElevation: 0, // No color change on scroll
+        automaticallyImplyLeading: false, // Remove back button
+        centerTitle: false, // Top-left
+        titleSpacing: 0,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: viewModel.loadCategories(),

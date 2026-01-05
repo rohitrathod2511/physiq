@@ -43,7 +43,7 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
         children: [
           const Spacer(),
           Text(
-            "What year were you born?",
+            "Birth Year",
             style: AppTextStyles.h1,
             textAlign: TextAlign.center,
           ),
@@ -89,6 +89,7 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                 onPressed: _onContinue,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
+                  disabledBackgroundColor: Colors.grey.shade300,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

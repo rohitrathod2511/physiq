@@ -62,28 +62,33 @@ class _NameScreenState extends ConsumerState<NameScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              "What's your name?",
-              style: AppTextStyles.h1,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-            TextField(
-              controller: _controller,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.h2,
-              decoration: InputDecoration(
-                hintText: 'Your Name',
-                hintStyle: AppTextStyles.h2.copyWith(color: Colors.grey),
-                border: InputBorder.none,
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black, width: 2),
-                ),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Name",
+                    style: AppTextStyles.h1,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 40),
+                  TextField(
+                    controller: _controller,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.h2,
+                    decoration: InputDecoration(
+                      hintText: 'Your Name',
+                      hintStyle: AppTextStyles.h2.copyWith(color: Colors.grey),
+                      border: InputBorder.none,
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

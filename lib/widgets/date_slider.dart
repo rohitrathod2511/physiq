@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:physiq/utils/design_system.dart';
-import 'package:dotted_border/dotted_border.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class DateSlider extends StatefulWidget {
   final Function(DateTime) onDateSelected;
@@ -24,9 +23,22 @@ class _DateSliderState extends State<DateSlider> {
   @override
   void initState() {
     super.initState();
-    // This calculation sets the initial scroll position to roughly center the current day.
+    // Center the current day (index 15).
+    // Assuming screen width ~360-400. Center is ~180-200.
+    // Item center is at 15 * 62 + 31 = 961.
+    // Offset = 961 - 180 = 781.
+    // Current: 62 * 12.5 = 775. Close enough.
     final initialOffset = (_itemWidth * _centerIndex) - (_itemWidth * 2.5);
     _scrollController = ScrollController(initialScrollOffset: initialOffset);
+    
+    // Ensure we scroll to center after build to be precise
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final centerOffset = (_itemWidth * _centerIndex) + (_itemWidth / 2) - (screenWidth / 2);
+        _scrollController.jumpTo(centerOffset);
+      }
+    });
   }
 
   @override
@@ -60,7 +72,7 @@ class _DateSliderState extends State<DateSlider> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               color: Colors.transparent,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Distributes space to fix overflow
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -77,7 +89,6 @@ class _DateSliderState extends State<DateSlider> {
                       ),
                     ),
                   ),
-                  // REMOVED: const SizedBox(height: 2), as it was causing the overflow.
                   _buildDateBubble(date, isSelected),
                 ],
               ),
@@ -95,8 +106,7 @@ class _DateSliderState extends State<DateSlider> {
         height: 42,
         decoration: BoxDecoration(
           color: AppColors.card,
-          borderRadius: BorderRadius.circular(16), // Rounded rectangle
-          border: Border.all(color: Colors.transparent, width: 0),
+          shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -113,27 +123,24 @@ class _DateSliderState extends State<DateSlider> {
         ),
       );
     } else {
-      return DottedBorder(
-        borderType: BorderType.Circle,
-        color: AppColors.secondaryText.withOpacity(0.4),
-        strokeWidth: 1.5,
-        dashPattern: const [4, 4],
-        padding: EdgeInsets.zero,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.transparent,
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.transparent,
+          border: Border.all(
+            color: AppColors.secondaryText.withOpacity(0.4),
+            width: 1.5,
           ),
-          child: Center(
-            child: Text(
-              date.day.toString(),
-              style: AppTextStyles.label.copyWith(
-                fontSize: 14,
-                color: AppColors.primaryText,
-                fontWeight: FontWeight.w600,
-              ),
+        ),
+        child: Center(
+          child: Text(
+            date.day.toString(),
+            style: AppTextStyles.label.copyWith(
+              fontSize: 14,
+              color: AppColors.primaryText,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),

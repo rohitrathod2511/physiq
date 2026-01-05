@@ -79,13 +79,6 @@ class _HeightWeightScreenState extends ConsumerState<HeightWeightScreen> {
                 style: AppTextStyles.h1,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
-              UnitToggle(
-                value: _unitSystem,
-                onChanged: _onUnitChanged,
-                leftLabel: 'Metric',
-                rightLabel: 'Imperial',
-              ),
               const SizedBox(height: 40),
               
               // Height Section
@@ -134,6 +127,16 @@ class _HeightWeightScreenState extends ConsumerState<HeightWeightScreen> {
               ),
 
               const SizedBox(height: 40),
+
+              UnitToggle(
+                value: _unitSystem,
+                onChanged: _onUnitChanged,
+                leftLabel: 'Metric',
+                rightLabel: 'Imperial',
+              ),
+
+              const SizedBox(height: 24),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

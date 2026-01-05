@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,10 +12,24 @@ class TimeframeScreen extends ConsumerStatefulWidget {
 }
 
 class _TimeframeScreenState extends ConsumerState<TimeframeScreen> {
-  double _months = 6.0;
+  // The desired options for the goal duration in months.
+  final List<int> _timeframeOptions = [1, 3, 6, 9, 12];
+
+  // State to manage which button is currently selected.
+  late List<bool> _isSelected;
+
+  // The currently selected duration, defaulting to 6 months.
+  int _selectedMonths = 6;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the selection state based on the default value.
+    _isSelected = _timeframeOptions.map((months) => months == _selectedMonths).toList();
+  }
 
   void _onContinue() {
-    ref.read(onboardingProvider).saveStepData('timeframeMonths', _months.round());
+    ref.read(onboardingProvider).saveStepData('timeframeMonths', _selectedMonths);
     context.push('/onboarding/result-message');
   }
 
@@ -33,35 +46,41 @@ class _TimeframeScreenState extends ConsumerState<TimeframeScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            const Spacer(),
+            const SizedBox(height: 40),
             Text(
-              "How fast do you want to reach your goal?",
+              "Goal Duration",
               style: AppTextStyles.h1,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),
             Text(
-              '${_months.round()} months',
+              '$_selectedMonths months',
               style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
             ),
             const SizedBox(height: 24),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: Colors.black,
-                inactiveTrackColor: Colors.grey.shade300,
-                thumbColor: Colors.black,
-                trackHeight: 6.0,
-                overlayColor: Colors.black.withOpacity(0.1),
-              ),
-              child: Slider(
-                value: _months,
-                min: 1,
-                max: 12,
-                divisions: 11,
-                onChanged: (val) {
-                  setState(() => _months = val);
-                },
-              ),
+
+            // Replaced Slider with ToggleButtons for discrete options.
+            ToggleButtons(
+              isSelected: _isSelected,
+              onPressed: (int index) {
+                setState(() {
+                  // Ensure only one button is selected at a time.
+                  for (int i = 0; i < _isSelected.length; i++) {
+                    _isSelected[i] = i == index;
+                  }
+                  // Update the selected months value based on the chosen button.
+                  _selectedMonths = _timeframeOptions[index];
+                });
+              },
+              borderRadius: BorderRadius.circular(30),
+              selectedColor: Colors.white,
+              color: Colors.black,
+              fillColor: Colors.black,
+              constraints: const BoxConstraints(minHeight: 40.0, minWidth: 50.0),
+              children: _timeframeOptions.map((months) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text('$months'),
+              )).toList(),
             ),
             const Spacer(),
             SizedBox(

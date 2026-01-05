@@ -8,6 +8,8 @@ import 'package:physiq/widgets/settings/personal_details_sheet.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/widgets/settings/preferences_sheet.dart';
 
+import 'package:physiq/widgets/header_widget.dart';
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -21,135 +23,143 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              floating: false,
+              backgroundColor: AppColors.background,
+              scrolledUnderElevation: 0,
+              elevation: 0,
+              toolbarHeight: 80,
+              titleSpacing: 0,
+              title: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                child: HeaderWidget(),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Settings', style: AppTextStyles.heading1),
-                    // Optional small avatar if needed, or just clean
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.grey[300],
-                      child: const Icon(Icons.person, color: Colors.white),
+                    // Title
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: Text('Settings', style: AppTextStyles.heading2.copyWith(fontSize: 24)),
                     ),
+
+                    // 1. Invite Friend (Top-most tile)
+                    // const SizedBox(height: 24), // Removed extra spacing as title has padding
+
+                    // 2. Personal Details
+                    _buildSectionItem(
+                      icon: Icons.person_outline,
+                      title: 'Personal details',
+                      subtitle:
+                      'Goal: ${currentUser?.goalWeightKg ?? "--"}kg • Age: ${currentUser?.birthYear != null ? DateTime.now().year - currentUser!.birthYear! : "--"}',
+                      onTap: () => _showPersonalDetails(context),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // 3. Leaderboard
+                    _buildSectionItem(
+                      icon: Icons.leaderboard_outlined,
+                      title: 'Leaderboard',
+                      onTap: () => _showLeaderboard(context),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // 4. Adjust Macronutrients
+                    _buildSectionItem(
+                      icon: Icons.pie_chart_outline, // Changed icon
+                      title: 'Adjust macronutrients',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MacroAdjustmentScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 32),
+
+                    // 5. Preferences
+                    _buildSectionItem(
+                      icon: Icons.settings_outlined,
+                      title: 'Preferences',
+                      onTap: () => _showPreferences(context),
+                    ),
+                    const SizedBox(height: 48),
+
+                    // 6. Legal & Support
+                    Text('Legal & Support', style: AppTextStyles.heading2),
+                    const SizedBox(height: 24),
+                    _buildSectionItem(
+                      icon: Icons.description_outlined,
+                      title: 'Terms of Service',
+                      onTap: () => _showLegalDialog(
+                        context,
+                        'Terms of Service',
+                        'Terms content...',
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    _buildSectionItem(
+                      icon: Icons.privacy_tip_outlined,
+                      title: 'Privacy Policy',
+                      onTap: () => _showLegalDialog(
+                        context,
+                        'Privacy Policy',
+                        'Privacy content...',
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    _buildSectionItem(
+                      icon: Icons.help_outline,
+                      title: 'Support',
+                      onTap: () => _showLegalDialog(
+                        context,
+                        'Support',
+                        'Email us at support@physiq.app',
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    _buildSectionItem(
+                      icon: Icons.feedback_outlined,
+                      title: 'Feature Request',
+                      onTap: () => _showFeatureRequestDialog(context),
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    // 7. Logout & Delete
+                    Center(
+                      child: TextButton(
+                        onPressed: () => _confirmLogout(context),
+                        child: Text(
+                          'Log out',
+                          style: AppTextStyles.button.copyWith(color: Colors.red),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => _confirmDeleteAccount(context, ref),
+                        child: Text(
+                          'Delete account',
+                          style: AppTextStyles.smallLabel.copyWith(color: Colors.red),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
-
-              // 1. Invite Friend (Top-most tile)
-              const SizedBox(height: 24),
-
-              // 2. Personal Details
-              _buildSectionItem(
-                icon: Icons.person_outline,
-                title: 'Personal details',
-                subtitle:
-                    'Goal: ${currentUser?.goalWeightKg ?? "--"}kg • Age: ${currentUser?.birthYear != null ? DateTime.now().year - currentUser!.birthYear! : "--"}',
-                onTap: () => _showPersonalDetails(context),
-              ),
-              const SizedBox(height: 32),
-
-              // 3. Leaderboard
-              _buildSectionItem(
-                icon: Icons.leaderboard_outlined,
-                title: 'Leaderboard',
-                onTap: () => _showLeaderboard(context),
-              ),
-              const SizedBox(height: 32),
-
-              // 4. Adjust Macronutrients
-              _buildSectionItem(
-                icon: Icons.pie_chart_outline, // Changed icon
-                title: 'Adjust macronutrients',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MacroAdjustmentScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // 5. Preferences
-              _buildSectionItem(
-                icon: Icons.settings_outlined,
-                title: 'Preferences',
-                onTap: () => _showPreferences(context),
-              ),
-              const SizedBox(height: 48),
-
-              // 6. Legal & Support
-              Text('Legal & Support', style: AppTextStyles.heading2),
-              const SizedBox(height: 24),
-              _buildSectionItem(
-                icon: Icons.description_outlined,
-                title: 'Terms of Service',
-                onTap: () => _showLegalDialog(
-                  context,
-                  'Terms of Service',
-                  'Terms content...',
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildSectionItem(
-                icon: Icons.privacy_tip_outlined,
-                title: 'Privacy Policy',
-                onTap: () => _showLegalDialog(
-                  context,
-                  'Privacy Policy',
-                  'Privacy content...',
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildSectionItem(
-                icon: Icons.help_outline,
-                title: 'Support',
-                onTap: () => _showLegalDialog(
-                  context,
-                  'Support',
-                  'Email us at support@physiq.app',
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildSectionItem(
-                icon: Icons.feedback_outlined,
-                title: 'Feature Request',
-                onTap: () => _showFeatureRequestDialog(context),
-              ),
-
-              const SizedBox(height: 48),
-
-              // 7. Logout & Delete
-              Center(
-                child: TextButton(
-                  onPressed: () => _confirmLogout(context),
-                  child: Text(
-                    'Log out',
-                    style: AppTextStyles.button.copyWith(color: Colors.red),
-                  ),
-                ),
-              ),
-              Center(
-                child: TextButton(
-                  onPressed: () => _confirmDeleteAccount(context, ref),
-                  child: Text(
-                    'Delete account',
-                    style: AppTextStyles.smallLabel.copyWith(color: Colors.red),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

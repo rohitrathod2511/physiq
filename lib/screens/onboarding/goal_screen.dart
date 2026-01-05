@@ -16,7 +16,7 @@ class GoalScreen extends ConsumerStatefulWidget {
 class _GoalScreenState extends ConsumerState<GoalScreen> {
   String? _selectedGoal;
 
-  final List<String> _options = ['Gain', 'Lose', 'Maintain'];
+  final List<String> _options = ['Gain Weight', 'Lose Weight', 'Maintain Weight'];
 
   @override
   void initState() {
@@ -56,7 +56,7 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
           children: [
             const Spacer(),
             Text(
-              "What is your goal?",
+              "Fitness Goal",
               style: AppTextStyles.h1,
               textAlign: TextAlign.center,
             ),
