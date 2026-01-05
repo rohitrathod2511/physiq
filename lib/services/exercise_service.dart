@@ -89,7 +89,6 @@ class ExerciseService {
       {'id': 'home', 'title': 'Home Exercises', 'subtitle': 'Bodyweight & at-home routines', 'icon': 'home'},
       {'id': 'gym', 'title': 'Gym', 'subtitle': 'Gym & equipment-based', 'icon': 'fitness_center'},
       {'id': 'run', 'title': 'Run', 'subtitle': 'Running, jogging, sprinting', 'icon': 'directions_run'},
-      {'id': 'weightlifting', 'title': 'Weightlifting', 'subtitle': 'Machines, free weights', 'icon': 'fitness_center'},
       {'id': 'cycling', 'title': 'Cycling', 'subtitle': 'Cycle, spin, outdoor', 'icon': 'directions_bike'},
       {'id': 'describe', 'title': 'Describe', 'subtitle': 'Write your workout in text', 'icon': 'edit'},
       {'id': 'manual', 'title': 'Manual', 'subtitle': 'Enter exact calories burned', 'icon': 'add_circle_outline'},

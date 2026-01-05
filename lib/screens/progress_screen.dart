@@ -40,7 +40,7 @@ class ProgressScreen extends ConsumerWidget {
               titleSpacing: 0,
               title: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),
-                child: HeaderWidget(title: 'Progress'),
+                child: HeaderWidget(title: 'Progress', showActions: false),
               ),
             ),
             SliverToBoxAdapter(

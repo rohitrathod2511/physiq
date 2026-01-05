@@ -12,9 +12,12 @@ class CalorieAndMacrosPage extends StatelessWidget {
     // Extract data with safe defaults
     final int caloriesGoal = (dailySummary['caloriesGoal'] ?? 2000).toInt();
     final int caloriesConsumed = (dailySummary['caloriesConsumed'] ?? 0).toInt();
-    
-    final int caloriesLeft = (caloriesGoal - caloriesConsumed).clamp(0, 9999);
-    final double caloriesPercent = (caloriesGoal > 0) ? (caloriesConsumed / caloriesGoal).clamp(0.0, 1.0) : 0.0;
+    final int caloriesBurned = (dailySummary['caloriesBurned'] ?? 0).toInt();
+
+    final int caloriesLeft = (caloriesGoal - caloriesConsumed + caloriesBurned).clamp(0, 9999);
+    final double caloriesPercent = (caloriesGoal > 0) 
+        ? (caloriesConsumed / caloriesGoal).clamp(0.0, 1.0) 
+        : 0.0;
 
     // Macros
     final int carbsGoal = (dailySummary['carbsGoal'] ?? 100).toInt();
@@ -29,205 +32,146 @@ class CalorieAndMacrosPage extends StatelessWidget {
     final int fatConsumed = (dailySummary['fatConsumed'] ?? 0).toInt();
     final double fatPercent = (fatGoal > 0) ? (fatConsumed / fatGoal).clamp(0.0, 1.0) : 0.0;
 
-    return Column(
-      children: [
-        // --- Main Calorie Card ---
-        Expanded(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0), // Padding handled by alignment
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppRadii.bigCard),
-              boxShadow: [AppShadows.card],
-            ),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadii.bigCard),
+        boxShadow: [AppShadows.card],
+      ),
+      child: Column(
+        // Use MainAxisAlignment.spaceEvenly to distribute vertical space if parent forces height
+        mainAxisAlignment: MainAxisAlignment.spaceAround, 
+        children: [
+          // Top Row: Eaten - Ring - Burned
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Eaten
+              _buildTopStat(
+                label: 'Eaten',
+                value: '$caloriesConsumed',
+                icon: Icons.restaurant,
+              ),
+
+              // Center Ring
+              CircularPercentIndicator(
+                radius: 85.0, // Diameter 170
+                lineWidth: 12.0,
+                animation: true,
+                percent: caloriesPercent,
+                circularStrokeCap: CircularStrokeCap.round,
+                backgroundColor: const Color(0xFFF3F4F6),
+                progressColor: const Color(0xFF34D399), 
+                center: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$caloriesLeft',
+                      style: AppTextStyles.heading1.copyWith(fontSize: 36), // Slightly larger font
+                    ),
+                    Text(
+                      'Calories left',
+                      style: AppTextStyles.smallLabel,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Burned
+              _buildTopStat(
+                label: 'Burned',
+                value: '$caloriesBurned',
+                icon: Icons.local_fire_department,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16), 
+
+          // Bottom Row: Macros
+          SizedBox(
+            height: 100,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Left Side: Calories Left
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$caloriesLeft',
-                        style: AppTextStyles.largeNumber.copyWith(fontSize: 18),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'EATEN',
-                        style: AppTextStyles.smallLabel,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                _buildCircularMacro(
+                  label: 'Carbs',
+                  value: '${carbsConsumed}g',
+                  percent: carbsPercent,
+                  color: const Color(0xFFFACC15), // Yellow
                 ),
-                
-                // Center: Progress Ring
-                CircularPercentIndicator(
-                  radius: 88.0, // 140 diameter
-                  lineWidth: 15.0,
-                  animation: true,
-                  percent: caloriesPercent,
-                  center: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.local_fire_department_rounded, color: AppColors.primaryText, size: 28),
-                    ),
-                  ),
-                  circularStrokeCap: CircularStrokeCap.round,
-                  backgroundColor: const Color(0xFFF3F4F6),
-                  progressColor: Colors.grey.shade300,
+                _buildCircularMacro(
+                  label: 'Protein',
+                  value: '${proteinConsumed}g',
+                  percent: proteinPercent,
+                  color: const Color(0xFFF87171), // Red
                 ),
-
-                // Right Side: Calories Burned
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$caloriesConsumed',
-                        style: AppTextStyles.largeNumber.copyWith(fontSize: 18),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'BURNED',
-                        style: AppTextStyles.smallLabel,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                _buildCircularMacro(
+                  label: 'Fat',
+                  value: '${fatConsumed}g',
+                  percent: fatPercent,
+                  color: const Color(0xFF60A5FA), // Blue
                 ),
               ],
             ),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // --- Macro Cards ---
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: [
-              _buildVerticalMacroCard(
-                label: 'Protein',
-                value: '${proteinConsumed}g',
-                percent: proteinPercent,
-                icon: Icons.restaurant,
-                color: const Color(0xFFF87171), // Red/Pink
-              ),
-              const SizedBox(width: 12),
-              _buildVerticalMacroCard(
-                label: 'Carbs',
-                value: '${carbsConsumed}g',
-                percent: carbsPercent,
-                icon: Icons.grass,
-                color: const Color(0xFFFACC15), // Yellow
-              ),
-              const SizedBox(width: 12),
-              _buildVerticalMacroCard(
-                label: 'Fats',
-                value: '${fatConsumed}g',
-                percent: fatPercent,
-                icon: Icons.water_drop,
-                color: const Color(0xFF60A5FA), // Blue
-              ),
-              const SizedBox(width: 12),
-              _buildVerticalMacroCard(
-                label: 'Sodium',
-                value: '${(dailySummary['sodiumConsumed'] ?? 0).toInt()}mg',
-                percent: 0.5, // Placeholder
-                icon: Icons.grain,
-                color: const Color(0xFFA78BFA),
-              ),
-              const SizedBox(width: 12),
-              _buildVerticalMacroCard(
-                label: 'Sugar',
-                value: '${(dailySummary['sugarConsumed'] ?? 0).toInt()}g',
-                percent: 0.3, // Placeholder
-                icon: Icons.cake,
-                color: const Color(0xFFF472B6),
-              ),
-              const SizedBox(width: 12),
-              _buildVerticalMacroCard(
-                label: 'Fiber',
-                value: '${(dailySummary['fiberConsumed'] ?? 0).toInt()}g',
-                percent: 0.7, // Placeholder
-                icon: Icons.eco,
-                color: const Color(0xFF34D399),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVerticalMacroCard({
-    required String label,
-    required String value,
-    required double percent,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      width: 110, // Increased width
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8), // Reduced vertical padding
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadii.smallCard),
-        boxShadow: [AppShadows.card],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularPercentIndicator(
-            radius: 30.0, // Restored size
-            lineWidth: 6.0,
-            animation: true,
-            percent: percent,
-            center: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 14, color: color),
-            ),
-            circularStrokeCap: CircularStrokeCap.round,
-            backgroundColor: const Color(0xFFF3F4F6),
-            progressColor: color.withOpacity(0.5),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: AppTextStyles.bodyBold.copyWith(fontSize: 16),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: AppTextStyles.smallLabel.copyWith(fontSize: 12),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
+
+  Widget _buildTopStat({required String label, required String value, required IconData icon}) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 24, color: AppColors.primaryText),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: AppTextStyles.heading2,
+        ),
+        Text(
+          label,
+          style: AppTextStyles.smallLabel,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCircularMacro({
+    required String label,
+    required String value,
+    required double percent,
+    required Color color,
+  }) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircularPercentIndicator(
+          radius: 36.0, // Diameter 72
+          lineWidth: 6.0, // Slightly thicker
+          animation: true,
+          percent: percent,
+          circularStrokeCap: CircularStrokeCap.round,
+          backgroundColor: color.withOpacity(0.1),
+          progressColor: color,
+          center: Text(
+            value,
+            style: AppTextStyles.bodyBold.copyWith(fontSize: 14),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: AppTextStyles.smallLabel,
+        ),
+      ],
+    );
+  }
 }
+

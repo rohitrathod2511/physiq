@@ -22,8 +22,9 @@ class RecentMealsList extends StatelessWidget {
         // Placeholder Card matching the image
         Container(
           width: double.infinity,
-          height: 150,
+          height: 200,
           margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(AppRadii.bigCard),
@@ -34,7 +35,7 @@ class RecentMealsList extends StatelessWidget {
             children: [
               // Mock Image of Salad Bowl
               Container(
-                width: 200,
+                width: 120,
                 height: 80,
                 decoration: BoxDecoration(
                   color: AppColors.background,

@@ -4,8 +4,9 @@ import 'package:physiq/screens/streak_calendar_screen.dart';
 
 class HeaderWidget extends StatefulWidget {
   final String title;
+  final bool showActions;
 
-  const HeaderWidget({super.key, required this.title});
+  const HeaderWidget({super.key, required this.title, this.showActions = true});
 
   @override
   State<HeaderWidget> createState() => _HeaderWidgetState();
@@ -35,59 +36,60 @@ class _HeaderWidgetState extends State<HeaderWidget> {
           ),
 
           // Right Side: Calendar Button + Streak Icon
-          Row(
-            children: [
-              // Calendar Button
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const StreakCalendarScreen()),
-                  );
-                },
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    shape: BoxShape.circle,
-                    boxShadow: [AppShadows.card],
-                  ),
-                  child: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryText, size: 20),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Streak Pill
-              CompositedTransformTarget(
-                link: _streakLayerLink,
-                child: GestureDetector(
-                  onTap: _toggleStreakOverlay,
+          if (widget.showActions)
+            Row(
+              children: [
+                // Calendar Button
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const StreakCalendarScreen()),
+                    );
+                  },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: AppColors.card,
-                      borderRadius: BorderRadius.circular(100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      shape: BoxShape.circle,
+                      boxShadow: [AppShadows.card],
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 20),
-                        const SizedBox(width: 6),
-                        Text('3', style: AppTextStyles.button.copyWith(fontSize: 16)), // Mock streak
-                      ],
+                    child: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryText, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Streak Pill
+                CompositedTransformTarget(
+                  link: _streakLayerLink,
+                  child: GestureDetector(
+                    onTap: _toggleStreakOverlay,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(100),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 20),
+                          const SizedBox(width: 6),
+                          Text('3', style: AppTextStyles.button.copyWith(fontSize: 16)), // Mock streak
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );

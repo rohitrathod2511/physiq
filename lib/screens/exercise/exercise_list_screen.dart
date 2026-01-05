@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/viewmodels/exercise_viewmodel.dart';
+import 'package:physiq/widgets/header_widget.dart';
 import 'package:physiq/screens/exercise/cardio_screen.dart';
-import 'package:physiq/screens/exercise/weightlifting_screen.dart';
 import 'package:physiq/screens/exercise/exercise_category_screen.dart';
 import 'package:physiq/screens/exercise/describe_exercise_screen.dart';
 import 'package:physiq/screens/exercise/manual_entry_screen.dart';
@@ -22,39 +22,49 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: Text('Exercise', style: AppTextStyles.heading1), // Bigger font
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              floating: false,
+              backgroundColor: AppColors.background,
+              scrolledUnderElevation: 0,
+              elevation: 0,
+              toolbarHeight: 80,
+              titleSpacing: 0,
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: HeaderWidget(title: 'Exercise', showActions: false),
+              ),
+            ),
+            SliverFillRemaining(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: viewModel.loadCategories(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading categories'));
+                  }
+
+                  final categories = snapshot.data ?? [];
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(24),
+                    physics: const NeverScrollableScrollPhysics(), // Use Scroll view scroll
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final cat = categories[index];
+                      return _buildCategoryCard(context, cat);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0, // No color change on scroll
-        automaticallyImplyLeading: false, // Remove back button
-        centerTitle: false, // Top-left
-        titleSpacing: 0,
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: viewModel.loadCategories(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error loading categories'));
-          }
-
-          final categories = snapshot.data ?? [];
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(24),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              return _buildCategoryCard(context, cat);
-            },
-          );
-        },
       ),
     );
   }
@@ -119,8 +129,6 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
   void _navigateToCategory(BuildContext context, String id, String title) {
     if (id == 'run' || id == 'cycling') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => CardioScreen(type: id)));
-    } else if (id == 'weightlifting') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const WeightliftingScreen()));
     } else if (id == 'home' || id == 'gym') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => ExerciseCategoryScreen(categoryId: id, title: title)));
     } else if (id == 'describe') {

@@ -51,7 +51,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               titleSpacing: 0,
               title: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),
-                child: HeaderWidget(title: 'Settings'),
+                child: HeaderWidget(title: 'Setting', showActions: false),
               ),
             ),
             SliverToBoxAdapter(
