@@ -77,7 +77,7 @@ class _CardioScreenState extends ConsumerState<CardioScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(

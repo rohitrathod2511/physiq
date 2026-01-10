@@ -73,6 +73,7 @@ class _DescribeExerciseScreenState extends ConsumerState<DescribeExerciseScreen>
                 child: Text('Calculate Calories', style: AppTextStyles.button.copyWith(color: Colors.white)),
               ),
             ),
+            const SizedBox(height: 80),
           ],
         ),
       ),

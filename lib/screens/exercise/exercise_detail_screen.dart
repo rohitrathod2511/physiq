@@ -25,18 +25,22 @@ class ExerciseDetailScreen extends ConsumerStatefulWidget {
 class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   
+
+
+  // Manual State
+  final List<Map<String, String>> _sets = [];
+  final _setsController = TextEditingController(text: '1');
+  final _repsController = TextEditingController();
+  final _weightController = TextEditingController();
+
   // Timer State
   Timer? _timer;
   int _timeLeft = 30;
+  int _workDuration = 30; // Customizable work duration
   bool _isWork = true;
   int _rounds = 0;
   bool _isRunning = false;
   int _totalDurationSec = 0;
-
-  // Manual State
-  final List<Map<String, String>> _sets = [];
-  final _repsController = TextEditingController();
-  final _weightController = TextEditingController();
 
   @override
   void initState() {
@@ -48,6 +52,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
   void dispose() {
     _timer?.cancel();
     _tabController.dispose();
+    _setsController.dispose();
     _repsController.dispose();
     _weightController.dispose();
     super.dispose();
@@ -65,7 +70,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           } else {
             // Switch mode
             _isWork = !_isWork;
-            _timeLeft = _isWork ? 30 : 10; // Default 30/10
+            _timeLeft = _isWork ? _workDuration : 10; // Use customized duration
             if (_isWork) _rounds++;
           }
         });
@@ -74,17 +79,64 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
     setState(() => _isRunning = !_isRunning);
   }
 
+  void _editTimer() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController(text: _workDuration.toString());
+        return AlertDialog(
+          title: Text('Set Timer Duration', style: AppTextStyles.heading2),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Seconds', suffixText: 's'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final val = int.tryParse(controller.text);
+                if (val != null && val > 0) {
+                  setState(() {
+                    _workDuration = val;
+                    if (!_isRunning && _isWork) {
+                      _timeLeft = val;
+                    }
+                  });
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _addSet() {
     if (_repsController.text.isNotEmpty) {
+      final int count = int.tryParse(_setsController.text) ?? 1;
       setState(() {
-        _sets.add({
-          'reps': _repsController.text,
-          'weight': _weightController.text,
-        });
-        _repsController.clear();
-        _weightController.clear();
+        for (int i = 0; i < count; i++) {
+          _sets.add({
+            'reps': _repsController.text,
+            'weight': _weightController.text,
+          });
+        }
+        // _repsController.clear(); // Keep reps/weight for easy multi-add
+        // _weightController.clear();
       });
     }
+  }
+
+  void _incrementWeight() {
+    double current = double.tryParse(_weightController.text) ?? 0;
+    current += 2.5;
+    _weightController.text = current.toString();
   }
 
   void _onSave() {
@@ -94,7 +146,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
     int durationMin = 0;
     double calories = 0;
 
-    if (_tabController.index == 0) {
+    if (_tabController.index == 1) { // Index 1 is now Timer
       // Timer mode
       durationMin = (_totalDurationSec / 60).ceil();
       calories = viewModel.estimateCalories(
@@ -104,7 +156,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
         weightKg: weightKg,
       );
     } else {
-      // Manual Sets mode
+      // Manual Sets mode (Index 0)
       // Estimate duration: sets * (reps * 3s + 60s rest)
       // Simple heuristic: 2 mins per set
       durationMin = _sets.length * 2; 
@@ -131,7 +183,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
               calories: finalCalories,
               intensity: 'medium',
               details: {
-                'mode': _tabController.index == 0 ? 'timer' : 'sets',
+                'mode': _tabController.index == 1 ? 'timer' : 'sets',
                 'rounds': _rounds,
                 'sets': _sets,
               },
@@ -142,6 +194,43 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildInput(String label, TextEditingController controller, {VoidCallback? onSuffixTap}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.smallLabel),
+        const SizedBox(height: 4),
+        Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyBold,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0), // Centered vertically by default
+              suffixIcon: onSuffixTap != null 
+                  ? IconButton(
+                      icon: const Icon(Icons.add, size: 16), 
+                      onPressed: onSuffixTap,
+                      color: AppColors.primary,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ) 
+                  : null,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -160,21 +249,99 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           unselectedLabelColor: AppColors.secondaryText,
           indicatorColor: AppColors.primary,
           tabs: const [
+            Tab(text: 'Manual Sets'), // Swapped
             Tab(text: 'Timer'),
-            Tab(text: 'Manual Sets'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Timer Tab
+          // Manual Sets Tab (Now First)
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _sets.length,
+                    itemBuilder: (context, index) {
+                      final set = _sets[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: ListTile(
+                          title: Text('Set ${index + 1}', style: AppTextStyles.bodyBold),
+                          subtitle: Text('${set['reps']} reps @ ${set['weight']} kg', style: AppTextStyles.body),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                            onPressed: () => setState(() => _sets.removeAt(index)),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(flex: 2, child: _buildInput('Sets', _setsController)),
+                          const SizedBox(width: 12),
+                          Expanded(flex: 3, child: _buildInput('Reps', _repsController)),
+                          const SizedBox(width: 12),
+                          Expanded(flex: 3, child: _buildInput('Weight (kg)', _weightController, onSuffixTap: _incrementWeight)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _addSet,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: AppColors.primary),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: Text('Add Set', style: AppTextStyles.button),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Timer Tab (Now Second)
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(_isWork ? 'WORK' : 'REST', style: AppTextStyles.heading1.copyWith(color: _isWork ? Colors.green : Colors.orange)),
               const SizedBox(height: 20),
-              Text('$_timeLeft', style: AppTextStyles.largeNumber.copyWith(fontSize: 80)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('$_timeLeft', style: AppTextStyles.largeNumber.copyWith(fontSize: 80)),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: AppColors.secondaryText),
+                    onPressed: _editTimer,
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
               Text('Rounds: $_rounds', style: AppTextStyles.bodyMedium),
               const SizedBox(height: 40),
@@ -185,53 +352,10 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
               ),
             ],
           ),
-          // Manual Sets Tab
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _sets.length,
-                    itemBuilder: (context, index) {
-                      final set = _sets[index];
-                      return ListTile(
-                        title: Text('Set ${index + 1}'),
-                        subtitle: Text('${set['reps']} reps @ ${set['weight']} kg'),
-                      );
-                    },
-                  ),
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _repsController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Reps'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextField(
-                        controller: _weightController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Weight (kg)'),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _addSet,
-                      icon: const Icon(Icons.add_circle, color: AppColors.primary),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
         ],
       ),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 96), // Lifted up
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(

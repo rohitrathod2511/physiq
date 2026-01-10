@@ -78,6 +78,7 @@ class _ManualEntryScreenState extends ConsumerState<ManualEntryScreen> {
                 child: Text('Log', style: AppTextStyles.button.copyWith(color: Colors.white)),
               ),
             ),
+            const SizedBox(height: 80),
           ],
         ),
       ),

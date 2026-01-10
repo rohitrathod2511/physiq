@@ -97,6 +97,7 @@ class _AddBurnedCaloriesScreenState extends State<AddBurnedCaloriesScreen> {
                 child: Text('Log Workout', style: AppTextStyles.button.copyWith(color: Colors.white)),
               ),
             ),
+            const SizedBox(height: 80),
           ],
         ),
       ),
