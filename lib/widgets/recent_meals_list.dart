@@ -22,9 +22,9 @@ class RecentMealsList extends StatelessWidget {
         // Placeholder Card matching the image
         Container(
           width: double.infinity,
-          height: 200,
+          height: 140, // Reduced height
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(16), // Reduced padding
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(AppRadii.bigCard),
@@ -35,20 +35,21 @@ class RecentMealsList extends StatelessWidget {
             children: [
               // Mock Image of Salad Bowl
               Container(
-                width: 120,
-                height: 80,
+                width: 80, // Reduced size
+                height: 50, // Reduced size
                 decoration: BoxDecoration(
                   color: AppColors.background,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Icon(Icons.lunch_dining, size: 48, color: Colors.grey.shade400),
+                  child: Icon(Icons.lunch_dining, size: 32, color: Colors.grey.shade400),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
                 'Tap + to add your first meal of the day',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText),
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText, fontSize: 14),
+                textAlign: TextAlign.center,
               ),
             ],
           ),

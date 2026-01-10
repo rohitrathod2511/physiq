@@ -59,9 +59,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     // Reduced spacing between header and slider
                     const SizedBox(height: 4), 
                     DateSlider(onDateSelected: homeViewModel.selectDate),
-                    const SizedBox(height: 16), // Reduced spacing
+                    const SizedBox(height: 12), // Reduced spacing
                     SizedBox(
-                      height: 420, // Adjusted height for larger card design
+                      height: 390, // Adjusted height for new compact design
                       child: homeState.dailySummary != null
                           ? PageView(
                               controller: _pageController,
@@ -77,16 +77,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             )
                           : const Center(child: CircularProgressIndicator()),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(2, (index) => _buildDot(index, context)),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     // Recent Meals List
                     RecentMealsList(meals: homeState.recentMeals),
                     // Extra padding at bottom for scrolling
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),

@@ -10,160 +10,151 @@ class WaterStepsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Extract data (mocked for now if not in summary)
+    // Extract data
     final int steps = (dailySummary['steps'] ?? 0).toInt();
     final int stepsGoal = (dailySummary['stepsGoal'] ?? 10000).toInt();
-    final double stepsPercent = (steps / stepsGoal).clamp(0.0, 1.0);
-    
-    final int waterConsumed = (dailySummary['waterConsumed'] ?? 0).toInt(); // in fl oz or ml
-    final int waterGoal = (dailySummary['waterGoal'] ?? 64).toInt();
-    final double waterPercent = (waterConsumed / waterGoal).clamp(0.0, 1.0);
+    final double stepsPercent = (stepsGoal > 0) ? (steps / stepsGoal).clamp(0.0, 1.0) : 0.0;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadii.bigCard),
-        boxShadow: [AppShadows.card],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // --- Top Section: Steps ---
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // Steps Progress
-                CircularPercentIndicator(
-                  radius: 60.0,
-                  lineWidth: 10.0,
+    final int waterConsumed = (dailySummary['waterConsumed'] ?? 0).toInt(); // in fl oz
+    final int waterGoal = (dailySummary['waterGoal'] ?? 64).toInt();
+    final double waterPercent = (waterGoal > 0) ? (waterConsumed / waterGoal).clamp(0.0, 1.0) : 0.0;
+
+    return Column(
+      children: [
+        // Top Card: Steps (Matches Calorie Card 220px)
+        Container(
+          height: 220,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+               CircularPercentIndicator(
+                  radius: 75.0,
+                  lineWidth: 12.0,
                   animation: true,
                   percent: stepsPercent,
+                  circularStrokeCap: CircularStrokeCap.round,
+                  backgroundColor: const Color(0xFFF3F4F6),
+                  progressColor: AppColors.steps,
                   center: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.directions_walk, color: AppColors.steps, size: 28),
-                      const SizedBox(height: 4),
-                      Text(
+                       const Icon(Icons.directions_walk, color: AppColors.steps, size: 28),
+                       const SizedBox(height: 4),
+                       Text(
                         '$steps',
-                        style: AppTextStyles.heading2.copyWith(fontSize: 20),
+                        style: AppTextStyles.heading1.copyWith(fontSize: 32),
                       ),
-                      Text(
-                        '/$stepsGoal',
+                       Text(
+                        'Steps',
                         style: AppTextStyles.smallLabel,
                       ),
                     ],
                   ),
-                  circularStrokeCap: CircularStrokeCap.round,
-                  backgroundColor: const Color(0xFFF3F4F6),
-                  progressColor: AppColors.steps,
                 ),
-                
-                // Steps Info
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Steps Today',
-                      style: AppTextStyles.bodyBold,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.local_fire_department, color: Colors.orange, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          '0 kcal', // Placeholder calculation
-                          style: AppTextStyles.label,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                     Text(
-                      'Connect Health',
-                      style: AppTextStyles.label.copyWith(color: Colors.blue),
-                    ),
-                  ],
-                )
-              ],
-            ),
+            ],
           ),
+        ),
 
-          // --- Divider ---
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Divider(
-              color: Colors.grey.withOpacity(0.1),
-              height: 1,
-              thickness: 1,
-            ),
+        const SizedBox(height: 16),
+
+        // Bottom Card: Water (Matches Macro Row 130px)
+        Container(
+          height: 130,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-
-          // --- Bottom Section: Water ---
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.water_drop, color: AppColors.water, size: 24),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Water Intake',
-                          style: AppTextStyles.bodyBold,
-                        ),
-                      ],
+          child: Row(
+            children: [
+              // Water Icon & Label
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.water.withOpacity(0.1),
+                      shape: BoxShape.circle,
                     ),
-                    Text(
-                      '$waterConsumed / $waterGoal fl oz',
-                      style: AppTextStyles.label,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Water Progress Bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: waterPercent,
-                    minHeight: 12,
-                    backgroundColor: const Color(0xFFF3F4F6),
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.water),
+                    child: const Icon(Icons.water_drop, color: AppColors.water, size: 24),
                   ),
-                ),
-                const SizedBox(height: 20),
-                // Controls
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildWaterButton(Icons.remove, () {}),
-                    const SizedBox(width: 24),
-                    Text(
-                      '8 fl oz',
-                      style: AppTextStyles.bodyBold,
+                  const SizedBox(height: 12),
+                  Text(
+                    'Water',
+                    style: AppTextStyles.bodyBold.copyWith(fontSize: 16),
+                  ),
+                  Text(
+                    '$waterConsumed / $waterGoal fl oz',
+                    style: AppTextStyles.smallLabel.copyWith(color: AppColors.secondaryText),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              // Water Controls and Progress
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    children: [
+                      _buildWaterButton(Icons.remove, () {}),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text('8 oz', style: AppTextStyles.bodyBold),
+                      ),
+                      _buildWaterButton(Icons.add, () {}),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                   SizedBox(
+                    width: 140,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: waterPercent,
+                        minHeight: 6,
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.water),
+                      ),
                     ),
-                    const SizedBox(width: 24),
-                    _buildWaterButton(Icons.add, () {}),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildWaterButton(IconData icon, VoidCallback onTap) {
     return Container(
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
@@ -171,13 +162,13 @@ class WaterStepsCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: IconButton(
-        icon: Icon(icon, size: 20, color: const Color(0xFF111827)),
+        icon: Icon(icon, size: 18, color: const Color(0xFF111827)),
         onPressed: onTap,
         padding: EdgeInsets.zero,
       ),

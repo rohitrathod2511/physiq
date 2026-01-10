@@ -31,6 +31,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.background,
         textTheme: TextTheme(bodyMedium: AppTextStyles.body),
+        appBarTheme: const AppBarTheme(
+          surfaceTintColor: Colors.transparent,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: AppColors.background,
+          surfaceTintColor: Colors.transparent,
+        ),
       ),
       routerConfig: router,
     );

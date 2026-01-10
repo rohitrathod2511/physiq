@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/viewmodels/progress_viewmodel.dart';
 import 'package:physiq/widgets/header_widget.dart';
 import 'package:physiq/widgets/progress/weight_goal_card.dart';
@@ -18,22 +18,27 @@ class ProgressScreen extends ConsumerWidget {
     final state = ref.watch(progressViewModelProvider);
     final viewModel = ref.read(progressViewModelProvider.notifier);
 
+    // Using a light off-white/grey color as requested
+    const backgroundColor = Color(0xFFF8F9FA);
+
     if (state.isLoading) {
       return const Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: backgroundColor,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             const SliverAppBar(
               pinned: true,
               floating: false,
-              backgroundColor: AppColors.background,
+              backgroundColor: backgroundColor,
+              surfaceTintColor: Colors.transparent,
               scrolledUnderElevation: 0,
               elevation: 0,
               toolbarHeight: 80,
@@ -45,7 +50,7 @@ class ProgressScreen extends ConsumerWidget {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -65,7 +70,7 @@ class ProgressScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     // Graph
                     EcgGraphCard(
@@ -73,7 +78,7 @@ class ProgressScreen extends ConsumerWidget {
                       selectedRange: state.selectedRange,
                       onRangeChanged: (range) => viewModel.setRange(range),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     // Photos
                     ProgressPhotoCard(
@@ -91,7 +96,7 @@ class ProgressScreen extends ConsumerWidget {
                       bmi: state.bmi,
                       category: state.bmiCategory,
                     ),
-                    const SizedBox(height: 80), // Bottom padding
+                    const SizedBox(height: 100), // Bottom padding
                   ],
                 ),
               ),
