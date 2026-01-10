@@ -18,18 +18,15 @@ class ProgressScreen extends ConsumerWidget {
     final state = ref.watch(progressViewModelProvider);
     final viewModel = ref.read(progressViewModelProvider.notifier);
 
-    // Using a light off-white/grey color as requested
-    const backgroundColor = Color(0xFFF8F9FA);
-
     if (state.isLoading) {
       return const Scaffold(
-        backgroundColor: backgroundColor,
+        backgroundColor: AppColors.background,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -37,7 +34,7 @@ class ProgressScreen extends ConsumerWidget {
             const SliverAppBar(
               pinned: true,
               floating: false,
-              backgroundColor: backgroundColor,
+              backgroundColor: AppColors.background,
               surfaceTintColor: Colors.transparent,
               scrolledUnderElevation: 0,
               elevation: 0,
