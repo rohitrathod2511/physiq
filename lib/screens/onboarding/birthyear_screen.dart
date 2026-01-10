@@ -39,51 +39,53 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
         elevation: 0,
         leading: BackButton(color: Colors.black),
       ),
-      body: Column(
-        children: [
-          const Spacer(),
-          Text(
-            "Birth Year",
-            style: AppTextStyles.h1,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 40),
-          SizedBox(
-            height: 300,
-            child: ListWheelScrollView.useDelegate(
-              itemExtent: 50,
-              perspective: 0.005,
-              diameterRatio: 1.2,
-              physics: const FixedExtentScrollPhysics(),
-              controller: FixedExtentScrollController(
-                initialItem: years.indexOf(_selectedYear) != -1 ? years.indexOf(_selectedYear) : years.indexOf(2000),
-              ),
-              onSelectedItemChanged: (index) {
-                setState(() {
-                  _selectedYear = years[index];
-                });
-              },
-              childDelegate: ListWheelChildBuilderDelegate(
-                childCount: years.length,
-                builder: (context, index) {
-                  final year = years[index];
-                  final isSelected = year == _selectedYear;
-                  return Center(
-                    child: Text(
-                      year.toString(),
-                      style: isSelected
-                          ? AppTextStyles.h1.copyWith(fontSize: 32)
-                          : AppTextStyles.h2.copyWith(color: Colors.grey.shade400),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Text(
+              "Select your Birth Year",
+              style: AppTextStyles.h1,
+            ),
+            Expanded(
+              child: Center(
+                child: SizedBox(
+                  height: 300,
+                  child: ListWheelScrollView.useDelegate(
+                    itemExtent: 50,
+                    perspective: 0.005,
+                    diameterRatio: 1.2,
+                    physics: const FixedExtentScrollPhysics(),
+                    controller: FixedExtentScrollController(
+                      initialItem: years.indexOf(_selectedYear) != -1 ? years.indexOf(_selectedYear) : years.indexOf(2000),
                     ),
-                  );
-                },
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        _selectedYear = years[index];
+                      });
+                    },
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      childCount: years.length,
+                      builder: (context, index) {
+                        final year = years[index];
+                        final isSelected = year == _selectedYear;
+                        return Center(
+                          child: Text(
+                            year.toString(),
+                            style: isSelected
+                                ? AppTextStyles.h1.copyWith(fontSize: 32)
+                                : AppTextStyles.h2.copyWith(color: Colors.grey.shade400),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: SizedBox(
+            SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _onContinue,
@@ -99,9 +101,9 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                 child: const Text('Continue'),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-        ],
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }

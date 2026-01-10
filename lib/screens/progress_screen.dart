@@ -109,18 +109,33 @@ class ProgressScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Update Weight'),
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+        actionsPadding: const EdgeInsets.all(16),
+        title: Text('Update Weight', style: AppTextStyles.heading2),
         content: TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(suffixText: 'kg'),
+          style: AppTextStyles.bodyMedium,
+          decoration: InputDecoration(
+            suffixText: 'kg',
+            suffixStyle: AppTextStyles.body,
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300)),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.secondaryText,
+              textStyle: AppTextStyles.button,
+            ),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               final weight = double.tryParse(controller.text);
               if (weight != null) {
@@ -128,6 +143,13 @@ class ProgressScreen extends ConsumerWidget {
                 Navigator.pop(context);
               }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              textStyle: AppTextStyles.button,
+            ),
             child: const Text('Save'),
           ),
         ],
@@ -140,26 +162,51 @@ class ProgressScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Upload Photo'),
-        content: const Text('This would open the camera/gallery.'),
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Text('Upload Photo', style: AppTextStyles.heading2),
+        content: Text(
+          'Choose a source to upload your progress photo.',
+          style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
+        ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              // Mock adding a photo
-              viewModel.addPhoto(ProgressPhoto(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                imageUrl: '', // Empty for now
-                weightKg: currentWeight,
-                date: DateTime.now(),
-                uploadedAt: DateTime.now(),
-              ));
-              Navigator.pop(context);
-            },
-            child: const Text('Mock Upload'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.secondaryText,
+                  textStyle: AppTextStyles.button,
+                ),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                 onPressed: () {
+                  // Mock adding a photo
+                  viewModel.addPhoto(ProgressPhoto(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    imageUrl: '', // Empty for now
+                    weightKg: currentWeight,
+                    date: DateTime.now(),
+                    uploadedAt: DateTime.now(),
+                  ));
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  textStyle: AppTextStyles.button,
+                ),
+                child: const Text('Simulate Camera'),
+              ),
+            ],
           ),
         ],
       ),

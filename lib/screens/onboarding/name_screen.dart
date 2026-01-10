@@ -62,31 +62,28 @@ class _NameScreenState extends ConsumerState<NameScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 16),
+            Text(
+              "What's your Name?",
+              style: AppTextStyles.h1,
+            ),
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Name",
-                    style: AppTextStyles.h1,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 40),
-                  TextField(
-                    controller: _controller,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.h2,
-                    decoration: InputDecoration(
-                      hintText: 'Your Name',
-                      hintStyle: AppTextStyles.h2.copyWith(color: Colors.grey),
-                      border: InputBorder.none,
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2),
-                      ),
+              child: Center(
+                child: TextField(
+                  controller: _controller,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.h2,
+                  decoration: InputDecoration(
+                    hintText: 'Your Name',
+                    hintStyle: AppTextStyles.h2.copyWith(color: Colors.grey),
+                    border: InputBorder.none,
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
             SizedBox(

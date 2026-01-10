@@ -53,22 +53,24 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Spacer(),
+            const SizedBox(height: 16),
             Text(
-              "Fitness Goal",
+              "What is your Fitness Goal?",
               style: AppTextStyles.h1,
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 40),
-            CentralPillButtons(
-              options: _options,
-              selectedOption: _selectedGoal,
-              onOptionSelected: (value) {
-                setState(() => _selectedGoal = value);
-              },
+            Expanded(
+              child: Center(
+                child: CentralPillButtons(
+                  options: _options,
+                  selectedOption: _selectedGoal,
+                  onOptionSelected: (value) {
+                    setState(() => _selectedGoal = value);
+                  },
+                ),
+              ),
             ),
-            const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

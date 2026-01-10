@@ -37,7 +37,7 @@ class BottomNavBar extends StatelessWidget {
       onTap: () => context.go(route),
       borderRadius: BorderRadius.circular(24),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -48,7 +48,7 @@ class BottomNavBar extends StatelessWidget {
               size: 28,
             ),
             // Reduced spacing to accommodate larger elements
-            const SizedBox(height: 2),
+            const SizedBox(height: 0),
             Text(
               label,
               style: AppTextStyles.label.copyWith(

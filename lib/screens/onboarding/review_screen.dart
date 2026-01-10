@@ -61,52 +61,65 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Review Your Plan'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
         leading: BackButton(color: Colors.black),
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Calorie Card
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppRadii.card),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+            const SizedBox(height: 16),
+            Text(
+              "Review Your Plan",
+              style: AppTextStyles.h1,
+            ),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Calorie Card
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(AppRadii.card),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Text('Daily Calories', style: AppTextStyles.h3),
+                            const SizedBox(height: 8),
+                            Text(
+                              '$totalCal',
+                              style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
+                            ),
+                            const Text('kcal', style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+              
+                      // Macros
+                      _buildMacroRow('Protein', _proteinController, Colors.redAccent),
+                      const SizedBox(height: 16),
+                      _buildMacroRow('Fats', _fatController, Colors.orangeAccent),
+                      const SizedBox(height: 16),
+                      _buildMacroRow('Carbs', _carbsController, Colors.blueAccent),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Text('Daily Calories', style: AppTextStyles.h3),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$totalCal',
-                    style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
-                  ),
-                  const Text('kcal', style: TextStyle(color: Colors.grey)),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Macros
-            _buildMacroRow('Protein', _proteinController, Colors.redAccent),
             const SizedBox(height: 16),
-            _buildMacroRow('Fats', _fatController, Colors.orangeAccent),
-            const SizedBox(height: 16),
-            _buildMacroRow('Carbs', _carbsController, Colors.blueAccent),
-
-            const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -122,6 +135,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 child: const Text('Confirm & Continue'),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

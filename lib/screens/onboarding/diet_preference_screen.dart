@@ -48,81 +48,87 @@ class _DietPreferenceScreenState extends ConsumerState<DietPreferenceScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Spacer(),
+            const SizedBox(height: 16),
             Text(
-              "Diet Preference",
+              "Select your Diet Preference",
               style: AppTextStyles.h1,
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 40),
-            ..._options.asMap().entries.map((entry) {
-              final option = entry.value;
-              final isSelected = option == _selectedDiet;
-              IconData icon;
-              switch (option) {
-                case 'Classic':
-                  icon = Icons.restaurant;
-                  break;
-                case 'Vegetarian':
-                  icon = Icons.grass;
-                  break;
-                case 'Vegan':
-                  icon = Icons.eco;
-                  break;
-                default:
-                  icon = Icons.circle;
-              }
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: _options.asMap().entries.map((entry) {
+                      final option = entry.value;
+                      final isSelected = option == _selectedDiet;
+                      IconData icon;
+                      switch (option) {
+                        case 'Classic':
+                          icon = Icons.restaurant;
+                          break;
+                        case 'Vegetarian':
+                          icon = Icons.grass;
+                          break;
+                        case 'Vegan':
+                          icon = Icons.eco;
+                          break;
+                        default:
+                          icon = Icons.circle;
+                      }
 
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() => _selectedDiet = option);
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.black : Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: isSelected ? Colors.black : Colors.grey.shade300,
-                      ),
-                      boxShadow: [
-                        if (!isSelected)
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => _selectedDiet = option);
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.black : Colors.white,
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: isSelected ? Colors.black : Colors.grey.shade300,
+                              ),
+                              boxShadow: [
+                                if (!isSelected)
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  icon,
+                                  color: isSelected ? Colors.white : Colors.black,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  option,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    fontFamily: 'Inter',
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          icon,
-                          color: isSelected ? Colors.white : Colors.black,
-                          size: 20,
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          option,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    }).toList(),
                   ),
                 ),
-              );
-            }).toList(),
-            const Spacer(),
+              ),
+            ),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

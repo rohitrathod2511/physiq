@@ -25,28 +25,30 @@ class _ReferralScreenState extends State<ReferralScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Spacer(),
+            const SizedBox(height: 16),
             Text(
               "Referral Code(Optional)",
               style: AppTextStyles.h1,
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 40),
-            TextField(
-              controller: _controller,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.h2,
-              decoration: InputDecoration(
-                hintText: 'Enter Code',
-                hintStyle: AppTextStyles.h2.copyWith(color: Colors.grey),
-                border: InputBorder.none,
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black, width: 2),
+            Expanded(
+              child: Center(
+                child: TextField(
+                  controller: _controller,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.h2,
+                  decoration: InputDecoration(
+                    hintText: 'Enter Code',
+                    hintStyle: AppTextStyles.h2.copyWith(color: Colors.grey),
+                    border: InputBorder.none,
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
+                  ),
                 ),
               ),
             ),
-            const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

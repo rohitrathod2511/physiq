@@ -71,8 +71,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 });
                               },
                               children: [
-                                CalorieAndMacrosPage(dailySummary: homeState.dailySummary!),
-                                WaterStepsCard(dailySummary: homeState.dailySummary!),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  child: CalorieAndMacrosPage(dailySummary: homeState.dailySummary!),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  child: WaterStepsCard(dailySummary: homeState.dailySummary!),
+                                ),
                               ],
                             )
                           : const Center(child: CircularProgressIndicator()),

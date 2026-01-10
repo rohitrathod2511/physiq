@@ -31,11 +31,32 @@ class BmiCard extends StatelessWidget {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('BMI Categories'),
-                      content: const Text(
-                        'Underweight: < 18.5\nHealthy: 18.5 - 24.9\nOverweight: 25 - 29.9\nObese: 30+',
+                      backgroundColor: AppColors.card,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+                      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                      contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      title: Text('BMI Categories', style: AppTextStyles.heading2),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildBmiRow('Underweight', '< 18.5', Colors.blue),
+                          _buildBmiRow('Healthy', '18.5 - 24.9', Colors.green),
+                          _buildBmiRow('Overweight', '25 - 29.9', Colors.orange),
+                          _buildBmiRow('Obese', '30+', Colors.red),
+                        ],
                       ),
-                      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            textStyle: AppTextStyles.button,
+                          ),
+                          child: const Text('Close'),
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -119,6 +140,32 @@ class BmiCard extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildBmiRow(String label, String range, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(label, style: AppTextStyles.bodyMedium),
+            ],
+          ),
+          Text(range, style: AppTextStyles.body.copyWith(fontFamily: 'Inter')),
+        ],
+      ),
     );
   }
 }

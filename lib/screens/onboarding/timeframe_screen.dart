@@ -45,44 +45,50 @@ class _TimeframeScreenState extends ConsumerState<TimeframeScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 16),
             Text(
-              "Goal Duration",
+              "How fast do you want to reach your goal?",
               style: AppTextStyles.h1,
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 40),
-            Text(
-              '$_selectedMonths months',
-              style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$_selectedMonths months',
+                      style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
+                    ),
+                    const SizedBox(height: 24),
+                    // Replaced Slider with ToggleButtons for discrete options.
+                    ToggleButtons(
+                      isSelected: _isSelected,
+                      onPressed: (int index) {
+                        setState(() {
+                          // Ensure only one button is selected at a time.
+                          for (int i = 0; i < _isSelected.length; i++) {
+                            _isSelected[i] = i == index;
+                          }
+                          // Update the selected months value based on the chosen button.
+                          _selectedMonths = _timeframeOptions[index];
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(30),
+                      selectedColor: Colors.white,
+                      color: Colors.black,
+                      fillColor: Colors.black,
+                      constraints: const BoxConstraints(minHeight: 40.0, minWidth: 50.0),
+                      children: _timeframeOptions.map((months) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text('$months'),
+                      )).toList(),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 24),
-
-            // Replaced Slider with ToggleButtons for discrete options.
-            ToggleButtons(
-              isSelected: _isSelected,
-              onPressed: (int index) {
-                setState(() {
-                  // Ensure only one button is selected at a time.
-                  for (int i = 0; i < _isSelected.length; i++) {
-                    _isSelected[i] = i == index;
-                  }
-                  // Update the selected months value based on the chosen button.
-                  _selectedMonths = _timeframeOptions[index];
-                });
-              },
-              borderRadius: BorderRadius.circular(30),
-              selectedColor: Colors.white,
-              color: Colors.black,
-              fillColor: Colors.black,
-              constraints: const BoxConstraints(minHeight: 40.0, minWidth: 50.0),
-              children: _timeframeOptions.map((months) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text('$months'),
-              )).toList(),
-            ),
-            const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

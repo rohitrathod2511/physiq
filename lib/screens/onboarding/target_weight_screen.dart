@@ -69,68 +69,66 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
         elevation: 0,
         leading: BackButton(color: Colors.black),
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  Text(
-                    "Target Weight",
-                    style: AppTextStyles.h1,
-                    textAlign: TextAlign.center,
-                  ),
-                  const Spacer(),
-                  
-                  SliderWeight(
-                    value: displayVal,
-                    min: isMetric ? 30 : 66,
-                    max: isMetric ? 200 : 440,
-                    unit: unit,
-                    onChanged: (val) {
-                      setState(() {
-                        if (isMetric) {
-                          _targetWeightKg = val;
-                        } else {
-                          _targetWeightKg = Conversions.lbsToKg(val);
-                        }
-                      });
-                    },
-                  ),
-
-                  const Spacer(),
-
-                  UnitToggle(
-                    value: _unitSystem,
-                    onChanged: _onUnitChanged,
-                    leftLabel: 'Metric',
-                    rightLabel: 'Imperial',
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _onContinue,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Text(
+              "What is your Target Weight?",
+              style: AppTextStyles.h1,
+            ),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SliderWeight(
+                        value: displayVal,
+                        min: isMetric ? 30 : 66,
+                        max: isMetric ? 200 : 440,
+                        unit: unit,
+                        onChanged: (val) {
+                          setState(() {
+                            if (isMetric) {
+                              _targetWeightKg = val;
+                            } else {
+                              _targetWeightKg = Conversions.lbsToKg(val);
+                            }
+                          });
+                        },
                       ),
-                      child: const Text('Continue'),
-                    ),
+                      const SizedBox(height: 40),
+                      UnitToggle(
+                        value: _unitSystem,
+                        onChanged: _onUnitChanged,
+                        leftLabel: 'Metric',
+                        rightLabel: 'Imperial',
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _onContinue,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text('Continue'),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }

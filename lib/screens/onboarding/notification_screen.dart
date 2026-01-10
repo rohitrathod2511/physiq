@@ -68,7 +68,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            const Spacer(),
+            const SizedBox(height: 40),
             Text(
               "Stay on track",
               style: AppTextStyles.h1,

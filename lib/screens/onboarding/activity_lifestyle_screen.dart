@@ -54,22 +54,24 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Spacer(),
+            const SizedBox(height: 16),
             Text(
-              "Activity Level",
+              "Select your Activity Level",
               style: AppTextStyles.h1,
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 40),
-            CentralPillButtons(
-              options: _options,
-              selectedOption: _selectedActivity,
-              onOptionSelected: (value) {
-                setState(() => _selectedActivity = value);
-              },
+            Expanded(
+              child: Center(
+                child: CentralPillButtons(
+                  options: _options,
+                  selectedOption: _selectedActivity,
+                  onOptionSelected: (value) {
+                    setState(() => _selectedActivity = value);
+                  },
+                ),
+              ),
             ),
-            const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
