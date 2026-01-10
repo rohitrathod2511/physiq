@@ -48,6 +48,8 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     }
   }
 
+  int _selectedTab = 0; // 0: Gain Weight, 1: Lose Weight
+
   @override
   Widget build(BuildContext context) {
     final uid = _auth.currentUser?.uid;
@@ -64,43 +66,93 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Prize Summary
+                // Motivational Banner
                 Container(
-                  margin: const EdgeInsets.all(24),
-                  padding: const EdgeInsets.all(24),
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E1E1E), Color(0xFF3A3A3A)], // Premium dark
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(AppRadii.bigCard),
                     boxShadow: [AppShadows.card],
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      const Icon(Icons.emoji_events, color: Colors.amber, size: 48),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Weekly Challenge',
-                              style: AppTextStyles.bodyBold.copyWith(color: Colors.white),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Top 3 win premium features!',
-                              style: AppTextStyles.label.copyWith(color: Colors.white70),
-                            ),
-                          ],
-                        ),
+                      const Icon(Icons.star, color: Colors.amber, size: 36),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Win ₹1,00,000 by staying consistent',
+                        style: AppTextStyles.h2.copyWith(color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Top performers get exclusive rewards',
+                        style: AppTextStyles.smallLabel.copyWith(color: Colors.white70),
                       ),
                     ],
                   ),
                 ),
                 
+                // Tabs (Gain / Lose)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedTab = 0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _selectedTab == 0 ? AppColors.primary : Colors.transparent,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Gain Weight',
+                                style: AppTextStyles.bodyBold.copyWith(
+                                  color: _selectedTab == 0 ? Colors.white : AppColors.secondaryText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedTab = 1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _selectedTab == 1 ? AppColors.primary : Colors.transparent,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Lose Weight',
+                                style: AppTextStyles.bodyBold.copyWith(
+                                  color: _selectedTab == 1 ? Colors.white : AppColors.secondaryText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 // My Rank if not in top 10 (Optional UI enhancement)
                 if (uid != null && !_top10.any((i) => i.uid == uid) && _myRank > 0)
                    Padding(
@@ -135,6 +187,12 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                               ),
                             ),
                             const SizedBox(width: 20),
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Colors.grey.shade200,
+                              child: Text(user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : '?', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 user.displayName,

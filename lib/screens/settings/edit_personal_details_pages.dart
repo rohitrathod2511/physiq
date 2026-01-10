@@ -327,3 +327,76 @@ class _EditGenderPageState extends State<EditGenderPage> {
     );
   }
 }
+
+// --- Edit Step Goal ---
+class EditStepGoalPage extends StatefulWidget {
+  final int initialGoal;
+  const EditStepGoalPage({super.key, this.initialGoal = 10000});
+
+  @override
+  State<EditStepGoalPage> createState() => _EditStepGoalPageState();
+}
+
+class _EditStepGoalPageState extends State<EditStepGoalPage> {
+  late double _currentValue;
+  final _firestoreService = FirestoreService();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentValue = widget.initialGoal.toDouble();
+  }
+
+  Future<void> _save() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await _firestoreService.updateUserProfile(uid, {'dailyStepGoal': _currentValue.toInt()});
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: Text('Daily Step Goal', style: AppTextStyles.heading2),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: const BackButton(color: AppColors.primaryText),
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 40),
+          Text('${_currentValue.toInt()} steps', style: AppTextStyles.largeNumber),
+          const SizedBox(height: 40),
+          Slider(
+            value: _currentValue,
+            min: 1000,
+            max: 30000,
+            divisions: 290, // increments of 100
+            activeColor: AppColors.primary,
+            inactiveColor: Colors.grey[300],
+            onChanged: (val) => setState(() => _currentValue = val),
+          ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                child: Text('Save', style: AppTextStyles.button.copyWith(color: Colors.white)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

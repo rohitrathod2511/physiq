@@ -8,6 +8,7 @@ class UserModel {
   final double? heightCm;
   final double? weightKg;
   final double? goalWeightKg;
+  final int? dailyStepGoal;
   final UserPreferences preferences;
   final Map<String, dynamic>? currentPlan;
   final bool isPremium;
@@ -25,6 +26,7 @@ class UserModel {
     this.heightCm,
     this.weightKg,
     this.goalWeightKg,
+    this.dailyStepGoal,
     required this.preferences,
     this.currentPlan,
     this.isPremium = false,
@@ -44,6 +46,7 @@ class UserModel {
       heightCm: (data['heightCm'] as num?)?.toDouble(),
       weightKg: (data['weightKg'] as num?)?.toDouble(),
       goalWeightKg: (data['goalWeightKg'] as num?)?.toDouble(),
+      dailyStepGoal: data['dailyStepGoal'],
       preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
       currentPlan: data['currentPlan'],
       isPremium: data['isPremium'] ?? false,
@@ -65,6 +68,7 @@ class UserModel {
       'heightCm': heightCm,
       'weightKg': weightKg,
       'goalWeightKg': goalWeightKg,
+      'dailyStepGoal': dailyStepGoal,
       'preferences': preferences.toMap(),
       'currentPlan': currentPlan,
       'isPremium': isPremium,

@@ -59,6 +59,12 @@ class PersonalDetailsPage extends ConsumerWidget {
                   value: user.gender,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditGenderPage(initialGender: user.gender))),
                 ),
+                _buildDetailCard(
+                  context,
+                  title: 'Daily Step Goal',
+                  value: '${user.dailyStepGoal ?? 10000} steps',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditStepGoalPage(initialGoal: user.dailyStepGoal ?? 10000))),
+                ),
               ],
             ),
           );

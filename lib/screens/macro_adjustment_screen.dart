@@ -100,6 +100,7 @@ class _MacroAdjustmentScreenState extends ConsumerState<MacroAdjustmentScreen> {
                 child: Text('Save Goals', style: AppTextStyles.button.copyWith(color: Colors.white)),
               ),
             ),
+            const SizedBox(height: 80),
           ],
         ),
       ),
@@ -138,6 +139,8 @@ class _MacroAdjustmentScreenState extends ConsumerState<MacroAdjustmentScreen> {
               style: AppTextStyles.bodyBold,
             ),
           ),
+          const SizedBox(width: 8),
+          const Icon(Icons.edit, size: 16, color: AppColors.secondaryText),
         ],
       ),
     );
