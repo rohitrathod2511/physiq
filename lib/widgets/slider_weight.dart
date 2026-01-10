@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class SliderWeight extends StatelessWidget {
   final double value;
@@ -23,11 +24,7 @@ class SliderWeight extends StatelessWidget {
       children: [
         Text(
           '${value.toStringAsFixed(1)} $unit',
-          style: const TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Inter',
-          ),
+          style: AppTextStyles.largeNumber.copyWith(fontSize: 40),
         ),
         const SizedBox(height: 16),
         SliderTheme(

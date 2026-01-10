@@ -103,7 +103,7 @@ class _HeightWeightScreenState extends ConsumerState<HeightWeightScreen> {
                       child: Slider(
                         value: _heightCm,
                         min: 100,
-                        max: 250,
+                        max: 213,
                         onChanged: (val) {
                           setState(() => _heightCm = val);
                         },
@@ -118,7 +118,7 @@ class _HeightWeightScreenState extends ConsumerState<HeightWeightScreen> {
                     SliderWeight(
                       value: weightDisplayVal,
                       min: isMetric ? 30 : 66, // approx 30kg in lbs
-                      max: isMetric ? 200 : 440, // approx 200kg in lbs
+                      max: isMetric ? 160 : 352.7, // approx 200kg in lbs
                       unit: weightUnit,
                       onChanged: (val) {
                         setState(() {

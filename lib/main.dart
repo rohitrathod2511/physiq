@@ -28,15 +28,28 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Physiq',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        useMaterial3: true, // Ensure Material 3 is active for the theme to work
         scaffoldBackgroundColor: AppColors.background,
         textTheme: TextTheme(bodyMedium: AppTextStyles.body),
         appBarTheme: const AppBarTheme(
-          surfaceTintColor: Colors.transparent,
-        ),
-        navigationBarTheme: NavigationBarThemeData(
           backgroundColor: AppColors.background,
           surfaceTintColor: Colors.transparent,
+          elevation: 0,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          // REDUCE HEIGHT HERE: Default is 80, 60 is compact
+          height: 40,
+          backgroundColor: AppColors.background,
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: Colors.black.withOpacity(0.05),
+          labelTextStyle: MaterialStateProperty.all(
+            const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+          ),
+          iconTheme: MaterialStateProperty.all(
+            const IconThemeData(size: 22),
+          ),
         ),
       ),
       routerConfig: router,

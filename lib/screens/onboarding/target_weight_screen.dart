@@ -17,8 +17,8 @@ class TargetWeightScreen extends ConsumerStatefulWidget {
 
 class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
   String _unitSystem = 'Metric';
-  double _targetWeightKg = 70.0;
-  double _currentWeightKg = 70.0;
+  double _targetWeightKg = 80.0;
+  double _currentWeightKg = 80.0;
   String? _goal;
 
   @override
@@ -87,7 +87,7 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
                       SliderWeight(
                         value: displayVal,
                         min: isMetric ? 30 : 66,
-                        max: isMetric ? 200 : 440,
+                        max: isMetric ? 140 : 308.7,
                         unit: unit,
                         onChanged: (val) {
                           setState(() {

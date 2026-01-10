@@ -30,7 +30,8 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final years = List.generate(100, (index) => _currentYear - 10 - index); // 10 years old to 110
+    // Generate years in ascending order (e.g., 1924 to 2014)
+    final years = List.generate(101, (index) => (_currentYear - 110) + index);
 
     return Scaffold(
       backgroundColor: AppColors.background,
