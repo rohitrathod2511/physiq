@@ -20,7 +20,7 @@ class _SignInScreenState extends State<SignInScreen> {
     final user = await _authService.signInWithGoogle();
     setState(() => _isLoading = false);
     if (user != null && mounted) {
-      context.go('/onboarding/name');
+      context.push('/onboarding/motivational-quote');
     }
   }
 
@@ -29,16 +29,11 @@ class _SignInScreenState extends State<SignInScreen> {
     final user = await _authService.signInAnonymously();
     setState(() => _isLoading = false);
     if (user != null && mounted) {
-      context.go('/onboarding/name');
+      context.push('/onboarding/motivational-quote');
     }
   }
 
   void _handleEmailSignIn() {
-    // For now, just show a dialog or navigate to a placeholder email screen
-    // The prompt says "Email opens email sign-in flow". 
-    // I'll just show a not implemented dialog or a simple email/pass dialog here.
-    // Given the scope, I'll stick to a simple dialog or just log in mock email user if mock is on.
-    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -51,7 +46,7 @@ class _SignInScreenState extends State<SignInScreen> {
               // Mock success for now
               _authService.signInWithEmail('test@example.com', 'password').then((user) {
                  if (user != null && mounted) {
-                    context.go('/onboarding/name');
+                    context.push('/onboarding/motivational-quote');
                  }
               });
             },
@@ -64,68 +59,78 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: BackButton(color: Colors.black),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Sign In',
-            style: AppTextStyles.h2,
-            textAlign: TextAlign.center,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Sign In',
+                style: AppTextStyles.h1,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+              if (_isLoading)
+                const Center(child: CircularProgressIndicator())
+              else ...[
+                // Google Button
+                ElevatedButton.icon(
+                  onPressed: _handleGoogleSignIn,
+                  icon: const Icon(Icons.g_mobiledata, size: 28), 
+                  label: const Text('Continue with Google'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Email Button
+                OutlinedButton(
+                  onPressed: _handleEmailSignIn,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text('Continue with Email'),
+                ),
+                const SizedBox(height: 16),
+                
+                // Skip Button (Styled to match)
+                OutlinedButton(
+                  onPressed: _handleAnonymousSignIn,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text('Skip'),
+                ),
+              ],
+              const Spacer(), // Ensure content is pushed towards center if needed, or balanced
+            ],
           ),
-          const SizedBox(height: 24),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator())
-          else ...[
-            // Google Button
-            ElevatedButton.icon(
-              onPressed: _handleGoogleSignIn,
-              icon: const Icon(Icons.g_mobiledata, size: 28), // Placeholder for Google Icon
-              label: const Text('Continue with Google'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            // Email Button
-            OutlinedButton(
-              onPressed: _handleEmailSignIn,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: Colors.grey.shade300),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: const Text('Continue with Email'),
-            ),
-            const SizedBox(height: 12),
-            
-            // Skip Button
-            TextButton(
-              onPressed: _handleAnonymousSignIn,
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: const Text('Skip'),
-            ),
-          ],
-          const SizedBox(height: 24),
-        ],
+        ),
       ),
     );
   }

@@ -95,7 +95,7 @@ class MotivationalQuoteScreen extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.push('/onboarding/paywall-free'),
+                  onPressed: () => context.push('/onboarding/paywall-main'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,

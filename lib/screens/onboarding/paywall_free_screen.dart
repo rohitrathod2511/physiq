@@ -29,18 +29,6 @@ class PaywallFreeScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const Spacer(),
-            // Mockup image placeholder
-            Container(
-              height: 300,
-              width: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.black, width: 4),
-              ),
-              child: const Center(child: Text("App Preview")),
-            ),
-            const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

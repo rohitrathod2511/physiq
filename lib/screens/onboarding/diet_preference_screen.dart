@@ -32,7 +32,7 @@ class _DietPreferenceScreenState extends ConsumerState<DietPreferenceScreen> {
   void _onContinue() {
     if (_selectedDiet != null) {
       ref.read(onboardingProvider).saveStepData('dietPreference', _selectedDiet);
-      context.push('/onboarding/notification');
+      context.push('/onboarding/motivational-message');
     }
   }
 

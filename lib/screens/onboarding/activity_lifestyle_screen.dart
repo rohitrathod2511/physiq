@@ -24,12 +24,7 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
     {
       'label': 'Active', // Was "Lightly Active"
       'value': 'Lightly active',
-      'subtitle': '2–3 workouts per week',
-    },
-    {
-      'label': 'Very Active', // Was "Active"
-      'value': 'Moderately active',
-      'subtitle': '4–5 workouts per week',
+      'subtitle': '3–5 workouts per week',
     },
     {
       'label': 'Athletic',

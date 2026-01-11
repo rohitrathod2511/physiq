@@ -33,7 +33,7 @@ class _TimeframeScreenState extends ConsumerState<TimeframeScreen> {
 
   void _onContinue() {
     ref.read(onboardingProvider).saveStepData('timeframeMonths', _selectedMonths);
-    context.push('/onboarding/result-message');
+    context.push('/onboarding/diet-preference');
   }
 
   @override

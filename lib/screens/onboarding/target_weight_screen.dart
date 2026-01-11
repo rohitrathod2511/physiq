@@ -53,7 +53,7 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
 
   void _onContinue() {
     ref.read(onboardingProvider).saveStepData('targetWeightKg', _targetWeightKg);
-    context.push('/onboarding/motivational-message');
+    context.push('/onboarding/result-message');
   }
 
   @override

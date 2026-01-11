@@ -33,7 +33,7 @@ class ExerciseScreen extends StatelessWidget {
                   spacing: 16,
                   runSpacing: 16,
                   children: [
-                    _buildExerciseButton(context, 'Home Exercises', Icons.home_filled, Colors.orange),
+                    _buildExerciseButton(context, 'Home', Icons.home_filled, Colors.orange),
                     _buildExerciseButton(context, 'Gym', Icons.fitness_center, Colors.blue),
                     _buildExerciseButton(context, 'Run', Icons.directions_run, Colors.green),
                     _buildExerciseButton(context, 'Cycling', Icons.directions_bike, Colors.teal),

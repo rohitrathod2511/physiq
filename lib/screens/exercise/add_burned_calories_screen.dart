@@ -104,3 +104,4 @@ class _AddBurnedCaloriesScreenState extends State<AddBurnedCaloriesScreen> {
     );
   }
 }
+ 
