@@ -109,7 +109,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
               // Status Text
               Text(
                 "${_statusMessages[_currentStepIndex]}...",
-                style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
+                style: AppTextStyles.h2.copyWith(color: AppColors.secondaryText),
                 key: ValueKey<int>(_currentStepIndex), // Animate switch?
               ),
               
@@ -135,7 +135,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   children: [
                     Text(
                       "Daily recommendation for",
-                      style: AppTextStyles.bodyBold.copyWith(fontSize: 18),
+                      style: AppTextStyles.h2.copyWith(fontSize: 18),
                     ),
                     const SizedBox(height: 24),
                     ...List.generate(_checkItems.length, (index) {
@@ -171,7 +171,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: AppTextStyles.body.copyWith(fontSize: 16)),
+          Text(title, style: AppTextStyles.h2.copyWith(fontSize: 16)),
           AnimatedOpacity(
             duration: const Duration(milliseconds: 300),
             opacity: isVisible ? 1.0 : 0.0,

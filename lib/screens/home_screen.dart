@@ -42,7 +42,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               backgroundColor: AppColors.background,
               scrolledUnderElevation: 0, // Prevents color change on scroll
               elevation: 0,
-              toolbarHeight: 70, // Adjusted height for header
+              toolbarHeight: 80, // Adjusted height for header
               titleSpacing: 0,
               title: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),
@@ -83,12 +83,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             )
                           : const Center(child: CircularProgressIndicator()),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 5),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(2, (index) => _buildDot(index, context)),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     // Recent Meals List
                     RecentMealsList(meals: homeState.recentMeals),
                     // Extra padding at bottom for scrolling

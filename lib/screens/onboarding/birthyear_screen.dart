@@ -51,20 +51,31 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
               style: AppTextStyles.h1,
             ),
             Expanded(
-              child: Center(
-                child: SizedBox(
-                  height: 300,
-                  child: ListWheelScrollView.useDelegate(
-                    itemExtent: 50,
-                    perspective: 0.005,
-                    diameterRatio: 1.2,
-                    physics: const FixedExtentScrollPhysics(),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                   // Selection Highlight Overlay
+                  Container(
+                    height: 60,
+                    decoration: BoxDecoration(
+                      border: Border.symmetric(
+                        horizontal: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                      ),
+                    ),
+                  ),
+                  ListWheelScrollView.useDelegate(
                     controller: FixedExtentScrollController(
                       initialItem: years.indexOf(_selectedYear) != -1 ? years.indexOf(_selectedYear) : years.indexOf(2000),
                     ),
+                    itemExtent: 70,
+                    perspective: 0.005,
+                    diameterRatio: 1.5,
+                    physics: const FixedExtentScrollPhysics(),
                     onSelectedItemChanged: (index) {
                       setState(() {
-                        _selectedYear = years[index];
+                         if (index >= 0 && index < years.length) {
+                          _selectedYear = years[index];
+                         }
                       });
                     },
                     childDelegate: ListWheelChildBuilderDelegate(
@@ -73,17 +84,18 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                         final year = years[index];
                         final isSelected = year == _selectedYear;
                         return Center(
-                          child: Text(
-                            year.toString(),
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
                             style: isSelected
-                                ? AppTextStyles.h1.copyWith(fontSize: 32)
-                                : AppTextStyles.h2.copyWith(color: Colors.grey.shade400),
+                                ? AppTextStyles.h1.copyWith(fontSize: 40, color: Colors.black)
+                                : AppTextStyles.h2.copyWith(fontSize: 28, color: Colors.grey.withOpacity(0.4)),
+                            child: Text(year.toString()),
                           ),
                         );
                       },
                     ),
                   ),
-                ),
+                ],
               ),
             ),
             SizedBox(

@@ -63,7 +63,7 @@ class GeneratePlanScreen extends ConsumerWidget {
               
               // Title
               Text(
-                "${(store.goal?.toLowerCase().contains('lose') ?? false) ? 'Lose' : 'Gain'} twice as much\nweight with Physiq vs\non your own",
+                "${(store.goal?.toLowerCase().contains('lose') ?? false) ? 'Lose' : 'Gain'} 10X weight with Physiq vs\non your own",
                 style: AppTextStyles.h1.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ),
@@ -89,7 +89,7 @@ class GeneratePlanScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.center,
-                            child: const Text("20%", style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text("10%", style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -107,7 +107,7 @@ class GeneratePlanScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(16),
                             ),
                             alignment: Alignment.center,
-                            child: const Text("2X", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
+                            child: const Text("10X", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
                           ),
                         ],
                       ),
@@ -116,7 +116,7 @@ class GeneratePlanScreen extends ConsumerWidget {
                   const SizedBox(height: 32),
                   Text(
                     "Physiq makes it easy and holds\nyou accountable",
-                    style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
+                    style: AppTextStyles.h2.copyWith(color: AppColors.secondaryText),
                     textAlign: TextAlign.center,
                   ),
                 ],

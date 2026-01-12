@@ -71,7 +71,7 @@ class _MacroAdjustmentScreenState extends ConsumerState<MacroAdjustmentScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             
             _buildMacroInput('Calories (kcal)', _caloriesController),
             const SizedBox(height: 16),
@@ -87,7 +87,7 @@ class _MacroAdjustmentScreenState extends ConsumerState<MacroAdjustmentScreen> {
             const SizedBox(height: 16),
             _buildMacroInput('Sodium (mg)', _sodiumController),
             
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -100,7 +100,7 @@ class _MacroAdjustmentScreenState extends ConsumerState<MacroAdjustmentScreen> {
                 child: Text('Save Goals', style: AppTextStyles.button.copyWith(color: Colors.white)),
               ),
             ),
-            const SizedBox(height: 80),
+            const SizedBox(height: 60),
           ],
         ),
       ),

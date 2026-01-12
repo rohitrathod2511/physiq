@@ -113,10 +113,10 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
                                 Text(
                                   option['subtitle']!,
                                   textAlign: TextAlign.center,
-                                  style: AppTextStyles.body.copyWith(
-                                    color: isSelected ? Colors.white.withOpacity(0.8) : AppColors.secondaryText,
+                                  style: AppTextStyles.h2.copyWith(
+                                    color: isSelected ? Colors.white : AppColors.primaryText,
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w400,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                               ],

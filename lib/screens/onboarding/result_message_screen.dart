@@ -59,7 +59,7 @@ class ResultMessageScreen extends ConsumerWidget {
                     
                     Text(
                       "90% of users say that the change is obvious after using Physiq and it is not easy to rebound.",
-                      style: AppTextStyles.body.copyWith(
+                      style: AppTextStyles.h2.copyWith(
                         color: AppColors.primaryText,
                         height: 1.5,
                         fontSize: 16,

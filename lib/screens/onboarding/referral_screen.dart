@@ -12,6 +12,7 @@ class ReferralScreen extends StatefulWidget {
 
 class _ReferralScreenState extends State<ReferralScreen> {
   final TextEditingController _controller = TextEditingController();
+  bool _hasInput = false;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +60,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
                             fontWeight: FontWeight.w600,
                             fontFamily: 'Inter',
                           ),
+                          onChanged: (value) {
+                            setState(() {
+                              _hasInput = value.trim().isNotEmpty;
+                            });
+                          },
                           decoration: InputDecoration(
                             hintText: 'Enter referral code',
                             hintStyle: TextStyle(
@@ -70,6 +76,22 @@ class _ReferralScreenState extends State<ReferralScreen> {
                             contentPadding: const EdgeInsets.symmetric(
                               vertical: 16,
                               horizontal: 24,
+                            ),
+                            suffixIcon: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: _hasInput ? Colors.black : Colors.grey.shade200,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(Icons.arrow_forward, size: 20),
+                                  color: _hasInput ? Colors.white : Colors.grey.shade400,
+                                  onPressed: _hasInput 
+                                    ? () => context.push('/onboarding/generate-plan') 
+                                    : null,
+                                ),
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(30),

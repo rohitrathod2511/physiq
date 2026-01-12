@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
         ),
         navigationBarTheme: NavigationBarThemeData(
           // REDUCE HEIGHT HERE: Default is 80, 60 is compact
-          height: 40,
+          height: 60,
           backgroundColor: AppColors.background,
           surfaceTintColor: Colors.transparent,
           indicatorColor: Colors.black.withOpacity(0.05),
