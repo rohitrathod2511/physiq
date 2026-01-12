@@ -36,38 +36,40 @@ class ResultMessageScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              // Progress Bar removed
-              const Spacer(),
-              const Spacer(),
-              
-              // Dynamic Title
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1.3),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextSpan(text: isGain ? "Gaining " : "Losing "),
-                    TextSpan(
-                      text: diffString,
-                      style: const TextStyle(color: Color(0xFFD4A373)), // Light brown/orange
+                    // Dynamic Title
+                    RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1.3),
+                        children: [
+                          TextSpan(text: isGain ? "Gaining " : "Losing "),
+                          TextSpan(
+                            text: diffString,
+                            style: const TextStyle(color: Color(0xFFD4A373)), // Light brown/orange
+                          ),
+                          const TextSpan(text: " is a\nrealistic target. it's\nnot hard at all!"),
+                        ],
+                      ),
                     ),
-                    const TextSpan(text: " is a\nrealistic target. it's\nnot hard at all!"),
+                    const SizedBox(height: 24),
+                    
+                    Text(
+                      "90% of users say that the change is obvious after using Physiq and it is not easy to rebound.",
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.primaryText,
+                        height: 1.5,
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
               
-              Text(
-                "90% of users say that the change is obvious after using Physiq and it is not easy to rebound.",
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.primaryText,
-                  height: 1.5,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              
-              const Spacer(),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

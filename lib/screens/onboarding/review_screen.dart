@@ -116,7 +116,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                      color: Colors.black,
                      value: totalCal.toString(),
                      unit: "",
-                     isEditable: false,
+                     isEditable: true,
                      progress: 1.0,
                    ),
                    // Carbs
@@ -218,14 +218,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 const Spacer(),
                 Center(
                   child: SizedBox(
-                    width: 80,
-                    height: 80,
+                    width: 100,
+                    height: 100,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         CircularProgressIndicator(
                           value: progress,
-                          strokeWidth: 6,
+                          strokeWidth: 8,
                           backgroundColor: Colors.grey.shade100,
                           color: color,
                           strokeCap: StrokeCap.round,

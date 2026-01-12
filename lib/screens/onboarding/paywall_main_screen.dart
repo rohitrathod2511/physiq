@@ -37,7 +37,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.close, color: Colors.grey),
-              onPressed: () => context.go('/home'),
+              onPressed: _handleBack,
             ),
           ],
         ),

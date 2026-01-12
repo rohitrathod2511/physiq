@@ -69,64 +69,57 @@ class GeneratePlanScreen extends ConsumerWidget {
               ),
               const Spacer(),
               
-              // Graph Card
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FE), // Light background
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // Bar 1 (Without)
-                        Column(
-                          children: [
-                            Text("Without\nPhysiq", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
-                            const SizedBox(height: 12),
-                            Container(
-                              width: 80,
-                              height: 60, // ~20% of right bar
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text("20%", style: TextStyle(fontWeight: FontWeight.bold)),
+              // Graph Section (Card Removed)
+              Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Bar 1 (Without)
+                      Column(
+                        children: [
+                          Text("Without\nPhysiq", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: 80,
+                            height: 60, // ~20% of right bar
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ],
-                        ),
-                        const SizedBox(width: 24),
-                        // Bar 2 (With)
-                        Column(
-                          children: [
-                            Text("With\nPhysiq", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
-                            const SizedBox(height: 12),
-                            Container( 
-                              width: 80,
-                              height: 150, // Full height
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text("2X", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
+                            alignment: Alignment.center,
+                            child: const Text("20%", style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 24),
+                      // Bar 2 (With)
+                      Column(
+                        children: [
+                          Text("With\nPhysiq", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
+                          const SizedBox(height: 12),
+                          Container( 
+                            width: 80,
+                            height: 150, // Full height
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      "Physiq makes it easy and holds\nyou accountable",
-                      style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+                            alignment: Alignment.center,
+                            child: const Text("2X", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    "Physiq makes it easy and holds\nyou accountable",
+                    style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
               
               const Spacer(flex: 2),

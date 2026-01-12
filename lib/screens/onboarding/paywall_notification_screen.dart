@@ -15,7 +15,7 @@ class PaywallNotificationScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.grey),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/home'),
         ),
         actions: [
           IconButton(
