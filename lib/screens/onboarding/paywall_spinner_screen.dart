@@ -25,7 +25,7 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen> with Single
     _controller.forward().then((_) {
       // Navigate to offer screen after spin
       if (mounted) {
-        context.push('/onboarding/paywall-offer');
+        context.pushReplacement('/onboarding/paywall-offer');
       }
     });
   }

@@ -60,7 +60,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               
               Row(
                 children: [
-                  Expanded(child: _buildPlanCard('Monthly', '₹499.00/mo', false)),
+                  Expanded(child: _buildPlanCard('Monthly', '₹999.00/mo', false)),
                   const SizedBox(width: 16),
                   Expanded(child: _buildPlanCard('Yearly', '₹166.58/mo', true)),
                 ],
@@ -79,7 +79,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/home'), // Assume purchase success
+                  onPressed: () => context.go('/home'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
@@ -94,7 +94,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               const SizedBox(height: 16),
               Center(
                 child: Text(
-                  "Just ₹990.00 per month",
+                  "Just ₹166.58 per month",
                   style: AppTextStyles.smallLabel,
                 ),
               ),
