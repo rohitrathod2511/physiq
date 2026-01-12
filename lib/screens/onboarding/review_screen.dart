@@ -97,46 +97,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 textAlign: TextAlign.center,
                 style: AppTextStyles.h2.copyWith(fontSize: 24, height: 1.2),
               ),
-              const SizedBox(height: 16),
-              Text(
-                "You should Lose:",
-                style: AppTextStyles.body.copyWith(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 60),
 
-              // 3. Target Summary Pill
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5FA), // Light purple/grey
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Text(
-                  "$targetWeight kg by $dateString",
-                  style: AppTextStyles.h3.copyWith(fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // 4. Daily Recommendation Header
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Daily Recommendation", style: AppTextStyles.h3),
-                    const SizedBox(height: 4),
-                    Text(
-                      "You can edit this any time",
-                      style: AppTextStyles.body.copyWith(color: Colors.grey, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
 
               // 5. Macro Cards Grid
               GridView.count(
@@ -190,41 +152,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
-              
-              // Health Score
-              Container(
-                padding: const EdgeInsets.all(16),
-                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                     Container(
-                       padding: const EdgeInsets.all(8),
-                       decoration: BoxDecoration(
-                         color: Colors.pink.withOpacity(0.1),
-                         borderRadius: BorderRadius.circular(10),
-                       ),
-                       child: const Icon(Icons.health_and_safety, color: Colors.pink),
-                     ),
-                     const SizedBox(width: 16),
-                     Text("Health score", style: AppTextStyles.h3.copyWith(fontSize: 16)),
-                     const Spacer(),
-                     Text("7/10", style: AppTextStyles.h3.copyWith(fontSize: 16)),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
+              const SizedBox(height: 80),
 
               // Button
               SizedBox(
