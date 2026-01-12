@@ -19,7 +19,7 @@ class ExerciseScreen extends StatelessWidget {
               backgroundColor: AppColors.background,
               scrolledUnderElevation: 0,
               elevation: 0,
-              toolbarHeight: 80,
+              toolbarHeight: 70,
               titleSpacing: 0,
               title: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),

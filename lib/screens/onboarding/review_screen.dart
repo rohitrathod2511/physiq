@@ -61,12 +61,22 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
     // Fetch target data
     final targetWeightVal = store.data['targetWeightKg'];
+    final currentWeightVal = store.data['weightKg'];
     final targetWeight = targetWeightVal != null ? targetWeightVal.toStringAsFixed(1) : '--';
+    
+    // Calculate difference
+    double diff = 0;
+    if (targetWeightVal != null && currentWeightVal != null) {
+      diff = (currentWeightVal - targetWeightVal).abs();
+    }
+    final diffString = "${diff.toStringAsFixed(1)} kg";
     
     // Calculate date based on timeframeMonths (default to 6 if missing)
     final months = store.data['timeframeMonths'] ?? 6; 
     final targetDate = DateTime.now().add(Duration(days: months * 30));
     final dateString = _formatDate(targetDate);
+    
+    final isGain = (store.data['goal'] ?? '').toString().toLowerCase().contains('gain');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -76,86 +86,196 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         leading: const BackButton(color: Colors.black),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-          child: Column(
-            children: [
-              // 1. Success Icon (Checkmark)
-              Container(
-                 padding: const EdgeInsets.all(12),
-                 decoration: const BoxDecoration(
-                   color: Colors.black,
-                   shape: BoxShape.circle,
-                 ),
-                 child: const Icon(Icons.check, color: Colors.white, size: 32),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                child: Column(
+                  children: [
+                    // 1. Success Icon (Checkmark)
+                    Container(
+                       padding: const EdgeInsets.all(12),
+                       decoration: const BoxDecoration(
+                         color: Colors.black,
+                         shape: BoxShape.circle,
+                       ),
+                       child: const Icon(Icons.check, color: Colors.white, size: 32),
+                    ),
+                    const SizedBox(height: 24),
+  
+                    // 2. Title
+                    Text(
+                      "Congratulations\nyour custom plan is ready!",
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.h2.copyWith(fontSize: 24, height: 1.2),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 3. Subtext (Goal)
+                    Text(
+                      "You should ${isGain ? 'Gain' : 'Lose'}:",
+                      style: AppTextStyles.bodyBold.copyWith(fontSize: 16, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        "$diffString by $dateString",
+                        style: AppTextStyles.bodyBold.copyWith(fontSize: 14),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 18),
+  
+                    // 4. Daily Recommendation Section
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F9FE), // Light background for the section
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Daily Recommendation",
+                            style: AppTextStyles.h3.copyWith(fontSize: 18),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "You can edit this any time",
+                            style: AppTextStyles.h3.copyWith(color: AppColors.secondaryText, fontSize: 13),
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Macro Grid
+                          GridView.count(
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 0.95,
+                            children: [
+                               // Calories Card
+                               _buildMacroCard(
+                                 title: "Calories",
+                                 icon: Icons.local_fire_department_rounded,
+                                 color: Colors.black,
+                                 value: totalCal.toString(),
+                                 unit: "",
+                                 isEditable: true,
+                                 progress: 1.0,
+                               ),
+                               // Carbs
+                               _buildMacroCard(
+                                 title: "Carbs",
+                                 icon: Icons.grain_rounded,
+                                 color: const Color(0xFFE8AA42), // Wheat/Gold
+                                 controller: _carbsController,
+                                 unit: "g",
+                                 isEditable: true,
+                                 progress: totalCal > 0 ? (c * 4) / totalCal : 0,
+                               ),
+                               // Protein
+                               _buildMacroCard(
+                                 title: "Protein",
+                                 icon: Icons.lunch_dining_rounded,
+                                 color: const Color(0xFFE55B5B), // Red/Pink
+                                 controller: _proteinController,
+                                 unit: "g",
+                                 isEditable: true,
+                                 progress: totalCal > 0 ? (p * 4) / totalCal : 0,
+                               ),
+                               // Fats
+                               _buildMacroCard(
+                                 title: "Fats",
+                                 icon: Icons.water_drop_rounded,
+                                 color: const Color(0xFF5B8BE5), // Blue
+                                 controller: _fatController,
+                                 unit: "g",
+                                 isEditable: true,
+                                 progress: totalCal > 0 ? (f * 9) / totalCal : 0,
+                               ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Health Score Card (Separate)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.pink.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.favorite, color: Colors.pink, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text("Health score", style: AppTextStyles.bodyBold),
+                                    Text("7/10", style: AppTextStyles.h3.copyWith(fontSize: 16)),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    value: 0.7,
+                                    backgroundColor: Colors.grey.shade100,
+                                    color: Colors.green, // Visual match
+                                    minHeight: 6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-
-              // 2. Title & Subtitle
-              Text(
-                "Congratulations\nyour custom plan is ready!",
-                textAlign: TextAlign.center,
-                style: AppTextStyles.h2.copyWith(fontSize: 24, height: 1.2),
+            ),
+            
+            // Fixed Bottom Button
+            Container(
+              padding: const EdgeInsets.all(24.0),
+              decoration: BoxDecoration(
+                color: AppColors.background,
               ),
-              const SizedBox(height: 60),
-
-
-              // 5. Macro Cards Grid
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.85,
-                children: [
-                   // Calories Card
-                   _buildMacroCard(
-                     title: "Calories",
-                     icon: Icons.local_fire_department_rounded,
-                     color: Colors.black,
-                     value: totalCal.toString(),
-                     unit: "",
-                     isEditable: true,
-                     progress: 1.0,
-                   ),
-                   // Carbs
-                   _buildMacroCard(
-                     title: "Carbs",
-                     icon: Icons.grain_rounded,
-                     color: const Color(0xFFE8AA42), // Wheat/Gold
-                     controller: _carbsController,
-                     unit: "g",
-                     isEditable: true,
-                     progress: totalCal > 0 ? (c * 4) / totalCal : 0,
-                   ),
-                   // Protein
-                   _buildMacroCard(
-                     title: "Protein",
-                     icon: Icons.lunch_dining_rounded,
-                     color: const Color(0xFFE55B5B), // Red/Pink
-                     controller: _proteinController,
-                     unit: "g",
-                     isEditable: true,
-                     progress: totalCal > 0 ? (p * 4) / totalCal : 0,
-                   ),
-                   // Fats
-                   _buildMacroCard(
-                     title: "Fats",
-                     icon: Icons.water_drop_rounded,
-                     color: const Color(0xFF5B8BE5), // Blue
-                     controller: _fatController,
-                     unit: "g",
-                     isEditable: true,
-                     progress: totalCal > 0 ? (f * 9) / totalCal : 0,
-                   ),
-                ],
-              ),
-              
-              const SizedBox(height: 80),
-
-              // Button
-              SizedBox(
+              child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -171,9 +291,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   child: const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -203,81 +322,70 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       ),
       child: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // 1. Top Left: Icon + Title
+          Positioned(
+            top: 16,
+            left: 16,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Icon(icon, size: 18, color: color.withOpacity(0.8)),
-                    const SizedBox(width: 8),
-                    Text(title, style: AppTextStyles.bodyBold.copyWith(fontSize: 14)),
-                  ],
-                ),
-                const Spacer(),
-                Center(
-                  child: SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: progress,
-                          strokeWidth: 8,
-                          backgroundColor: Colors.grey.shade100,
-                          color: color,
-                          strokeCap: StrokeCap.round,
-                        ),
-                        Column(
-                           mainAxisSize: MainAxisSize.min,
-                           children: [
-                             if (isEditable && controller != null)
-                               SizedBox(
-                                 width: 50,
-                                 child: TextField(
-                                   controller: controller,
-                                   keyboardType: TextInputType.number,
-                                   textAlign: TextAlign.center,
-                                   style: AppTextStyles.h3.copyWith(fontSize: 16),
-                                   decoration: const InputDecoration(
-                                     border: InputBorder.none,
-                                     isDense: true,
-                                     contentPadding: EdgeInsets.zero,
-                                   ),
-                                   onChanged: (_) => _recalc(),
-                                 ),
-                               )
-                             else
-                               Text(
-                                 value ?? "0",
-                                 style: AppTextStyles.h3.copyWith(fontSize: 18),
-                               ),
-                             if (unit.isNotEmpty)
-                               Text(
-                                 unit, 
-                                 style: TextStyle(
-                                   fontSize: 12, 
-                                   color: Colors.grey[500], 
-                                   fontWeight: FontWeight.w500
-                                 ),
-                               ),
-                           ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const Spacer(),
+                Icon(icon, size: 18, color: color.withOpacity(0.8)),
+                const SizedBox(width: 8),
+                Text(title, style: AppTextStyles.bodyBold.copyWith(fontSize: 14)),
               ],
             ),
           ),
+
+          // 2. Center: Amount + Unit Inline
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                if (isEditable && controller != null)
+                  IntrinsicWidth(
+                    child: TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1.0),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        hintText: "0",
+                      ),
+                      onChanged: (_) => _recalc(),
+                    ),
+                  )
+                else
+                  Text(
+                    value ?? "0",
+                    style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1.0),
+                  ),
+                
+                if (unit.isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    unit, 
+                    style: TextStyle(
+                      fontSize: 16, 
+                      color: Colors.grey[400], 
+                      fontWeight: FontWeight.bold
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // 3. Bottom Right: Edit Icon
           if (isEditable)
             Positioned(
               bottom: 12,
               right: 12,
-              child: Icon(Icons.edit, size: 16, color: Colors.grey[400]),
+              child: Icon(Icons.edit, size: 18, color: Colors.grey[400]),
             ),
         ],
       ),

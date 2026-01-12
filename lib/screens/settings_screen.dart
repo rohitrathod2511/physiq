@@ -31,7 +31,7 @@ class SettingsScreen extends ConsumerWidget {
               backgroundColor: AppColors.background,
               scrolledUnderElevation: 0,
               elevation: 0,
-              toolbarHeight: 80,
+              toolbarHeight: 70,
               titleSpacing: 0,
               title: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),

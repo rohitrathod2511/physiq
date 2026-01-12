@@ -38,7 +38,7 @@ class ProgressScreen extends ConsumerWidget {
               surfaceTintColor: Colors.transparent,
               scrolledUnderElevation: 0,
               elevation: 0,
-              toolbarHeight: 80,
+              toolbarHeight: 70,
               titleSpacing: 0,
               title: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),

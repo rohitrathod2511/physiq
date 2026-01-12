@@ -42,7 +42,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               backgroundColor: AppColors.background,
               scrolledUnderElevation: 0, // Prevents color change on scroll
               elevation: 0,
-              toolbarHeight: 80, // Adjusted height for header
+              toolbarHeight: 70, // Adjusted height for header
               titleSpacing: 0,
               title: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),

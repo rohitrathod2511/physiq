@@ -37,7 +37,7 @@ class GeneratePlanScreen extends ConsumerWidget {
 
     // Navigate to loading to simulate/perform server generation
     if (context.mounted) {
-      context.push('/onboarding/generate-plan');
+      context.push('/onboarding/referral');
     }
   }
 
