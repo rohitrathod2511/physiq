@@ -46,18 +46,24 @@ class _ManualEntryScreenState extends ConsumerState<ManualEntryScreen> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 120,
-                        child: TextField(
-                          controller: _controller,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: '0',
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 120,
+                            child: TextField(
+                              controller: _controller,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: '0',
+                              ),
+                            ),
                           ),
-                        ),
+                          const Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
+                        ],
                       ),
                       Text('Calories', style: AppTextStyles.bodyMedium),
                     ],

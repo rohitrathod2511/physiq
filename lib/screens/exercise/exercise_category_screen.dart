@@ -25,34 +25,37 @@ class ExerciseCategoryScreen extends StatelessWidget {
         itemCount: exercises.length,
         itemBuilder: (context, index) {
           final ex = exercises[index];
-          return Card(
+          return Container(
             margin: const EdgeInsets.only(bottom: 12),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
+            decoration: BoxDecoration(
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(AppRadii.card),
-              side: BorderSide(color: Colors.grey[200]!),
+              boxShadow: [AppShadows.card],
             ),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ExerciseDetailScreen(
-                      exerciseId: ex['id']!,
-                      name: ex['name']!,
-                      category: categoryId,
-                    ),
-                  ),
-                );
-              },
+            child: Material(
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(AppRadii.card),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(ex['name']!, style: AppTextStyles.bodyBold)),
-                    const Icon(Icons.chevron_right, color: AppColors.secondaryText),
-                  ],
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ExerciseDetailScreen(
+                        exerciseId: ex['id']!,
+                        name: ex['name']!,
+                        category: categoryId,
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(AppRadii.card),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(ex['name']!, style: AppTextStyles.bodyBold)),
+                    ],
+                  ),
                 ),
               ),
             ),

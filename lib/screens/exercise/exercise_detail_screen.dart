@@ -84,34 +84,82 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
       context: context,
       builder: (context) {
         final controller = TextEditingController(text: _workDuration.toString());
-        return AlertDialog(
-          title: Text('Set Timer Duration', style: AppTextStyles.heading2),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Seconds', suffixText: 's'),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(AppRadii.card),
+              boxShadow: [AppShadows.card],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Set Duration', style: AppTextStyles.heading2),
+                const SizedBox(height: 24),
+                // Timer Input
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.heading1,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      suffixText: 's',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.secondaryText,
+                        ),
+                        child: Text('Cancel', style: AppTextStyles.button.copyWith(color: AppColors.secondaryText)),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final val = int.tryParse(controller.text);
+                          if (val != null && val > 0) {
+                            setState(() {
+                              _workDuration = val;
+                              if (!_isRunning && _isWork) {
+                                _timeLeft = val;
+                              }
+                            });
+                          }
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: Text('Save', style: AppTextStyles.button.copyWith(color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                final val = int.tryParse(controller.text);
-                if (val != null && val > 0) {
-                  setState(() {
-                    _workDuration = val;
-                    if (!_isRunning && _isWork) {
-                      _timeLeft = val;
-                    }
-                  });
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
         );
       },
     );
