@@ -71,7 +71,7 @@ class PaywallOfferScreen extends StatelessWidget {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          "₹3,000.00",
+                          "₹1,999.00",
                           style: TextStyle(
                             decoration: TextDecoration.lineThrough,
                             color: Colors.grey,
@@ -80,7 +80,7 @@ class PaywallOfferScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          "₹166.66",
+                          "₹99.00",
                           style: AppTextStyles.h1.copyWith(color: Colors.redAccent, fontSize: 32),
                         ),
                         Text(
@@ -149,14 +149,14 @@ class PaywallOfferScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text("Yearly Plan", style: AppTextStyles.h3),
-                            Text("₹166.66 /mo", style: AppTextStyles.h3),
+                            Text("₹99.00/mo", style: AppTextStyles.h3),
                           ],
                         ),
                         const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("12mo • ₹2,000.00", style: AppTextStyles.body.copyWith(color: Colors.grey)),
+                            Text("12mo • ₹1,118.00", style: AppTextStyles.body.copyWith(color: Colors.grey)),
                           ],
                         ),
                       ],

@@ -80,7 +80,7 @@ class PaywallNotificationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              "Just ₹3,000.00 per year (₹250.00/mo)",
+              "Just ₹1,999.00 per year (₹166.58/mo)",
               style: AppTextStyles.smallLabel,
             ),
             const SizedBox(height: 20),

@@ -52,17 +52,17 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              _buildFeatureItem('Easy food scanning', 'Track your calories with just a picture'),
               _buildFeatureItem('Get your dream body', 'We keep it simple to make getting results easy'),
               _buildFeatureItem('Track your progress', 'Stay on track with personalized insights and smart reminders'),
-              
+              _buildFeatureItem('Easy food scanning', 'Track your calories with just a picture'),
+            
               const Spacer(),
               
               Row(
                 children: [
-                  Expanded(child: _buildPlanCard('Monthly', '₹990.00 /mo', false)),
+                  Expanded(child: _buildPlanCard('Monthly', '₹499.00/mo', false)),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildPlanCard('Yearly', '₹250.00/mo', true)),
+                  Expanded(child: _buildPlanCard('Yearly', '₹166.58/mo', true)),
                 ],
               ),
               
