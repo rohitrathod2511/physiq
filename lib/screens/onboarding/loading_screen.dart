@@ -115,11 +115,21 @@ class _LoadingScreenState extends State<LoadingScreen> {
               
               const SizedBox(height: 48),
               
-              // Recommendation List (No Card)
+                // Recommendation List (Card)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
-                // Decoration removed
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
