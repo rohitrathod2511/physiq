@@ -82,10 +82,10 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                   ),
                   child: Column(
                     children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 36),
+                
                       const SizedBox(height: 8),
                       Text(
-                        'Win ₹1,00,000 by staying consistent',
+                        'Win ₹1,00,000 by staying consistent and healthy',
                         style: AppTextStyles.h2.copyWith(color: Colors.white),
                         textAlign: TextAlign.center,
                       ),

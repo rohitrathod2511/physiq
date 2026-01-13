@@ -32,7 +32,7 @@ class PaywallOfferScreen extends StatelessWidget {
                       style: AppTextStyles.h1,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 30),
             
                     // Offer Card
                     Container(
@@ -63,7 +63,7 @@ class PaywallOfferScreen extends StatelessWidget {
                       ),
                     ),
             
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 34),
             
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -74,7 +74,7 @@ class PaywallOfferScreen extends StatelessWidget {
                           "₹1,999.00",
                           style: TextStyle(
                             decoration: TextDecoration.lineThrough,
-                            color: Colors.grey,
+                            color: Colors.black,
                             fontSize: 20,
                           ),
                         ),
@@ -90,13 +90,13 @@ class PaywallOfferScreen extends StatelessWidget {
                       ],
                     ),
             
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 34),
             
-                    _buildBenefitRow(Icons.coffee, "Less than a coffee."),
+                    _buildBenefitRow(Icons.coffee, "Less than a coffee for dream body."),
                     _buildBenefitRow(Icons.warning_amber_rounded, "Close this screen? This price is gone", isWarning: true),
                     _buildBenefitRow(Icons.person, "What are you waiting for?"),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 10),
                   ],
                 ),
               ),
@@ -104,46 +104,30 @@ class PaywallOfferScreen extends StatelessWidget {
             
             // Fixed Bottom Section
             Container(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Free Trial Toggle (Visual only)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Free Trial Enabled", style: AppTextStyles.body),
-                      Switch(value: true, onChanged: (val) {}, activeColor: Colors.black),
-                    ],
-                  ),
-            
-                  const SizedBox(height: 16),
-            
+                  // Free Trial Toggle Removed
+
                   // Plan Summary Card
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
+                      color: const Color(0xFFFAFAFA), // Subtle contrast
                       border: Border.all(color: Colors.black, width: 2),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
-                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06), // Gentle elevation
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Column(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            '3-DAY FREE TRIAL',
-                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
+                      
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -163,7 +147,7 @@ class PaywallOfferScreen extends StatelessWidget {
                     ),
                   ),
                   
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 44),
             
                   SizedBox(
                     width: double.infinity,
@@ -172,24 +156,16 @@ class PaywallOfferScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 24),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text('Start Free Trial'),
+                      child: const Text('Start My Journey'),
                     ),
                   ),
             
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.check, color: Colors.black, size: 16),
-                      const SizedBox(width: 8),
-                      Text("No Commitment - Cancel Anytime", style: AppTextStyles.smallLabel.copyWith(color: Colors.black)),
-                    ],
-                  ),
+                  // Disclaimer Removed
                 ],
               ),
             ),

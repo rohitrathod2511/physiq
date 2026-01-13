@@ -60,21 +60,18 @@ class CalorieAndMacrosPage extends StatelessWidget {
                 circularStrokeCap: CircularStrokeCap.round,
                 backgroundColor: const Color(0xFFF3F4F6),
                 progressColor: Colors.black, // or AppColors.primary
-                center: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.local_fire_department, color: Colors.black, size: 28),
+                center: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "3000",
+                      style: AppTextStyles.heading2.copyWith(fontSize: 28, fontWeight: FontWeight.w800),
+                    ),
+                    Text(
+                      "LEFT",
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText, fontSize: 14),
+                    ),
+                  ],
                 ),
               ),
 
@@ -101,6 +98,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   color: const Color(0xFFFEE2E2), // Light Red/Pink
                   iconColor: const Color(0xFFEF4444), // Red
                   icon: Icons.restaurant_menu,
+                  percent: _getMacroPercent(proteinConsumed, 150.0), 
                 ),
               ),
               const SizedBox(width: 12),
@@ -111,6 +109,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   color: const Color(0xFFFEF3C7), // Light Yellow
                   iconColor: const Color(0xFFF59E0B), // Amber
                   icon: Icons.wb_sunny_outlined,
+                  percent: _getMacroPercent(carbsConsumed, 250.0),
                 ),
               ),
               const SizedBox(width: 12),
@@ -121,6 +120,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   color: const Color(0xFFDBEAFE), // Light Blue
                   iconColor: const Color(0xFF3B82F6), // Blue
                   icon: Icons.water_drop_outlined,
+                  percent: _getMacroPercent(fatConsumed, 70.0),
                 ),
               ),
             ],
@@ -128,6 +128,11 @@ class CalorieAndMacrosPage extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  double _getMacroPercent(dynamic consumed, double goal) {
+    double val = (consumed ?? 0).toInt().toDouble();
+    return (val / goal).clamp(0.0, 1.0);
   }
 
   Widget _buildTopStat({required String label, required String value}) {
@@ -157,6 +162,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
     required Color color,
     required Color iconColor,
     required IconData icon,
+    required double percent,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -173,15 +179,23 @@ class CalorieAndMacrosPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
+            CircularPercentIndicator(
+              radius: 28.0, 
+              lineWidth: 5.0,
+              percent: percent,
+              circularStrokeCap: CircularStrokeCap.round,
+              backgroundColor: Colors.transparent,
+              progressColor: iconColor,
+              center: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 18),
+              ),
             ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
           const SizedBox(height: 12),
           Text(
             value,

@@ -1,33 +1,68 @@
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 
-class MotivationalQuoteScreen extends StatelessWidget {
+class MotivationalQuoteScreen extends StatefulWidget {
   const MotivationalQuoteScreen({super.key});
 
+  @override
+  State<MotivationalQuoteScreen> createState() => _MotivationalQuoteScreenState();
+}
+
+class _MotivationalQuoteScreenState extends State<MotivationalQuoteScreen> {
+  int _currentIndex = 0;
+  Timer? _timer;
+
+  // Leaders Order: Cristiano Ronaldo -> Arnold Schwarzenegger -> Dwayne Johnson -> Virat Kohli -> David Goggins -> Conor McGregor
   final List<Map<String, String>> _quotes = const [
     {
-      'quote': 'Talent without working hard is nothing.',
       'author': 'Cristiano Ronaldo',
-      'desc': 'Discipline & Consistency',
+      'quote': '“I train my body every day because discipline is everything.”',
     },
     {
-      'quote': 'Success starts with self-discipline.',
-      'author': 'Dwayne Johnson',
-      'desc': 'Work Ethic & Fitness',
-    },
-    {
-      'quote': 'Self-belief and hard work will always earn you success.',
-      'author': 'Virat Kohli',
-      'desc': 'Lifestyle & Mindset',
-    },
-    {
-      'quote': 'Strength comes from overcoming the things you thought you couldn\'t.',
       'author': 'Arnold Schwarzenegger',
-      'desc': 'Bodybuilding Legend',
+      'quote': '“The body you build reflects the discipline you live by.”',
+    },
+    {
+      'author': 'Dwayne Johnson',
+      'quote': '“Consistency and discipline separate good from great.”',
+    },
+    {
+      'author': 'Virat Kohli',
+      'quote': '“Fitness gives me the mental edge to perform under pressure.”',
+    },
+    {
+      'author': 'David Goggins',
+      'quote': '“You are not going to find your limit in one workout.”',
+    },
+    {
+      'author': 'Conor McGregor',
+      'quote': '“Excellence is not a singular act but a habit. You are what you do repeatedly.”',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    // Change every 3 seconds (User requested 2.5-3 seconds)
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _currentIndex = (_currentIndex + 1) % _quotes.length;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,58 +74,132 @@ class MotivationalQuoteScreen extends StatelessWidget {
         leading: const BackButton(color: Colors.black),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 16),
-                    // Global Fitness Icon / Visual
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.05),
-                          shape: BoxShape.circle,
+        // "Content sits directly on screen background"
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            // "Center everything vertically (balanced layout)" -> using Spacers
+            children: [
+               // 1. MAIN TITLE (CENTERED, POWERFUL)
+               // "At the top center (below back button)"
+              const SizedBox(height: 10),
+              Text(
+                "Highly successful people train their body as seriously as their mind",
+                style: AppTextStyles.heading1.copyWith(
+                  fontSize: 28, 
+                  height: 1.2,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              
+              // Subtitle REMOVED per user request
+              // "Discipline, consistency, and fitness are non-negotiables for greatness." -> REMOVED
+
+              const SizedBox(height: 16), // Less breathing room needed since subtitle is gone
+
+              const SizedBox(height: 32), // Breathing room
+
+              // 2. SUPPORTING MESSAGE (SHORT, CONVINCING)
+              // EMPHASIZE THIS LINE (ATTENTION GRABBER) - RED
+              Text(
+                "“The world’s top performers track their routines, protect their health, and stay disciplined every single day.”",
+                style: AppTextStyles.bodyBold.copyWith(
+                  color: const Color(0xFFD32F2F), // Red
+                  fontSize: 18, // Slightly larger than normal body text
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w500, // Medium
+                  letterSpacing: 0.5, // Slightly relaxed
+                  height: 1.4, // Comfortable & readable
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              // BENEFIT-ORIENTED LINE (POSITIVE SIGNAL) - GREEN
+              Text(
+                "“This app helps you build the same habits automatically.”",
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: const Color(0xFF2E7D32), // Green
+                  fontSize: 16,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w500, // Medium
+                  letterSpacing: 0.5, // Slightly relaxed
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const Spacer(), // Pushes content to distribute space
+
+              // 3. SUCCESS LEADER QUOTES (AUTO-ROTATING, NO SCROLL)
+              // Display it inside a card, same style as other cards in the app
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(AppRadii.card),
+                  boxShadow: [AppShadows.card],
+                ),
+                child: SizedBox(
+                  height: 140, // Fixed height to prevent layout shifts (Jitter)
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 600), // Smooth fade
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    child: Column(
+                      key: ValueKey<int>(_currentIndex), // Triggers animation
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Leader Name
+                        Text(
+                          _quotes[_currentIndex]['author']!,
+                          style: AppTextStyles.heading2.copyWith(
+                            fontSize: 22,
+                            color: Colors.black,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        child: const Icon(Icons.emoji_events_rounded, size: 48, color: Colors.black),
-                      ),
+                        const SizedBox(height: 16),
+                        // Quote Text
+                        Text(
+                          _quotes[_currentIndex]['quote']!,
+                          style: AppTextStyles.h3.copyWith(
+                            fontSize: 18,
+                            fontStyle: FontStyle.italic,
+                            color: AppColors.secondaryText,
+                            height: 1.4,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 32),
-
-                    // Title
-                    Text(
-                      "How the world’s most successful leaders stay unstoppable",
-                      style: AppTextStyles.h1.copyWith(fontSize: 26, height: 1.3),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Subtitle
-                    Text(
-                      "Discipline is the bridge between goals and accomplishment.",
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.secondaryText,
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 48),
-
-                    // Quotes
-                    ..._quotes.map((q) => _buildQuoteCard(q)),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            
-            // Bottom Button
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: SizedBox(
+
+              const Spacer(),
+
+              // 5. PRE-CALL-TO-ACTION MESSAGE (JUST ABOVE BUTTON)
+              Text(
+                "“You’re about to train like these high performers do.”",
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontSize: 16,
+                  color: const Color(0xFFD32F2F), // Red
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w500, // Medium
+                  letterSpacing: 0.5, // Slightly relaxed
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+
+              // 5. CONTINUE BUTTON (UNCHANGED)
+              SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => context.push('/onboarding/paywall-free'),
@@ -110,68 +219,10 @@ class MotivationalQuoteScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuoteCard(Map<String, String> data) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // Align text to start for better reading
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '"',
-                style: AppTextStyles.h1.copyWith(fontSize: 40, color: Colors.grey.shade300, height: 0.5),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-                  child: Text(
-                    data['quote']!,
-                    style: AppTextStyles.h3.copyWith(fontSize: 18, height: 1.4, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
+              const SizedBox(height: 32),
             ],
           ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  "- ${data['author']}",
-                  style: AppTextStyles.bodyBold.copyWith(fontSize: 14),
-                ),
-                if (data['desc'] != null)
-                  Text(
-                    data['desc']!,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                  ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

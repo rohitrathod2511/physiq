@@ -11,7 +11,7 @@ class PaywallMainScreen extends StatefulWidget {
 }
 
 class _PaywallMainScreenState extends State<PaywallMainScreen> {
-  String _selectedPlan = 'Monthly'; // Monthly or Yearly
+  String _selectedPlan = 'Yearly'; // Monthly or Yearly
 
   void _handleBack() {
     context.push('/onboarding/paywall-spinner');
@@ -47,14 +47,15 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Unlock Physiq to reach\nyour goals faster.",
+                "Unlock Physiq to get your Dream Body.",
                 style: AppTextStyles.h1.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
+              _buildFeatureItem('Activate Leaderboard (Yearly)', 'Win ₹1,00,000 by following streak'),
               _buildFeatureItem('Get your dream body', 'We keep it simple to make getting results easy'),
               _buildFeatureItem('Track your progress', 'Stay on track with personalized insights and smart reminders'),
-              _buildFeatureItem('Easy food scanning', 'Track your calories with just a picture'),
+             
             
               const Spacer(),
               
@@ -94,7 +95,9 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               const SizedBox(height: 16),
               Center(
                 child: Text(
-                  "Just ₹166.58 per month",
+                  _selectedPlan == 'Yearly' 
+                      ? "Just ₹166.58 per month" 
+                      : "Just ₹999.00 per month",
                   style: AppTextStyles.smallLabel,
                 ),
               ),
@@ -152,6 +155,16 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                 Text(title, style: AppTextStyles.body),
                 const SizedBox(height: 8),
                 Text(price, style: AppTextStyles.h3),
+                if (title == 'Yearly') ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    "Less than the cost of a pizza for dream body.",
+                    style: AppTextStyles.smallLabel.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
