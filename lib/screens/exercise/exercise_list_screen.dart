@@ -117,7 +117,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.secondaryText),
+                const SizedBox(width: 8), // Replaced with minimal spacing or just remove
               ],
             ),
           ),

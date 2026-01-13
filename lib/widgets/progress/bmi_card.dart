@@ -118,16 +118,50 @@ class BmiCard extends StatelessWidget {
     return Column(
       children: [
         // The colored bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4), // Rounded corners for the bar
-          child: Row(
-            children: [
-              Expanded(flex: 18, child: Container(height: 8, color: Colors.blue)),
-              Expanded(flex: 7, child: Container(height: 8, color: Colors.green)),
-              Expanded(flex: 5, child: Container(height: 8, color: Colors.orange)),
-              Expanded(flex: 10, child: Container(height: 8, color: Colors.red)),
-            ],
-          ),
+        // The colored bar with indicator
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            // BMI Scale: Starts ~0 (or lower bound?) let's assume 0-40 for mapped range.
+            // Underweight: < 18.5
+            // Healthy: 18.5 - 24.9
+            // Overweight: 25 - 29.9
+            // Obese: 30+
+            // The flux values (18, 7, 5, 10) imply a total of 40 units roughly matching the BMI scale.
+            
+            // Calculate position
+            final double maxBmi = 40.0;
+            final double position = (bmi.clamp(0, maxBmi) / maxBmi) * width;
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4), // Rounded corners for the bar
+                  child: Row(
+                    children: [
+                      Expanded(flex: 18, child: Container(height: 8, color: Colors.blue)),
+                      Expanded(flex: 7, child: Container(height: 8, color: Colors.green)),
+                      Expanded(flex: 5, child: Container(height: 8, color: Colors.orange)),
+                      Expanded(flex: 10, child: Container(height: 8, color: Colors.red)),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: position - 1, // Center the 2px marker
+                  top: -2,
+                  bottom: -2,
+                  child: Container(
+                    width: 2,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 8),
         // 3. ADDED LABELS: New Row with text labels below the bar.

@@ -85,7 +85,25 @@ class _CalorieMainCardState extends State<CalorieMainCard>
             children: [
               Text(caloriesLeft.round().toString(),
                   style: AppTextStyles.largeNumber),
-              Text('Calories left', style: AppTextStyles.label),
+              
+              // NEW: KCAL + Left text
+              Row(
+                children: [
+                  Text('KCAL', 
+                    style: AppTextStyles.label.copyWith(
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w900,
+                    )
+                  ),
+                  const SizedBox(width: 4),
+                  Text('Left', 
+                    style: AppTextStyles.label.copyWith(
+                      fontStyle: FontStyle.italic
+                    )
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -126,8 +144,19 @@ class _CalorieMainCardState extends State<CalorieMainCard>
                                 fontWeight: FontWeight.w700),
                           ),
                           Text(
-                            'LEFT',
-                            style: AppTextStyles.smallLabel,
+                            'KCAL',
+                            style: AppTextStyles.smallLabel.copyWith(
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10, // Slightly smaller to fit
+                            ),
+                          ),
+                          Text(
+                            'Left',
+                            style: AppTextStyles.smallLabel.copyWith(
+                              fontStyle: FontStyle.italic,
+                              fontSize: 10,
+                            ),
                           ),
                         ],
                       ),

@@ -106,7 +106,7 @@ class _MotivationalQuoteScreenState extends State<MotivationalQuoteScreen> {
               Text(
                 "“The world’s top performers track their routines, protect their health, and stay disciplined every single day.”",
                 style: AppTextStyles.bodyBold.copyWith(
-                  color: const Color(0xFFD32F2F), // Red
+                  color: Colors.black, // Changed from Red
                   fontSize: 18, // Slightly larger than normal body text
                   fontStyle: FontStyle.italic,
                   fontWeight: FontWeight.w500, // Medium
@@ -121,7 +121,7 @@ class _MotivationalQuoteScreenState extends State<MotivationalQuoteScreen> {
                 "“This app helps you build the same habits automatically.”",
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: const Color(0xFF2E7D32), // Green
-                  fontSize: 16,
+                  fontSize: 19, // Slightly bulkier (was 16)
                   fontStyle: FontStyle.italic,
                   fontWeight: FontWeight.w500, // Medium
                   letterSpacing: 0.5, // Slightly relaxed

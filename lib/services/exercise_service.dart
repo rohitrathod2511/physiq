@@ -86,7 +86,7 @@ class ExerciseService {
     // In a real app, fetch from Firestore or RemoteConfig
     // Returning hardcoded list for now as per requirements
     return [
-      {'id': 'home', 'title': 'Home Exercises', 'subtitle': 'Bodyweight & at-home routines', 'icon': 'home'},
+      {'id': 'home', 'title': 'Home', 'subtitle': 'Bodyweight & at-home routines', 'icon': 'home'},
       {'id': 'gym', 'title': 'Gym', 'subtitle': 'Gym & equipment-based', 'icon': 'fitness_center'},
       {'id': 'run', 'title': 'Run', 'subtitle': 'Running, jogging, sprinting', 'icon': 'directions_run'},
       {'id': 'cycling', 'title': 'Cycling', 'subtitle': 'Cycle, spin, outdoor', 'icon': 'directions_bike'},

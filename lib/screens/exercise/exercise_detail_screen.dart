@@ -37,6 +37,8 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
   Timer? _timer;
   int _timeLeft = 30;
   int _workDuration = 30; // Customizable work duration
+  int _restDuration = 10; // Customizable rest
+  int _targetRounds = 3; // Customizable rounds
   bool _isWork = true;
   int _rounds = 0;
   bool _isRunning = false;
@@ -70,7 +72,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           } else {
             // Switch mode
             _isWork = !_isWork;
-            _timeLeft = _isWork ? _workDuration : 10; // Use customized duration
+            _timeLeft = _isWork ? _workDuration : _restDuration; // Customizable rest
             if (_isWork) _rounds++;
           }
         });
@@ -79,11 +81,14 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
     setState(() => _isRunning = !_isRunning);
   }
 
-  void _editTimer() {
+  void _editSettings() {
     showDialog(
       context: context,
       builder: (context) {
-        final controller = TextEditingController(text: _workDuration.toString());
+        final workController = TextEditingController(text: _workDuration.toString());
+        final restController = TextEditingController(text: _restDuration.toString());
+        final roundsController = TextEditingController(text: _targetRounds.toString());
+
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.symmetric(horizontal: 24),
@@ -97,35 +102,26 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Set Duration', style: AppTextStyles.heading2),
+                Text('Timer Settings', style: AppTextStyles.heading2),
                 const SizedBox(height: 24),
-                // Timer Input
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: TextField(
-                    controller: controller,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.heading1,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      suffixText: 's',
-                    ),
-                  ),
+                
+                Row(
+                  children: [
+                     Expanded(child: _buildInput('Work (s)', workController)),
+                     const SizedBox(width: 12),
+                     Expanded(child: _buildInput('Rest (s)', restController)),
+                     const SizedBox(width: 12),
+                     Expanded(child: _buildInput('Rounds', roundsController)),
+                  ],
                 ),
+
                 const SizedBox(height: 32),
                 Row(
                   children: [
                     Expanded(
                       child: TextButton(
                         onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.secondaryText,
-                        ),
+                        style: TextButton.styleFrom(foregroundColor: AppColors.secondaryText),
                         child: Text('Cancel', style: AppTextStyles.button.copyWith(color: AppColors.secondaryText)),
                       ),
                     ),
@@ -133,12 +129,18 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          final val = int.tryParse(controller.text);
-                          if (val != null && val > 0) {
+                          final w = int.tryParse(workController.text);
+                          final r = int.tryParse(restController.text);
+                          final rnd = int.tryParse(roundsController.text);
+                          
+                          if (w != null && w > 0 && r != null && r >= 0 && rnd != null && rnd > 0) {
                             setState(() {
-                              _workDuration = val;
+                              _workDuration = w;
+                              _restDuration = r;
+                              _targetRounds = rnd;
+                              // Reset timer if changed
                               if (!_isRunning && _isWork) {
-                                _timeLeft = val;
+                                _timeLeft = _workDuration;
                               }
                             });
                           }
@@ -148,9 +150,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           backgroundColor: AppColors.primary,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         ),
                         child: Text('Save', style: AppTextStyles.button.copyWith(color: Colors.white)),
                       ),
@@ -374,29 +374,64 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
               ],
             ),
           ),
-          // Timer Tab (Now Second)
+            // Timer Tab (Now Second)
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(_isWork ? 'WORK' : 'REST', style: AppTextStyles.heading1.copyWith(color: _isWork ? Colors.green : Colors.orange)),
+              Text(_isWork ? 'Start' : 'Rest', style: AppTextStyles.heading1.copyWith(color: _isWork ? Colors.green : Colors.orange)),
               const SizedBox(height: 20),
+              
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('$_timeLeft', style: AppTextStyles.largeNumber.copyWith(fontSize: 80)),
                   IconButton(
                     icon: const Icon(Icons.edit, color: AppColors.secondaryText),
-                    onPressed: _editTimer,
+                    onPressed: _editSettings,
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              Text('Rounds: $_rounds', style: AppTextStyles.bodyMedium),
+              
+              // Rounds Display with Target
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text('Round $_rounds / $_targetRounds', style: AppTextStyles.bodyBold),
+              ),
+
               const SizedBox(height: 40),
-              FloatingActionButton(
-                onPressed: _toggleTimer,
-                backgroundColor: AppColors.primary,
-                child: Icon(_isRunning ? Icons.pause : Icons.play_arrow),
+
+              // Enhanced Start Button (Replaces FAB)
+              SizedBox(
+                width: 200,
+                child: ElevatedButton(
+                  onPressed: _toggleTimer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 5,
+                    shadowColor: AppColors.primary.withOpacity(0.4),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(_isRunning ? Icons.pause : Icons.play_arrow),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isRunning ? 'Pause' : 'Start', 
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

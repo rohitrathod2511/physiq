@@ -78,17 +78,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         SettingsRow(
                           icon: Icons.person_outline,
                           title: 'Personal details',
+                          showChevron: false,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalDetailsPage())),
                         ),
                         SettingsRow(
                           icon: Icons.pie_chart_outline,
                           title: 'Adjust macronutrients',
+                          showChevron: false,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MacroAdjustmentScreen())),
                         ),
                         SettingsRow(
                           icon: Icons.language,
                           title: 'Language',
                           subtitle: language,
+                          showChevron: false,
                           onTap: () => _showLanguageDialog(language),
                         ),
                         SettingsRow(
@@ -113,21 +116,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         SettingsRow(
                           icon: Icons.description_outlined,
                           title: 'Terms & Conditions',
+                          showChevron: false,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsPage())),
                         ),
                         SettingsRow(
                           icon: Icons.privacy_tip_outlined,
                           title: 'Privacy Policy',
+                          showChevron: false,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPage())),
                         ),
                         SettingsRow(
                           icon: Icons.mail_outline,
                           title: 'Support Email',
+                          showChevron: false,
                           onTap: _sendSupportEmail,
                         ),
                         SettingsRow(
                           icon: Icons.feedback_outlined,
                           title: 'Feature Requests',
+                          showChevron: false,
                           onTap: _showFeatureRequestDialog,
                         ),
                         SettingsRow(

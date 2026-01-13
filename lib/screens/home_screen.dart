@@ -46,7 +46,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               titleSpacing: 0,
               title: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),
-                child: HeaderWidget(title: 'Rohit'),
+                child: HeaderWidget(title: 'Physiq'),
               ),
             ),
             

@@ -16,6 +16,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   late TextEditingController _proteinController;
   late TextEditingController _fatController;
   late TextEditingController _carbsController;
+  late TextEditingController _caloriesController;
   bool _initialized = false;
 
   @override
@@ -28,6 +29,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
        _proteinController = TextEditingController(text: (plan?['proteinG'] ?? 0).toString());
        _fatController = TextEditingController(text: (plan?['fatG'] ?? 0).toString());
        _carbsController = TextEditingController(text: (plan?['carbsG'] ?? 0).toString());
+       _caloriesController = TextEditingController(text: (plan?['goalCalories'] ?? 0).toString());
        _initialized = true;
     }
   }
@@ -168,7 +170,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                  title: "Calories",
                                  icon: Icons.local_fire_department_rounded,
                                  color: Colors.black,
-                                 value: totalCal.toString(),
+                                 controller: _caloriesController,
                                  unit: "",
                                  isEditable: true,
                                  progress: 1.0,

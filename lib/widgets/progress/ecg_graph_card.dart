@@ -56,7 +56,7 @@ class EcgGraphCard extends StatelessWidget {
           onTap: () => onRangeChanged(range),
           child: Container(
             margin: const EdgeInsets.only(left: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: isSelected ? AppColors.accent : Colors.transparent,
               borderRadius: BorderRadius.circular(16),

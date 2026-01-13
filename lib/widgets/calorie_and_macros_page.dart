@@ -53,8 +53,8 @@ class CalorieAndMacrosPage extends StatelessWidget {
 
               // Center Ring
               CircularPercentIndicator(
-                radius: 75.0,
-                lineWidth: 12.0,
+                radius: 80.0,
+                lineWidth: 14.0,
                 animation: true,
                 percent: caloriesPercent,
                 circularStrokeCap: CircularStrokeCap.round,
@@ -68,8 +68,12 @@ class CalorieAndMacrosPage extends StatelessWidget {
                       style: AppTextStyles.heading2.copyWith(fontSize: 28, fontWeight: FontWeight.w800),
                     ),
                     Text(
+                      "KCAL",
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText, fontSize: 14,  fontStyle: FontStyle.italic),
+                    ),
+                    Text(
                       "LEFT",
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText, fontSize: 14),
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText, fontSize: 14,  fontStyle: FontStyle.italic),
                     ),
                   ],
                 ),
@@ -94,7 +98,8 @@ class CalorieAndMacrosPage extends StatelessWidget {
               Expanded(
                 child: _buildMacroCard(
                   label: 'Protein',
-                  value: '${proteinConsumed}g',
+                  consumed: proteinConsumed,
+                  goal: 150,
                   color: const Color(0xFFFEE2E2), // Light Red/Pink
                   iconColor: const Color(0xFFEF4444), // Red
                   icon: Icons.restaurant_menu,
@@ -105,7 +110,8 @@ class CalorieAndMacrosPage extends StatelessWidget {
               Expanded(
                 child: _buildMacroCard(
                   label: 'Carbs',
-                  value: '${carbsConsumed}g',
+                  consumed: carbsConsumed,
+                  goal: 250,
                   color: const Color(0xFFFEF3C7), // Light Yellow
                   iconColor: const Color(0xFFF59E0B), // Amber
                   icon: Icons.wb_sunny_outlined,
@@ -116,7 +122,8 @@ class CalorieAndMacrosPage extends StatelessWidget {
               Expanded(
                 child: _buildMacroCard(
                   label: 'Fats',
-                  value: '${fatConsumed}g',
+                  consumed: fatConsumed,
+                  goal: 70,
                   color: const Color(0xFFDBEAFE), // Light Blue
                   iconColor: const Color(0xFF3B82F6), // Blue
                   icon: Icons.water_drop_outlined,
@@ -158,7 +165,8 @@ class CalorieAndMacrosPage extends StatelessWidget {
 
   Widget _buildMacroCard({
     required String label,
-    required String value,
+    required int consumed,
+    required int goal,
     required Color color,
     required Color iconColor,
     required IconData icon,
@@ -180,26 +188,34 @@ class CalorieAndMacrosPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
             CircularPercentIndicator(
-              radius: 28.0, 
-              lineWidth: 5.0,
+              radius: 32.0, 
+              lineWidth: 6.0,
+              animation: true,
               percent: percent,
               circularStrokeCap: CircularStrokeCap.round,
-              backgroundColor: Colors.transparent,
+              backgroundColor: const Color(0xFFF3F4F6),
               progressColor: iconColor,
-              center: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 18),
-              ),
+              center: Icon(icon, color: iconColor, size: 24),
             ),
           const SizedBox(height: 12),
-          Text(
-            value,
-            style: AppTextStyles.bodyBold.copyWith(fontSize: 16),
+          RichText(
+            text: TextSpan(
+              style: AppTextStyles.bodyBold.copyWith(color: Colors.black, height: 1.0),
+              children: [
+                TextSpan(
+                  text: '$consumed',
+                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                ),
+                TextSpan(
+                  text: ' / $goal',
+                  style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.normal),
+                ),
+                const TextSpan(
+                  text: 'g',
+                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.normal),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 4),
           Text(
