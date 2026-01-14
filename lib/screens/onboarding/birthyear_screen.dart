@@ -54,45 +54,113 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                   // Selection Highlight Overlay
+                  // Selection Highlight Overlay
                   Container(
                     height: 60,
+                    width: double.infinity,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      border: Border.symmetric(
-                        horizontal: BorderSide(color: Colors.grey.withOpacity(0.2)),
-                      ),
+                      color: Colors.grey.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.withOpacity(0.1)),
                     ),
                   ),
-                  ListWheelScrollView.useDelegate(
-                    controller: FixedExtentScrollController(
-                      initialItem: years.indexOf(_selectedYear) != -1 ? years.indexOf(_selectedYear) : years.indexOf(2000),
-                    ),
-                    itemExtent: 70,
-                    perspective: 0.005,
-                    diameterRatio: 1.5,
-                    physics: const FixedExtentScrollPhysics(),
-                    onSelectedItemChanged: (index) {
-                      setState(() {
-                         if (index >= 0 && index < years.length) {
-                          _selectedYear = years[index];
-                         }
-                      });
-                    },
-                    childDelegate: ListWheelChildBuilderDelegate(
-                      childCount: years.length,
-                      builder: (context, index) {
-                        final year = years[index];
-                        final isSelected = year == _selectedYear;
-                        return Center(
-                          child: AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 200),
-                            style: isSelected
-                                ? AppTextStyles.h1.copyWith(fontSize: 40, color: Colors.black)
-                                : AppTextStyles.h2.copyWith(fontSize: 28, color: Colors.grey.withOpacity(0.4)),
-                            child: Text(year.toString()),
+                  Positioned.fill(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Date Slider
+                        Expanded(
+                          child: ListWheelScrollView.useDelegate(
+                            itemExtent: 50,
+                            perspective: 0.005,
+                            diameterRatio: 1.5,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (index) {
+                              // UI only, no logic change
+                            },
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 31,
+                              builder: (context, index) {
+                                return Center(
+                                  child: Text(
+                                    (index + 1).toString(),
+                                    style: AppTextStyles.h2.copyWith(
+                                      fontSize: 24,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        );
-                      },
+                        ),
+                        // Month Slider
+                        Expanded(
+                          child: ListWheelScrollView.useDelegate(
+                            itemExtent: 50,
+                            perspective: 0.005,
+                            diameterRatio: 1.5,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (index) {
+                              // UI only, no logic change
+                            },
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 12,
+                              builder: (context, index) {
+                                final months = [
+                                  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                                  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+                                ];
+                                return Center(
+                                  child: Text(
+                                    months[index],
+                                    style: AppTextStyles.h2.copyWith(
+                                      fontSize: 24,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        // Year Slider
+                        Expanded(
+                          child: ListWheelScrollView.useDelegate(
+                            controller: FixedExtentScrollController(
+                              initialItem: years.indexOf(_selectedYear) != -1 ? years.indexOf(_selectedYear) : years.indexOf(2000),
+                            ),
+                            itemExtent: 50,
+                            perspective: 0.005,
+                            diameterRatio: 1.5,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (index) {
+                              setState(() {
+                                 if (index >= 0 && index < years.length) {
+                                  _selectedYear = years[index];
+                                 }
+                              });
+                            },
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: years.length,
+                              builder: (context, index) {
+                                final year = years[index];
+                                final isSelected = year == _selectedYear;
+                                return Center(
+                                  child: AnimatedDefaultTextStyle(
+                                    duration: const Duration(milliseconds: 200),
+                                    style: isSelected
+                                        ? AppTextStyles.h1.copyWith(fontSize: 28, color: Colors.black)
+                                        : AppTextStyles.h2.copyWith(fontSize: 24, color: Colors.grey.withOpacity(0.4)),
+                                    child: Text(year.toString()),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

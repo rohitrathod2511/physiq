@@ -58,8 +58,8 @@ class UnitToggle extends StatelessWidget {
                       leftLabel,
                       style: TextStyle(
                         fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        color: isLeft ? Colors.black : Colors.grey.shade600,
+                        fontWeight: FontWeight.bold,
+                        color: isLeft ? Colors.black : Colors.grey.shade400,
                       ),
                     ),
                   ),
@@ -74,8 +74,8 @@ class UnitToggle extends StatelessWidget {
                       rightLabel,
                       style: TextStyle(
                         fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        color: !isLeft ? Colors.black : Colors.grey.shade600,
+                        fontWeight: FontWeight.bold,
+                        color: !isLeft ? Colors.black : Colors.grey.shade400,
                       ),
                     ),
                   ),

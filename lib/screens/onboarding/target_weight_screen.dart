@@ -99,13 +99,14 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
                           });
                         },
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 50),
                       UnitToggle(
                         value: _unitSystem,
                         onChanged: _onUnitChanged,
                         leftLabel: 'Metric',
                         rightLabel: 'Imperial',
                       ),
+                
                     ],
                   ),
                 ),
