@@ -55,7 +55,7 @@ class ResultMessageScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 34),
                     
                     Text(
                       "90% of users say that the change is obvious after using Physiq and it is not easy to rebound.",
@@ -85,6 +85,7 @@ class ResultMessageScreen extends ConsumerWidget {
                   child: const Text('Continue'),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),

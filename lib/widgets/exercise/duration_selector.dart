@@ -68,24 +68,42 @@ class _DurationSelectorState extends State<DurationSelector> {
           }).toList(),
         ),
         const SizedBox(height: 16),
-        TextField(
-          controller: _controller,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Custom Duration',
-            filled: true,
-            fillColor: AppColors.card,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
+        
+        // Custom Duration Card
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(AppRadii.card), // Consistent radius
+            boxShadow: [AppShadows.card], // consistent shadow
           ),
-          onChanged: (val) {
-            final intVal = int.tryParse(val);
-            if (intVal != null) {
-              widget.onChanged(intVal);
-            }
-          },
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  keyboardType: TextInputType.number,
+                  style: AppTextStyles.heading2, // Match font size
+                  decoration: InputDecoration(
+                    labelText: 'Custom Duration',
+                    labelStyle: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
+                    border: InputBorder.none, // Remove default border
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (val) {
+                    final intVal = int.tryParse(val);
+                    if (intVal != null) {
+                      widget.onChanged(intVal);
+                    }
+                  },
+                ),
+              ),
+              Text(
+                'min',
+                style: AppTextStyles.bodyBold.copyWith(color: AppColors.secondaryText),
+              ),
+            ],
+          ),
         ),
       ],
     );

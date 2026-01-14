@@ -97,7 +97,7 @@ class _TimeframeScreenState extends ConsumerState<TimeframeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 74),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -113,6 +113,7 @@ class _TimeframeScreenState extends ConsumerState<TimeframeScreen> {
                   child: const Text('Continue'),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),

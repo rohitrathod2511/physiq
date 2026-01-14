@@ -128,7 +128,7 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 26),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -145,6 +145,7 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
                   child: const Text('Continue'),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),

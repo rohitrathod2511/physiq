@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
@@ -18,15 +19,22 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
   bool _isConnecting = false;
   late int _currentWaterMl;
   late int _goalWaterMl;
+  late int _stepsGoal;
 
   @override
   void initState() {
     super.initState();
     // Initialize local state from widget props (converting oz to ml)
     final double waterOz = (widget.dailySummary['waterConsumed'] ?? 0).toDouble();
-    final double goalOz = (widget.dailySummary['waterGoal'] ?? 64).toDouble();
+    // Default water goal changed to 4000ml (approx 135 oz) if not provided
+    final double goalOz = (widget.dailySummary['waterGoal'] ?? 135.25).toDouble(); // 4000ml ~ 135.25oz
+    
     _currentWaterMl = (waterOz * 29.5735).round();
-    _goalWaterMl = (goalOz * 29.5735).round();
+    _goalWaterMl = (widget.dailySummary['waterGoal'] != null) 
+        ? (goalOz * 29.5735).round() 
+        : 4000; // Force default to 4000ml if null/default
+
+    _stepsGoal = (widget.dailySummary['stepsGoal'] ?? 10000).toInt();
   }
 
   void _connectGoogleHealth() async {
@@ -39,6 +47,43 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
         _isConnecting = false;
       });
     }
+  }
+
+  void _editStepGoal() {
+    final controller = TextEditingController(text: _stepsGoal.toString());
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text("Set Step Goal", style: AppTextStyles.heading2),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            suffixText: "steps",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final val = int.tryParse(controller.text);
+              if (val != null && val > 0) {
+                setState(() => _stepsGoal = val);
+              }
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text("Save", style: TextStyle(color: Colors.white)),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -173,8 +218,13 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
 
   Widget _buildStepCard() {
     final int steps = (widget.dailySummary['steps'] ?? 0).toInt();
-    final int stepsGoal = (widget.dailySummary['stepsGoal'] ?? 10000).toInt();
-    final double stepsPercent = (stepsGoal > 0) ? (steps / stepsGoal).clamp(0.0, 1.0) : 0.0;
+    
+    // Logic Changed: Progress Bar fills as you walk (steps / goal)
+    // Content displays Remaining Goal (Goal - Steps)
+    final double stepsPercent = (_stepsGoal > 0) ? (steps / _stepsGoal).clamp(0.0, 1.0) : 0.0;
+    
+    // Decrease the number inside the ring as user walks
+    final int remainingGoal = (_stepsGoal - steps).clamp(0, _stepsGoal);
     
     final int burnedFromSteps = (steps * 0.04).toInt();
 
@@ -196,13 +246,6 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
         borderRadius: BorderRadius.circular(32),
         child: Stack(
           children: [
-             // ... existing step card code ...
-             // Optimization: I'll preserve the StepCard content as I'm not supposed to change it.
-             // But I need to provide the full replacement or use multi_replace.
-             // Since I'm replacing the whole file content for the Sheet part, I should be careful.
-             // Wait, I am using replace_file_content for the whole file? No, just the function is risky if I don't have the step card code.
-             // I will use the previous view_file output to reconstruct the step card code EXACTLY.
-             
             // Active State
             AnimatedOpacity(
               duration: const Duration(milliseconds: 500),
@@ -227,13 +270,29 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
                         center: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              '$steps',
-                              style: AppTextStyles.heading2.copyWith(fontSize: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$remainingGoal', 
+                                  style: AppTextStyles.heading2.copyWith(fontSize: 22), 
+                                ),
+                                const SizedBox(width: 4),
+                                GestureDetector(
+                                  onTap: _editStepGoal,
+                                  child: const Icon(Icons.edit, size: 16, color: AppColors.secondaryText),
+                                )
+                              ],
                             ),
+                            const SizedBox(height: 2), // Small spacing
                             Text(
-                              'steps',
-                              style: AppTextStyles.smallLabel,
+                              'GOAL', // Changed from 'steps' to 'GOAL'
+                              style: AppTextStyles.bodyBold.copyWith(
+                                color: AppColors.secondaryText,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold
+                              ),
                             ),
                           ],
                         ),
@@ -377,8 +436,6 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
         });
     }
 
-
-
     void _adjustGoal(int sign) {
         setState(() {
             _currentGoal += (sign * _selectedUnit);
@@ -427,18 +484,18 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
                             _buildControlBtn(Icons.remove, () => _increment(-1)),
                             const SizedBox(width: 24),
                             SizedBox(
-                              width: 140, // Fixed width for stability
-                              child: Column(
-                                  children: [
-                                      Text(
-                                        _currentTotal >= 1000 
-                                          ? "${(_currentTotal / 1000).toStringAsFixed(2)} L" 
-                                          : "$_currentTotal ml", 
-                                        style: AppTextStyles.heading1.copyWith(fontSize: 40)
-                                      ),
-                                      Text("Today's Total", style: AppTextStyles.smallLabel),
-                                  ]
-                              ),
+                                width: 140, // Fixed width for stability
+                                child: Column(
+                                    children: [
+                                        Text(
+                                          _currentTotal >= 1000 
+                                            ? "${(_currentTotal / 1000).toStringAsFixed(2)} L" 
+                                            : "$_currentTotal ml", 
+                                          style: AppTextStyles.heading1.copyWith(fontSize: 40)
+                                        ),
+                                        Text("Today's Total", style: AppTextStyles.smallLabel),
+                                    ]
+                                ),
                             ),
                             const SizedBox(width: 24),
                             _buildControlBtn(Icons.add, () => _increment(1)),
