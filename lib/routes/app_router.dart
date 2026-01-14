@@ -8,7 +8,7 @@ import 'package:physiq/screens/settings/settings_screen.dart';
 import 'package:physiq/screens/meal_history_screen.dart';
 import 'package:physiq/screens/onboarding/splash_screen.dart';
 import 'package:physiq/screens/onboarding/get_started_screen.dart';
-import 'package:physiq/screens/onboarding/sign_in_screen.dart';
+import 'package:physiq/screens/onboarding/sign_up_screen.dart';
 import 'package:physiq/screens/onboarding/name_screen.dart';
 import 'package:physiq/screens/onboarding/gender_screen.dart';
 import 'package:physiq/screens/onboarding/birthyear_screen.dart';
@@ -77,7 +77,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/sign-in',
-      builder: (context, state) => const SignInScreen(),
+      builder: (context, state) => const SignUpScreen(),
     ),
     
     // Onboarding Flow

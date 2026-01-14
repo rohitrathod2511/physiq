@@ -4,14 +4,19 @@ import 'package:physiq/theme/design_system.dart';
 
 class CalorieAndMacrosPage extends StatelessWidget {
   final Map<String, dynamic> dailySummary;
+  final Map<String, dynamic>? currentPlan;
 
-  const CalorieAndMacrosPage({super.key, required this.dailySummary});
+  const CalorieAndMacrosPage({
+    super.key,
+    required this.dailySummary,
+    this.currentPlan,
+  });
 
   @override
   Widget build(BuildContext context) {
     // Extract data
-    final int caloriesGoal = (dailySummary['caloriesGoal'] ?? 2000).toInt();
-    final int caloriesConsumed = (dailySummary['caloriesConsumed'] ?? 0).toInt();
+    final int caloriesGoal = (currentPlan?['calories'] ?? dailySummary['caloriesGoal'] ?? 2000).toInt();
+    final int caloriesConsumed = (dailySummary['caloriesConsumed'] ?? dailySummary['calories'] ?? 0).toInt();
     final int caloriesBurned = (dailySummary['caloriesBurned'] ?? 0).toInt();
 
     final double caloriesPercent = (caloriesGoal > 0)
@@ -19,9 +24,13 @@ class CalorieAndMacrosPage extends StatelessWidget {
         : 0.0;
 
     // Macros
-    final int carbsConsumed = (dailySummary['carbsConsumed'] ?? 0).toInt();
-    final int proteinConsumed = (dailySummary['proteinConsumed'] ?? 0).toInt();
-    final int fatConsumed = (dailySummary['fatConsumed'] ?? 0).toInt();
+    final int carbsConsumed = (dailySummary['carbsConsumed'] ?? dailySummary['carbs'] ?? 0).toInt();
+    final int proteinConsumed = (dailySummary['proteinConsumed'] ?? dailySummary['protein'] ?? 0).toInt();
+    final int fatConsumed = (dailySummary['fatConsumed'] ?? dailySummary['fat'] ?? 0).toInt();
+    
+    final int proteinGoal = (currentPlan?['protein'] ?? 150).toInt();
+    final int carbsGoal = (currentPlan?['carbs'] ?? 250).toInt();
+    final int fatGoal = (currentPlan?['fat'] ?? 70).toInt();
 
     return Column(
       children: [
@@ -64,7 +73,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "3000",
+                      "${caloriesGoal - caloriesConsumed}",
                       style: AppTextStyles.heading2.copyWith(fontSize: 28, fontWeight: FontWeight.w800),
                     ),
                     Text(
@@ -99,11 +108,11 @@ class CalorieAndMacrosPage extends StatelessWidget {
                 child: _buildMacroCard(
                   label: 'Protein',
                   consumed: proteinConsumed,
-                  goal: 150,
+                  goal: proteinGoal,
                   color: const Color(0xFFFEE2E2), // Light Red/Pink
                   iconColor: const Color(0xFFEF4444), // Red
                   icon: Icons.restaurant_menu,
-                  percent: _getMacroPercent(proteinConsumed, 150.0), 
+                  percent: _getMacroPercent(proteinConsumed, proteinGoal.toDouble()), 
                 ),
               ),
               const SizedBox(width: 12),
@@ -111,11 +120,11 @@ class CalorieAndMacrosPage extends StatelessWidget {
                 child: _buildMacroCard(
                   label: 'Carbs',
                   consumed: carbsConsumed,
-                  goal: 250,
+                  goal: carbsGoal,
                   color: const Color(0xFFFEF3C7), // Light Yellow
                   iconColor: const Color(0xFFF59E0B), // Amber
                   icon: Icons.wb_sunny_outlined,
-                  percent: _getMacroPercent(carbsConsumed, 250.0),
+                  percent: _getMacroPercent(carbsConsumed, carbsGoal.toDouble()),
                 ),
               ),
               const SizedBox(width: 12),
@@ -123,11 +132,11 @@ class CalorieAndMacrosPage extends StatelessWidget {
                 child: _buildMacroCard(
                   label: 'Fats',
                   consumed: fatConsumed,
-                  goal: 70,
+                  goal: fatGoal,
                   color: const Color(0xFFDBEAFE), // Light Blue
                   iconColor: const Color(0xFF3B82F6), // Blue
                   icon: Icons.water_drop_outlined,
-                  percent: _getMacroPercent(fatConsumed, 70.0),
+                  percent: _getMacroPercent(fatConsumed, fatGoal.toDouble()),
                 ),
               ),
             ],

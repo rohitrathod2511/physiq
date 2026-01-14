@@ -12,7 +12,20 @@
           "package_name": "com.example.physiq"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "523807139910-fu2uv508bdh7no32sqpuh00bq6ej2aq4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.physiq",
+            "certificate_hash": "bb7f10b20fb95f16df5aaf0e422aceeea43c9f20"
+          }
+        },
+        {
+          "client_id": "523807139910-estoe8q4dgnp4dk8s0590p7oiiofs6mc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAkhcir3c93LjX1bGOZ7OHnjbbVloSF0m0"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "523807139910-estoe8q4dgnp4dk8s0590p7oiiofs6mc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "523807139910-ioohd84ujjdl01nqqntsmr9f4cnk8bth.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.physiq"
+              }
+            }
+          ]
         }
       }
     }

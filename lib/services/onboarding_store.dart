@@ -8,6 +8,9 @@ class OnboardingStore extends ChangeNotifier {
   Map<String, dynamic> _data = {};
 
   Map<String, dynamic> get data => _data;
+  
+  // Helper getters
+  bool get isGuest => _data['isGuest'] ?? false;
 
   Future<void> loadDraft() async {
     final prefs = await SharedPreferences.getInstance();

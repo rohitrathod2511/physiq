@@ -1,15 +1,16 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
-// import 'package:physiq/services/user_repository.dart';
+import 'package:physiq/services/user_repository.dart';
 import 'package:physiq/widgets/settings/settings_widgets.dart';
 import 'package:physiq/screens/settings/invite_friends_page.dart';
 import 'package:physiq/screens/settings/leaderboard_page.dart';
 import 'package:physiq/screens/settings/personal_details_page.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/screens/settings/legal_pages.dart';
-import 'package:physiq/screens/onboarding/get_started_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:physiq/providers/preferences_provider.dart';
 import 'package:physiq/services/support_service.dart';
@@ -205,13 +206,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   Expanded(child: _buildLanguageCard('English', currentLang == 'English')),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildLanguageCard('Hindi', currentLang == 'Hindi')), // Using Hindi as per code, user said Marathi but code has Hindi. I'll stick to code logic but maybe label it Marathi if user asked? User asked "English + Marathi". I should probably add Marathi or rename Hindi.
-                  // The user explicitly asked for "English + Marathi".
-                  // I will change 'Hindi' to 'Marathi' in the UI and logic if possible, or just add Marathi.
-                  // But the code uses 'hi' locale. Marathi is 'mr'.
-                  // I'll stick to what the code has ('Hindi') but maybe the user wants me to CHANGE it to Marathi?
-                  // "two cards: English + Marathi."
-                  // I will change 'Hindi' to 'Marathi' and use 'mr' locale.
+                  Expanded(child: _buildLanguageCard('Hindi', currentLang == 'Hindi')),
                 ],
               ),
             ],
@@ -224,7 +219,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildLanguageCard(String language, bool isSelected) {
     return GestureDetector(
       onTap: () async {
-        final locale = language == 'Marathi' ? const Locale('mr') : const Locale('en');
+        final locale = language == 'Hindi' ? const Locale('hi') : const Locale('en');
         await ref.read(preferencesProvider.notifier).setLocale(locale);
         if (mounted) Navigator.pop(context);
       },
@@ -366,17 +361,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         try {
                           final uid = _auth.currentUser?.uid;
                           if (uid != null) {
-                            await _cloudFunctions.deleteUserData(uid);
+                            await ref.read(userRepositoryProvider).deleteUserData(uid);
                             await ref.read(preferencesProvider.notifier).clear();
-                            await AuthService().signOut();
+                            
+                            // Delete from Firebase Auth
+                            await AuthService().deleteUser();
                             
                             if (mounted) { 
                               Navigator.pop(context); // Pop loading
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(builder: (_) => const GetStartedScreen()),
-                                (route) => false,
-                              );
+                              // Use GoRouter to hard reset to Get Started
+                              context.go('/get-started'); 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Account deleted successfully')),
                               );
@@ -446,15 +440,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        Navigator.pop(context);
+                        Navigator.pop(context); // Close Dialog
                         await ref.read(preferencesProvider.notifier).clear();
                         await AuthService().signOut();
                         if (mounted) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (_) => const GetStartedScreen()),
-                            (route) => false,
-                          );
+                          // Use GoRouter to hard reset
+                          context.go('/get-started'); 
                         }
                       },
                       style: ElevatedButton.styleFrom(

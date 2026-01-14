@@ -17,6 +17,7 @@ class UserModel {
   final double leaderboardScore;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final Map<String, dynamic>? nutritionGoals;
 
   UserModel({
     required this.uid,
@@ -35,28 +36,34 @@ class UserModel {
     this.leaderboardScore = 0.0,
     this.createdAt,
     this.updatedAt,
+    this.nutritionGoals,
   });
 
   factory UserModel.fromMap(String uid, Map<String, dynamic> data) {
+    final profile = data['profile'] as Map<String, dynamic>? ?? {};
+    final goals = data['goals'] as Map<String, dynamic>? ?? {};
+    final nutrition = data['nutrition'] as Map<String, dynamic>? ?? {};
+
     return UserModel(
       uid: uid,
-      displayName: data['displayName'] ?? '',
-      birthYear: data['birthYear'],
-      gender: data['gender'],
-      heightCm: (data['heightCm'] as num?)?.toDouble(),
-      weightKg: (data['weightKg'] as num?)?.toDouble(),
-      goalWeightKg: (data['goalWeightKg'] as num?)?.toDouble(),
+      displayName: profile['name'] ?? data['displayName'] ?? '',
+      birthYear: profile['birthYear'] ?? profile['birthDate'] ?? data['birthYear'],
+      gender: profile['gender'] ?? data['gender'],
+      heightCm: (profile['height'] ?? data['heightCm'] as num?)?.toDouble(),
+      weightKg: (profile['weight'] ?? data['weightKg'] as num?)?.toDouble(),
+      goalWeightKg: (goals['targetWeight'] ?? data['goalWeightKg'] as num?)?.toDouble(),
       dailyStepGoal: data['dailyStepGoal'],
       preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
-      currentPlan: data['currentPlan'],
+      currentPlan: data['currentPlan'] ?? nutrition, // Fallback or mapping
       isPremium: data['isPremium'] ?? false,
       invites: data['invites'] != null ? UserInvites.fromMap(data['invites']) : null,
       referrals: (data['referrals'] as List?)
           ?.map((e) => Referral.fromMap(e))
           .toList(),
       leaderboardScore: (data['leaderboardScore'] as num?)?.toDouble() ?? 0.0,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      createdAt: (data['auth']?['createdAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+      nutritionGoals: nutrition.isNotEmpty ? nutrition : data['nutritionGoals'],
     );
   }
 
@@ -77,6 +84,7 @@ class UserModel {
       'leaderboardScore': leaderboardScore,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'nutritionGoals': nutritionGoals,
     };
   }
 }

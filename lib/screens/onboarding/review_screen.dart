@@ -1,9 +1,11 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/providers/onboarding_provider.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:physiq/viewmodels/home_viewmodel.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
   const ReviewScreen({super.key});
@@ -38,19 +40,59 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     setState(() {});
   }
 
-  void _onSave() {
+  Future<void> _onSave() async {
     final store = ref.read(onboardingProvider);
-    final plan = Map<String, dynamic>.from(store.data['currentPlan'] ?? {});
+    final initialPlan = store.data['currentPlan'] as Map<String, dynamic>? ?? {};
     
-    plan['proteinG'] = int.tryParse(_proteinController.text) ?? 0;
-    plan['fatG'] = int.tryParse(_fatController.text) ?? 0;
-    plan['carbsG'] = int.tryParse(_carbsController.text) ?? 0;
+    // Parse current values
+    final p = int.tryParse(_proteinController.text) ?? 0;
+    final f = int.tryParse(_fatController.text) ?? 0;
+    final c = int.tryParse(_carbsController.text) ?? 0;
+    final cal = int.tryParse(_caloriesController.text) ?? 0;
     
-    // Recalculate calories
-    plan['goalCalories'] = (plan['proteinG'] * 4) + (plan['fatG'] * 9) + (plan['carbsG'] * 4);
+    // Determine if edited
+    final initialP = initialPlan['protein'] ?? initialPlan['proteinG'] ?? 0;
+    final initialF = initialPlan['fat'] ?? initialPlan['fatG'] ?? 0;
+    final initialC = initialPlan['carbs'] ?? initialPlan['carbsG'] ?? 0;
+    final initialCal = initialPlan['calories'] ?? initialPlan['goalCalories'] ?? 0;
     
-    store.saveStepData('currentPlan', plan);
-    context.push('/onboarding/notification');
+    // Check if values changed significantly (allowing for string/int parsing diffs)
+    bool isEdited = (p != initialP) || (f != initialF) || (c != initialC) || (cal != initialCal);
+    
+    final String source = isEdited ? 'manual' : (initialPlan['source'] ?? 'calculated');
+    
+    final currentPlan = {
+      'calories': cal,
+      'protein': p,
+      'carbs': c,
+      'fat': f,
+      'source': source,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    
+    // Save to Firestore
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'currentPlan': currentPlan,
+          // Ensure profile is also saved/merged if not already
+          ...store.data,
+        }, SetOptions(merge: true));
+      } catch (e) {
+        print("Error saving current plan: $e");
+      }
+    }
+
+    // Update local state
+    store.saveStepData('currentPlan', currentPlan);
+
+    // Update HomeViewModel state immediately (Shared Frontend State)
+    ref.read(homeViewModelProvider.notifier).updateCurrentPlan(currentPlan);
+    
+    if (mounted) {
+      context.push('/onboarding/notification');
+    }
   }
 
   @override

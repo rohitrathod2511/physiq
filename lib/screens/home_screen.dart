@@ -73,7 +73,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                  child: CalorieAndMacrosPage(dailySummary: homeState.dailySummary!),
+                                  child: CalorieAndMacrosPage(
+                                    dailySummary: homeState.dailySummary!,
+                                    currentPlan: homeState.currentPlan,
+                                  ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 4.0),

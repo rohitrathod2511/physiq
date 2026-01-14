@@ -1,9 +1,11 @@
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// A simple configuration class to toggle between mock and real backends.
 class AppConfig {
-  static const bool useMockBackend = true;
+  static const bool useMockBackend = false;
   static const bool mockDelete = true;
   static const int referralReward = 100;
   static const int referralBonusAt = 5;
@@ -26,17 +28,19 @@ class AuthUser {
   });
 }
 
-/// A service to handle all authentication-related tasks, with a mock mode.
+/// A service to handle all authentication-related tasks.
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  // CORRECTED: Use the constructor, not the old `.instance` getter.
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Listen to auth state changes (Single Source of Truth)
+  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
   /// Returns the current user as a custom [AuthUser] object.
   AuthUser? getCurrentUser() {
     if (AppConfig.useMockBackend) {
-      return AuthUser(
+       return AuthUser(
         uid: 'mock_user_id',
         displayName: 'Test User',
         email: 'test@user.com',
@@ -52,81 +56,238 @@ class AuthService {
     return _userFromFirebase(firebaseUser);
   }
 
-  /// Signs in the user with Google.
-  Future<AuthUser?> signInWithGoogle() async {
-    if (AppConfig.useMockBackend) {
-      print("AuthService (Mock): Signing in with Google...");
-      return AuthUser(uid: 'mock_google_user', displayName: 'Google User', email: 'google.user@example.com');
+  // -----------------------------------------------------------------------------
+  // 1️⃣ RESET PASSWORD (FORGOT PASSWORD)
+  // -----------------------------------------------------------------------------
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    if (email.isEmpty) {
+      throw 'Please enter a valid email address.';
+    }
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        throw 'No user found for this email.';
+      } else if (e.code == 'invalid-email') {
+        throw 'The email address is invalid.';
+      } else {
+        throw e.message ?? 'An error occurred while sending reset email.';
+      }
+    } catch (e) {
+      throw 'Failed to send reset email. Please try again.';
+    }
+  }
+
+  // -----------------------------------------------------------------------------
+  // 2️⃣ UPDATE USERNAME (DISPLAY NAME)
+  // -----------------------------------------------------------------------------
+
+  Future<void> updateUsername(String newName) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) throw 'No user signed in.';
+
+    try {
+      // Update Firebase Auth displayName
+      await user.updateDisplayName(newName);
+
+      // Update Firestore: users/{uid}.profile.name
+      await _firestore.collection('users').doc(user.uid).set({
+        'profile': {'name': newName}
+      }, SetOptions(merge: true));
+
+    } catch (e) {
+      throw 'Failed to update username: $e';
+    }
+  }
+
+  // -----------------------------------------------------------------------------
+  // 3️⃣ EMAIL SIGN-IN FLOW
+  // -----------------------------------------------------------------------------
+
+  Future<UserCredential?> signInWithEmail(String email, String password) async {
+    try {
+      final credential = await _firebaseAuth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // After success: Ensure Firestore user document exists
+      if (credential.user != null) {
+        await _ensureUserDocumentExists(
+          credential.user!,
+          authProvider: 'email',
+        );
+      }
+
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      // Throw meaningful error messages for UI to catch
+      if (e.code == 'user-not-found') throw 'No user found for that email.';
+      if (e.code == 'wrong-password') throw 'Wrong password provided.';
+      if (e.code == 'invalid-email') throw 'The email address is invalid.';
+      throw e.message ?? 'Sign in failed.';
+    } catch (e) {
+      throw 'An unexpected error occurred: $e';
+    }
+  }
+
+  Future<UserCredential?> signUpWithEmail(
+    String email,
+    String password, {
+    required String name,
+    Map<String, dynamic>? onboardingData,
+  }) async {
+    // Validate password length
+    if (password.length < 6) {
+      throw 'Password must be at least 6 characters.';
     }
 
     try {
+      final credential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = credential.user;
+      if (user != null) {
+        // Update display name immediately
+        await user.updateDisplayName(name);
+
+        // Ensure Firestore user document exists (Create account)
+        await _ensureUserDocumentExists(
+            user, 
+            defaultName: name, 
+            authProvider: 'email',
+            onboardingData: onboardingData
+        );
+      }
+
+      return credential;
+    } on FirebaseAuthException catch (e) {
+       if (e.code == 'weak-password') throw 'The password provided is too weak.';
+       if (e.code == 'email-already-in-use') throw 'The account already exists for that email.';
+       throw e.message ?? 'Sign up failed.';
+    } catch (e) {
+       throw 'An unexpected error occurred: $e';
+    }
+  }
+
+  // -----------------------------------------------------------------------------
+  // 4️⃣ GOOGLE SIGN-IN
+  // -----------------------------------------------------------------------------
+
+  Future<UserCredential?> signInWithGoogle({
+    String? name, 
+    Map<String, dynamic>? onboardingData
+  }) async {
+    try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        return null; // The user canceled the sign-in.
+         // User cancelled
+         return null;
       }
+
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
+
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
       final user = userCredential.user;
 
-      if (user == null) return null;
-      return _userFromFirebase(user);
+      if (user != null) {
+        // Creates Firestore user if not exists
+        await _ensureUserDocumentExists(
+          user, 
+          defaultName: name ?? user.displayName ?? 'User',
+          authProvider: 'google',
+          onboardingData: onboardingData
+        );
+      }
 
+      return userCredential;
     } catch (e) {
-      print("Google Sign-In Error: $e");
-      return null;
+      throw 'Google Sign-In failed: $e';
     }
   }
 
-  /// Signs in a user with the given [email] and [password].
-  Future<AuthUser?> signInWithEmail(String email, String password) async {
-    if (AppConfig.useMockBackend) {
-      print("AuthService (Mock): Signing in with Email...");
-       return AuthUser(uid: 'mock_email_user', displayName: 'Email User', email: email);
-    }
+  // -----------------------------------------------------------------------------
+  // 5️⃣ ANONYMOUS USER SUPPORT
+  // -----------------------------------------------------------------------------
+
+  Future<UserCredential?> signInAnonymously({
+    String? name, 
+    Map<String, dynamic>? onboardingData
+  }) async {
     try {
-       final UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      // 1. Authenticate anonymously
+      final userCredential = await _firebaseAuth.signInAnonymously();
       final user = userCredential.user;
-      if (user == null) return null;
-      return _userFromFirebase(user);
-    } catch(e) {
-      print("Email Sign-In Error: $e" );
-      return null;
+
+      // 2. Ensure Firestore document
+      if (user != null) {
+        await _ensureUserDocumentExists(
+          user,
+          defaultName: name ?? 'Guest',
+          authProvider: 'anonymous',
+          isAnonymous: true,
+          onboardingData: onboardingData
+        );
+      }
+
+      return userCredential;
+    } catch (e) {
+      throw 'Anonymous Sign-In failed: $e';
     }
   }
 
-  /// Signs in the user anonymously.
-  Future<AuthUser?> signInAnonymously() async {
-    if (AppConfig.useMockBackend) {
-      print("AuthService (Mock): Signing in Anonymously...");
-      return AuthUser(uid: 'mock_user', displayName: 'Test User');
-    }
-    try {
-       final UserCredential userCredential = await _firebaseAuth.signInAnonymously();
-       final user = userCredential.user;
-      if (user == null) return null;
-      return _userFromFirebase(user);
-    } catch(e) {
-      print("Anonymous Sign-In Error: $e");
-      return null;
-    }
+  // -----------------------------------------------------------------------------
+  // UTILITIES & HELPERS
+  // -----------------------------------------------------------------------------
+
+  Future<void> _ensureUserDocumentExists(
+    User user, {
+    String? defaultName,
+    String? authProvider,
+    bool isAnonymous = false,
+    Map<String, dynamic>? onboardingData,
+  }) async {
+    final docRef = _firestore.collection('users').doc(user.uid);
+    final snapshot = await docRef.get();
+
+    final dataToSave = {
+      if (!snapshot.exists)
+        'profile': {
+          'name': defaultName ?? user.displayName ?? 'User',
+          'email': user.email,
+        },
+      'meta': {
+         if (!snapshot.exists) 'created_at': FieldValue.serverTimestamp(),
+         'isAnonymous': isAnonymous,
+         'last_login': FieldValue.serverTimestamp(),
+         if (authProvider != null) 'auth_provider': authProvider,
+      },
+      if (onboardingData != null) ...onboardingData,
+    };
+
+    // Use SetOptions(merge: true) to enable merging even with simple maps
+    await docRef.set(dataToSave, SetOptions(merge: true));
   }
 
-  /// Signs out the current user from all providers.
+  AuthUser _userFromFirebase(User user) {
+    return AuthUser(
+      uid: user.uid,
+      displayName: user.displayName,
+      email: user.email,
+      goalWeightKg: null,
+      birthYear: null,
+    );
+  }
+
   Future<void> signOut() async {
-    if (AppConfig.useMockBackend) {
-      print("AuthService (Mock): Signing out...");
-      return;
-    }
     try {
-      // CORRECTED: The `isSignedIn()` method was removed.
-      // Check `currentUser` to see if the user is signed in with Google.
       if (_googleSignIn.currentUser != null) {
         await _googleSignIn.signOut();
       }
@@ -135,17 +296,15 @@ class AuthService {
       print("Sign Out Error: $e");
     }
   }
-  
-  /// Helper to convert a Firebase User to our custom AuthUser.
-  AuthUser _userFromFirebase(User user) {
-    return AuthUser(
-      uid: user.uid,
-      displayName: user.displayName,
-      email: user.email,
-      // In a real app, these would come from a separate Firestore fetch, 
-      // not the Auth object directly. For now, we leave them null or mock them if needed.
-      goalWeightKg: null, 
-      birthYear: null,
-    );
+
+  Future<void> deleteUser() async {
+    try {
+      final user = _firebaseAuth.currentUser;
+      if (user != null) {
+        await user.delete();
+      }
+    } catch (e) {
+      rethrow;
+    }
   }
 }

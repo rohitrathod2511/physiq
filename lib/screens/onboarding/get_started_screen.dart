@@ -95,34 +95,41 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
 
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
-    final user = await _authService.signInWithGoogle();
-    setState(() => _isLoading = false);
-    if (user != null && mounted) {
-      context.push('/onboarding/motivational-quote');
+    try {
+      // 🎯 CORRECT SIGN-IN Logic:
+      // Force sign-out to ensure Google account chooser is shown (fixes auto-login issue)
+      await _authService.signOut();
+
+      // No name, no onboardingData passed. Just pure sign-in.
+      final user = await _authService.signInWithGoogle();
+      
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (user != null) {
+          // 🎯 CORRECT NAVIGATION:
+          // 1. Close the bottom sheet first
+          Navigator.pop(context);
+          // 2. Clear stack and go to Home
+          context.go('/home'); 
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
     }
   }
 
   void _handleEmailSignIn() {
-    showDialog(
+    Navigator.pop(context); // Close basic options sheet
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Email Sign In'),
-        content: const Text('Email sign in flow would go here.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Mock success for now
-              _authService.signInWithEmail('test@example.com', 'password').then((user) {
-                 if (user != null && mounted) {
-                    context.push('/onboarding/motivational-quote');
-                 }
-              });
-            },
-            child: const Text('Mock Login'),
-          ),
-        ],
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _EmailSignInSheet(),
     );
   }
 
@@ -153,7 +160,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             ),
           ),
           Text(
-            "Sign In",
+            "Welcome Back",
             style: AppTextStyles.h2,
             textAlign: TextAlign.center,
           ),
@@ -193,6 +200,153 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             const SizedBox(height: 24),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _EmailSignInSheet extends StatefulWidget {
+  const _EmailSignInSheet();
+
+  @override
+  State<_EmailSignInSheet> createState() => _EmailSignInSheetState();
+}
+
+class _EmailSignInSheetState extends State<_EmailSignInSheet> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+
+  Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter both email and password.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 🎯 CORRECT SIGN-IN Logic:
+      // Regular email/password sign in. No creating new users here.
+      final user = await _authService.signInWithEmail(email, password);
+      
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (user != null) {
+          // 🎯 CORRECT NAVIGATION:
+          // 1. Close the bottom sheet first
+          Navigator.pop(context);
+          // 2. Clear stack and go to Home
+          context.go('/home');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+         );
+      }
+    }
+  }
+
+  void _forgotPassword() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Forgot Password functionality coming soon.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Handling keyboard overlap
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Correct place for mainAxisSize
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40, 
+                height: 4, 
+                decoration: BoxDecoration(
+                  color: Colors.grey[300], 
+                  borderRadius: BorderRadius.circular(2),
+                ), 
+                margin: const EdgeInsets.only(bottom: 24),
+              ),
+            ),
+            Text(
+              "Sign In",
+              style: AppTextStyles.h2,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email', 
+                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(
+                labelText: 'Password', 
+                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 24),
+
+            if (_isLoading)
+               const Center(child: CircularProgressIndicator())
+            else
+               ElevatedButton(
+                onPressed: _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+
+             const SizedBox(height: 16),
+
+             TextButton(
+               onPressed: _forgotPassword,
+               child: Text(
+                 "Forgot password?",
+                 style: AppTextStyles.body.copyWith(color: Colors.grey),
+               ),
+             ),
+             const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
