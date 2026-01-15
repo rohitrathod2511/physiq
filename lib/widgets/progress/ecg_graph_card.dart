@@ -50,7 +50,7 @@ class EcgGraphCard extends StatelessWidget {
 
   Widget _buildRangeSelector() {
     return Row(
-      children: ['1M', '3M', '6M', '1Y', 'All Time'].map((range) {
+      children: ['1M', '3M', '6M', '9M', '1Y'].map((range) {
         final isSelected = range == selectedRange;
         return GestureDetector(
           onTap: () => onRangeChanged(range),

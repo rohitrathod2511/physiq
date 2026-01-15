@@ -104,6 +104,8 @@ class ProgressScreen extends ConsumerWidget {
     );
   }
 
+  // _showWeightOptions removed as per requirement to only allow logging weight directly
+
   void _showSetWeightDialog(BuildContext context, ProgressViewModel viewModel, double currentWeight) {
     final controller = TextEditingController(text: currentWeight.toString());
     showDialog(
@@ -114,7 +116,7 @@ class ProgressScreen extends ConsumerWidget {
         titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
         contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
         actionsPadding: const EdgeInsets.all(16),
-        title: Text('Update Weight', style: AppTextStyles.heading2),
+        title: Text('Log Current Weight', style: AppTextStyles.heading2),
         content: TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -156,6 +158,9 @@ class ProgressScreen extends ConsumerWidget {
       ),
     );
   }
+
+  // _showSetGoalDialog removed or unused, kept if you want to reuse it later but not accessible via UI now.
+  // Actually, I'll remove it to be clean as per "Disable Update Goal Weight". 
 
   void _showUploadPhotoDialog(BuildContext context, ProgressViewModel viewModel, double currentWeight) {
     // Mock upload for now
