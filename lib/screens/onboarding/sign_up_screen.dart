@@ -21,7 +21,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     setState(() => _isLoading = true);
     try {
       // Force sign-out to ensure Google account chooser is shown
-      await _authService.signOut();
+      await _authService.disconnectGoogle();
 
       final store = ref.read(onboardingProvider);
       final name = store.name; 
@@ -32,9 +32,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       
       if (mounted) {
         setState(() => _isLoading = false);
-        if (user != null) {
-          context.push('/onboarding/motivational-quote');
-        }
       }
     } catch (e) {
       if (mounted) {
@@ -71,7 +68,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     // 3. Navigate Immediately
     if (mounted) {
       setState(() => _isLoading = false);
-      context.push('/onboarding/motivational-quote');
     }
   }
 
@@ -127,7 +123,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 setState(() => _isLoading = false);
                 
                 if (user != null && mounted) {
-                  context.push('/onboarding/motivational-quote');
+                  // Navigation is handled by auth state listener
                 }
               } catch (e) {
                  if (mounted) {

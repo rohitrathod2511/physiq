@@ -98,7 +98,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
     try {
       // 🎯 CORRECT SIGN-IN Logic:
       // Force sign-out to ensure Google account chooser is shown (fixes auto-login issue)
-      await _authService.signOut();
+      await _authService.disconnectGoogle();
 
       // No name, no onboardingData passed. Just pure sign-in.
       final user = await _authService.signInWithGoogle();

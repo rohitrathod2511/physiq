@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'package:physiq/services/auth_service.dart';
 
 class PaywallMainScreen extends StatefulWidget {
   const PaywallMainScreen({super.key});
@@ -11,7 +12,16 @@ class PaywallMainScreen extends StatefulWidget {
 }
 
 class _PaywallMainScreenState extends State<PaywallMainScreen> {
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
   String _selectedPlan = 'Yearly'; // Monthly or Yearly
+
+  Future<void> _completeOnboarding() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    await _authService.completeOnboarding();
+    // No manual navigation needed; router will detect change and redirect to /home
+  }
 
   void _handleBack() {
     context.push('/onboarding/paywall-spinner');
@@ -37,7 +47,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.close, color: Colors.grey),
-              onPressed: _handleBack,
+              onPressed: _completeOnboarding,
             ),
           ],
         ),
@@ -80,7 +90,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/home'),
+                  onPressed: _completeOnboarding,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
@@ -89,7 +99,9 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  child: const Text('Start My Journey'),
+                  child: _isLoading 
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Start My Journey'),
                 ),
               ),
               const SizedBox(height: 16),

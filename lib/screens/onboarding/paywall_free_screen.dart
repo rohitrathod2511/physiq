@@ -3,8 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 
-class PaywallFreeScreen extends StatelessWidget {
+import 'package:physiq/services/auth_service.dart';
+
+class PaywallFreeScreen extends StatefulWidget {
   const PaywallFreeScreen({super.key});
+
+  @override
+  State<PaywallFreeScreen> createState() => _PaywallFreeScreenState();
+}
+
+class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+
+  Future<void> _completeOnboarding() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    await _authService.completeOnboarding();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +31,7 @@ class PaywallFreeScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.grey),
-          onPressed: () => context.go('/home'),
+          onPressed: _completeOnboarding,
         ),
       ),
       body: Padding(

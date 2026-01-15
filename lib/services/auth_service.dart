@@ -269,6 +269,7 @@ class AuthService {
          'last_login': FieldValue.serverTimestamp(),
          if (authProvider != null) 'auth_provider': authProvider,
       },
+      if (!snapshot.exists) 'onboardingCompleted': false,
       if (onboardingData != null) ...onboardingData,
     };
 
@@ -305,6 +306,27 @@ class AuthService {
       }
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<void> disconnectGoogle() async {
+    try {
+      if (await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.disconnect();
+      }
+      await _firebaseAuth.signOut();
+    } catch (e) {
+      print("Disconnect Error: $e");
+    }
+  }
+
+  Future<void> completeOnboarding() async {
+    final user = _firebaseAuth.currentUser;
+    if (user != null) {
+      // Use set with merge to be safe in case the document somehow doesn't exist or is partial
+      await _firestore.collection('users').doc(user.uid).set({
+        'onboardingCompleted': true,
+      }, SetOptions(merge: true));
     }
   }
 }

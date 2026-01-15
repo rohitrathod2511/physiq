@@ -3,8 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 
-class PaywallOfferScreen extends StatelessWidget {
+import 'package:physiq/services/auth_service.dart';
+
+class PaywallOfferScreen extends StatefulWidget {
   const PaywallOfferScreen({super.key});
+
+  @override
+  State<PaywallOfferScreen> createState() => _PaywallOfferScreenState();
+}
+
+class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+
+  Future<void> _completeOnboarding() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    await _authService.completeOnboarding();
+    // No manual navigation needed; router will detect change and redirect to /home
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +32,7 @@ class PaywallOfferScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: () => context.go('/home'),
+          onPressed: _completeOnboarding,
         ),
       ),
       body: SafeArea(
@@ -152,7 +169,7 @@ class PaywallOfferScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () => context.go('/home'),
+                      onPressed: _completeOnboarding,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
@@ -161,7 +178,9 @@ class PaywallOfferScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text('Start My Journey'),
+                      child: _isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Start My Journey'),
                     ),
                   ),
             

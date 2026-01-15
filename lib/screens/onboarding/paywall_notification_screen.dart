@@ -3,8 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 
-class PaywallNotificationScreen extends StatelessWidget {
+import 'package:physiq/services/auth_service.dart';
+
+class PaywallNotificationScreen extends StatefulWidget {
   const PaywallNotificationScreen({super.key});
+
+  @override
+  State<PaywallNotificationScreen> createState() => _PaywallNotificationScreenState();
+}
+
+class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+
+  Future<void> _completeOnboarding() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    await _authService.completeOnboarding();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,12 +31,12 @@ class PaywallNotificationScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.grey),
-          onPressed: () => context.go('/home'),
+          onPressed: _completeOnboarding,
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.close, color: Colors.grey),
-            onPressed: () => context.go('/home'),
+            onPressed: _completeOnboarding,
           ),
         ],
       ),
