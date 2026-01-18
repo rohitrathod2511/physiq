@@ -37,6 +37,8 @@ dependencies:
   fl_chart: ^1.1.1
   url_launcher: ^6.2.5
   package_info_plus: ^9.0.0
+  image_picker: ^1.0.7
+  speech_to_text: ^7.3.0
 
 dev_dependencies:
   flutter_test:

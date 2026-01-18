@@ -254,4 +254,27 @@ class ProgressRepository {
     }
     return 'lose_weight';
   }
+  Future<double?> getEarliestWeight() async {
+    if (AppConfig.useMockBackend) return _mockInitialWeight;
+
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('weight_history')
+          .orderBy('date', descending: false)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return (snapshot.docs.first.data()['weightKg'] as num).toDouble();
+      }
+    } catch (e) {
+      print('Error fetching earliest weight: $e');
+    }
+    return null;
+  }
 }

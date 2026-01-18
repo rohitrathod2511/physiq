@@ -14,6 +14,8 @@ class BirthYearScreen extends ConsumerStatefulWidget {
 
 class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
   late int _selectedYear;
+  late int _selectedMonth; // 1-12
+  late int _selectedDay;   // 1-31
   final int _currentYear = DateTime.now().year;
 
   @override
@@ -21,10 +23,15 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
     super.initState();
     final store = ref.read(onboardingProvider);
     _selectedYear = store.birthYear ?? 2000;
+    _selectedMonth = (store.data['birthMonth'] as int?) ?? 1;
+    _selectedDay = (store.data['birthDay'] as int?) ?? 1;
   }
 
   void _onContinue() {
-    ref.read(onboardingProvider).saveStepData('birthYear', _selectedYear);
+    final store = ref.read(onboardingProvider);
+    store.saveStepData('birthYear', _selectedYear);
+    store.saveStepData('birthMonth', _selectedMonth);
+    store.saveStepData('birthDay', _selectedDay);
     context.push('/onboarding/height-weight');
   }
 
@@ -32,7 +39,10 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
   Widget build(BuildContext context) {
     // Generate years in ascending order (e.g., 1924 to 2014)
     final years = List.generate(101, (index) => (_currentYear - 110) + index);
-
+    
+    // Default day/month if not set
+    // This is simple selection.
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -47,7 +57,7 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
           children: [
             const SizedBox(height: 16),
             Text(
-              "Select your Birth Year",
+              "Select your Birth Date",
               style: AppTextStyles.h1,
             ),
             Expanded(
@@ -69,15 +79,16 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Date Slider
+                        // Day Slider
                         Expanded(
                           child: ListWheelScrollView.useDelegate(
+                            controller: FixedExtentScrollController(initialItem: _selectedDay - 1),
                             itemExtent: 50,
                             perspective: 0.005,
                             diameterRatio: 1.5,
                             physics: const FixedExtentScrollPhysics(),
                             onSelectedItemChanged: (index) {
-                              // UI only, no logic change
+                               setState(() => _selectedDay = index + 1);
                             },
                             childDelegate: ListWheelChildBuilderDelegate(
                               childCount: 31,
@@ -98,12 +109,13 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                         // Month Slider
                         Expanded(
                           child: ListWheelScrollView.useDelegate(
+                            controller: FixedExtentScrollController(initialItem: _selectedMonth - 1),
                             itemExtent: 50,
                             perspective: 0.005,
                             diameterRatio: 1.5,
                             physics: const FixedExtentScrollPhysics(),
                             onSelectedItemChanged: (index) {
-                              // UI only, no logic change
+                               setState(() => _selectedMonth = index + 1);
                             },
                             childDelegate: ListWheelChildBuilderDelegate(
                               childCount: 12,

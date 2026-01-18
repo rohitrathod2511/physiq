@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
+import 'package:physiq/screens/meal/meal_logging_flows.dart';
 
 class FloatingAddButton extends ConsumerWidget {
   const FloatingAddButton({super.key});
@@ -17,7 +18,7 @@ class FloatingAddButton extends ConsumerWidget {
       child: FloatingActionButton(
         onPressed: () {
           if (isPremium) {
-            _showAddOptions(context);
+            _showAddOptions(context, ref);
           } else {
             context.go('/paywall');
           }
@@ -32,7 +33,7 @@ class FloatingAddButton extends ConsumerWidget {
     );
   }
 
-  void _showAddOptions(BuildContext context) {
+  void _showAddOptions(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.card,
@@ -51,9 +52,9 @@ class FloatingAddButton extends ConsumerWidget {
                 child: Text('Add a Meal', style: AppTextStyles.heading2),
               ),
               const SizedBox(height: 16),
-              _buildOptionTile(context, 'Snap Meal', Icons.camera_alt_outlined),
-              _buildOptionTile(context, 'Add Manually', Icons.edit_outlined),
-              _buildOptionTile(context, 'Voice Entry', Icons.mic_outlined),
+              _buildOptionTile(context, 'Snap Meal', Icons.camera_alt_outlined, () => showSnapMealFlow(context, ref)),
+              _buildOptionTile(context, 'Add Manually', Icons.edit_outlined, () => showManualEntryFlow(context, ref)),
+              _buildOptionTile(context, 'Voice Entry', Icons.mic_outlined, () => showVoiceEntryFlow(context, ref)),
             ],
           ),
         );
@@ -61,11 +62,14 @@ class FloatingAddButton extends ConsumerWidget {
     );
   }
 
-  Widget _buildOptionTile(BuildContext context, String title, IconData icon) {
+  Widget _buildOptionTile(BuildContext context, String title, IconData icon, VoidCallback onTapAction) {
     return ListTile(
       leading: Icon(icon, color: AppColors.primaryText, size: 28),
       title: Text(title, style: AppTextStyles.label.copyWith(fontSize: 16, color: AppColors.primaryText)),
-      onTap: () => Navigator.pop(context),
+      onTap: () {
+        Navigator.pop(context); // Close the bottom sheet first
+        onTapAction();
+      },
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.smallCard),
       ),

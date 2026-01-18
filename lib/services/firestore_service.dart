@@ -134,6 +134,50 @@ class FirestoreService {
   }
 
   // ----------------------------
+  // Log Meal
+  // ----------------------------
+  Future<void> logMeal(String uid, Map<String, dynamic> mealData, DateTime date) async {
+    try {
+      final batch = _firestore.batch();
+      
+      // 1. Add meal to meals subcollection
+      final mealRef = _firestore.collection('users').doc(uid).collection('meals').doc();
+      batch.set(mealRef, {
+        ...mealData,
+        'id': mealRef.id, // Ensure ID is saved
+        'timestamp': Timestamp.fromDate(date), // Ensure timestamp is set
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // 2. Update Daily Summary for the specific date
+      final dateId = _formatDateId(date);
+      final summaryRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('daily_summaries')
+          .doc(dateId);
+
+      // Use set with merge to create if not exists, but we want to increment
+      // If doc doesn't exist, we need to set initial values then increment, 
+      // or just set the values if we trust we are the source of truth.
+      // Firestore set with merge and increment works fine if doc exists or not (counters start at 0).
+      batch.set(summaryRef, {
+        'date': dateId,
+        'calories': FieldValue.increment(mealData['calories'] ?? 0),
+        'protein': FieldValue.increment(mealData['proteinG'] ?? 0), // Note: Mapping 'proteinG' to 'protein' to match usage
+        'carbs': FieldValue.increment(mealData['carbsG'] ?? 0),
+        'fat': FieldValue.increment(mealData['fatG'] ?? 0),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await batch.commit();
+    } catch (e) {
+      print('logMeal error: $e');
+      rethrow;
+    }
+  }
+
+  // ----------------------------
   // Fetch Recent Meals
   // - Returns latest N meals from users/{uid}/meals ordered by timestamp desc
   // ----------------------------

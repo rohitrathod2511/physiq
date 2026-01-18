@@ -1,10 +1,17 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:physiq/models/user_model.dart';
 import 'package:physiq/models/weight_model.dart';
 import 'package:physiq/models/progress_photo_model.dart';
 import 'package:physiq/services/progress_repository.dart';
+import 'package:physiq/services/user_repository.dart';
 
 final progressViewModelProvider = StateNotifierProvider<ProgressViewModel, ProgressState>((ref) {
-  return ProgressViewModel(ref.read(progressRepositoryProvider));
+  return ProgressViewModel(
+    ref.read(progressRepositoryProvider),
+    ref.read(userRepositoryProvider),
+  );
 });
 
 class ProgressState {
@@ -100,9 +107,44 @@ class ProgressState {
 
 class ProgressViewModel extends StateNotifier<ProgressState> {
   final ProgressRepository _repository;
+  final UserRepository _userRepository;
+  StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<UserModel?>? _userDocSubscription;
 
-  ProgressViewModel(this._repository) : super(ProgressState()) {
+  ProgressViewModel(this._repository, this._userRepository) : super(ProgressState()) {
+    // 1. Listen to Auth Changes (Login/Logout/Switch)
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        _init(user.uid);
+      } else {
+        // Clear state on logout to prevent leaks
+        state = ProgressState(); 
+        _userDocSubscription?.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    _userDocSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _init(String uid) {
+    // 2. Initial Load
     loadData();
+
+    // 3. Listen to User Document Changes (Settings updates sync)
+    _userDocSubscription?.cancel();
+    _userDocSubscription = _userRepository.streamUser(uid).listen((userModel) {
+      if (userModel != null) {
+        // When user profile updates (goal, weight, height in Settings),
+        // we reload data to ensure sync.
+        // We pass the userModel directly to avoid extra fetches and race conditions.
+        loadData(user: userModel);
+      }
+    });
   }
 
   // Normalize raw strings from Firebase
@@ -113,21 +155,42 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
     return 'loss'; // Default to loss
   }
 
-  Future<void> loadData() async {
-    state = state.copyWith(isLoading: true);
+  Future<void> loadData({UserModel? user}) async {
+    // We'll only set isLoading if history is empty (first load)
+    if (state.weightHistory.isEmpty) {
+       state = state.copyWith(isLoading: true);
+    }
+
+    // Fetch data - Use 'user' if available for instant sync
+    final double goal = user?.goalWeightKg ?? await _repository.getGoalWeight();
     
-    final goal = await _repository.getGoalWeight();
-    final initial = await _repository.getInitialWeight(); // Onboarding weight (immutable source)
-    final height = await _repository.getUserHeight();
+    // START WEIGHT LOGIC:
+    // We want the Start Weight to be the user's FIRST EVER weight (onboarding).
+    // user.weightKg is often updated to be 'Current Profile Weight' in settings.
+    // So we try fetching the earliest history entry.
+    double? earliest = await _repository.getEarliestWeight();
+    
+    // Fallback: If no history, use profile weight (onboarding typically sets this and history together)
+    // If profile weight is used as fallback, it's correct for a brand new user.
+    final double initial = earliest ?? (user?.weightKg ?? await _repository.getInitialWeight());
+
+    final double height = user?.heightCm ?? await _repository.getUserHeight();
+    
+    // Type usually doesn't change from settings but nice to have.
     final rawType = await _repository.getGoalType();
+    
+    // History is in subcollection, so we MUST fetch it or listen to it separately.
+    // Repo fetch is fine, but if we wanted instant weight update from 'currentWeight' field in Settings -> 
+    // we already handle that by reading 'user?.weightKg' as 'initial'.
+    // If 'currentWeight' is derived from History, we need History.
     final history = await _repository.getWeightHistory(state.selectedRange);
     final photos = await _repository.getProgressPhotos();
-    final created = await _repository.getAccountCreationDate();
+    final created = user?.createdAt ?? await _repository.getAccountCreationDate();
 
     final normalizedType = _normalizeGoalType(rawType);
 
     // FIX: Determine current weight logic
-    // initialWeight must ALWAYS be onboarding weight (users.weightKg) - never overwritten.
+    // initialWeight must ALWAYS be onboarding weight.
     // currentWeight = latest weight_history OR initialWeight.
     
     double current = 0;
@@ -138,35 +201,43 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
       current = initial;
     }
     
-    // Safety check just in case both represent 0 or failure
+    // Safety check
     if (current == 0 && initial > 0) current = initial;
     
     // Construct display history for graph
     List<WeightEntry> displayHistory = [...history];
     
-    // Only inject fake data if history is COMPLETELY empty and we have an initial weight
-    // This is the "New User" state.
-    if (history.isEmpty && initial > 0) {
+    // FIX 2: First Weight Log ECG Graph
+    // If history has exactly 1 entry, graph is a dot. We need 2 points for a line.
+    // We inject the 'initial' weight at 'created' date as the baseline.
+    // Also covers the "New User" completely empty case.
+    if (displayHistory.isEmpty && initial > 0) {
        final date = created ?? DateTime.now();
-       // Initial point
        displayHistory.add(WeightEntry(id: 'init', weightKg: initial, date: date, loggedAt: date));
-       // Current point (now) to create a flat line
        displayHistory.add(WeightEntry(id: 'curr', weightKg: current, date: DateTime.now(), loggedAt: DateTime.now()));
-    } 
+    } else if (displayHistory.length == 1 && initial > 0) {
+       // If single point, add start point
+       final date = created ?? DateTime.now().subtract(const Duration(days: 1)); // Ensure it's before
+       // Only add if the single point isn't practically the same as initial (time-wise? probably fine to show progress from start)
+       displayHistory.insert(0, WeightEntry(id: 'init', weightKg: initial, date: date, loggedAt: date));
+    }
     
     // Sort logic
     displayHistory.sort((a,b) => a.date.compareTo(b.date));
 
-    state = state.copyWith(
-      isLoading: false,
-      goalWeight: goal,
-      initialWeight: initial,
-      currentWeight: current,
-      height: height,
-      goalType: normalizedType,
-      weightHistory: displayHistory,
-      photos: photos,
-    );
+    // Update State
+    if (mounted) {
+      state = state.copyWith(
+        isLoading: false,
+        goalWeight: goal,
+        initialWeight: initial,
+        currentWeight: current,
+        height: height,
+        goalType: normalizedType,
+        weightHistory: displayHistory,
+        photos: photos,
+      );
+    }
   }
 
   Future<void> setRange(String range) async {
@@ -186,6 +257,7 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
 
   Future<void> addPhoto(ProgressPhoto photo) async {
     await _repository.uploadProgressPhoto(photo);
+    // Reload photos only
     final photos = await _repository.getProgressPhotos();
     state = state.copyWith(photos: photos);
   }

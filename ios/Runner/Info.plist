@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan meals for AI nutrition analysis.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access to record your voice for meal logging.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app needs speech recognition to convert your voice to text for nutrition logging.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to upload meal photos.</string>
 </dict>
 </plist>

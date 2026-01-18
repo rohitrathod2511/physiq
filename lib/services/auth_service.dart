@@ -56,9 +56,7 @@ class AuthService {
     return _userFromFirebase(firebaseUser);
   }
 
-  // -----------------------------------------------------------------------------
   // 1️⃣ RESET PASSWORD (FORGOT PASSWORD)
-  // -----------------------------------------------------------------------------
 
   Future<void> sendPasswordResetEmail(String email) async {
     if (email.isEmpty) {
@@ -79,9 +77,7 @@ class AuthService {
     }
   }
 
-  // -----------------------------------------------------------------------------
   // 2️⃣ UPDATE USERNAME (DISPLAY NAME)
-  // -----------------------------------------------------------------------------
 
   Future<void> updateUsername(String newName) async {
     final user = _firebaseAuth.currentUser;
@@ -101,9 +97,7 @@ class AuthService {
     }
   }
 
-  // -----------------------------------------------------------------------------
   // 3️⃣ EMAIL SIGN-IN FLOW
-  // -----------------------------------------------------------------------------
 
   Future<UserCredential?> signInWithEmail(String email, String password) async {
     try {
@@ -173,9 +167,7 @@ class AuthService {
     }
   }
 
-  // -----------------------------------------------------------------------------
   // 4️⃣ GOOGLE SIGN-IN
-  // -----------------------------------------------------------------------------
 
   Future<UserCredential?> signInWithGoogle({
     String? name, 
@@ -213,9 +205,7 @@ class AuthService {
     }
   }
 
-  // -----------------------------------------------------------------------------
   // 5️⃣ ANONYMOUS USER SUPPORT
-  // -----------------------------------------------------------------------------
 
   Future<UserCredential?> signInAnonymously({
     String? name, 
@@ -243,9 +233,8 @@ class AuthService {
     }
   }
 
-  // -----------------------------------------------------------------------------
+  
   // UTILITIES & HELPERS
-  // -----------------------------------------------------------------------------
 
   Future<void> _ensureUserDocumentExists(
     User user, {

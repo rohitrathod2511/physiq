@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:physiq/services/user_repository.dart';
+import 'package:physiq/models/meal_model.dart';
 
 final firestoreServiceProvider = Provider((ref) => FirestoreService());
 
@@ -81,6 +82,18 @@ class HomeViewModel extends StateNotifier<HomeState> {
 
   void openCalendar() {
     // Logic to open calendar
+  }
+
+  Future<void> logMeal(MealModel meal) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    await _firestoreService.logMeal(uid, meal.toMap(), meal.timestamp);
+    
+    // Refresh recent meals
+    fetchRecentMeals(uid);
+    // Refresh daily summary (will trigger stream listener or new fetch)
+    fetchDailySummary(state.selectedDate, uid);
   }
 }
 

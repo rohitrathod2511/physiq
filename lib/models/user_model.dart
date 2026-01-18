@@ -4,6 +4,8 @@ class UserModel {
   final String uid;
   final String displayName;
   final int? birthYear;
+  final int? birthMonth;
+  final int? birthDay;
   final String? gender;
   final double? heightCm;
   final double? weightKg;
@@ -23,6 +25,8 @@ class UserModel {
     required this.uid,
     required this.displayName,
     this.birthYear,
+    this.birthMonth,
+    this.birthDay,
     this.gender,
     this.heightCm,
     this.weightKg,
@@ -48,11 +52,13 @@ class UserModel {
       uid: uid,
       displayName: profile['name'] ?? data['displayName'] ?? '',
       birthYear: profile['birthYear'] ?? profile['birthDate'] ?? data['birthYear'],
+      birthMonth: profile['birthMonth'] ?? data['birthMonth'],
+      birthDay: profile['birthDay'] ?? data['birthDay'],
       gender: profile['gender'] ?? data['gender'],
-      heightCm: (profile['height'] ?? data['heightCm'] as num?)?.toDouble(),
-      weightKg: (profile['weight'] ?? data['weightKg'] as num?)?.toDouble(),
-      goalWeightKg: (goals['targetWeight'] ?? data['goalWeightKg'] as num?)?.toDouble(),
-      dailyStepGoal: data['dailyStepGoal'],
+      heightCm: (data['heightCm'] ?? profile['height'] ?? data['height'] as num?)?.toDouble(),
+      weightKg: (data['weightKg'] ?? profile['weight'] ?? data['weight'] as num?)?.toDouble(),
+      goalWeightKg: (data['targetWeightKg'] ?? goals['targetWeight'] ?? data['goalWeightKg'] as num?)?.toDouble(),
+      dailyStepGoal: data['dailyStepGoal'] as int?,
       preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
       currentPlan: data['currentPlan'] ?? nutrition, // Fallback or mapping
       isPremium: data['isPremium'] ?? false,
@@ -71,6 +77,8 @@ class UserModel {
     return {
       'displayName': displayName,
       'birthYear': birthYear,
+      'birthMonth': birthMonth,
+      'birthDay': birthDay,
       'gender': gender,
       'heightCm': heightCm,
       'weightKg': weightKg,
