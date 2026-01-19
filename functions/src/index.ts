@@ -7,3 +7,5 @@ export * from './plan';
 export * from './invite';
 export * from './leaderboard';
 export * from './exercise'; // New export
+export * from './nutrition';
+
