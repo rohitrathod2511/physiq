@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBg4CbqVpKb8n7f3kPPaODQ43vZzIPMspA',
+    apiKey: 'AQ.Ab8RN6KrmfSRifnUxdcfGP8KsdFaYvf9uPCiPxqf1wvM4Nr-9w',
     appId: '1:523807139910:web:7cb568c73d4b8156b4c247',
     messagingSenderId: '523807139910',
     projectId: 'physiq-5811f',
@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAkhcir3c93LjX1bGOZ7OHnjbbVloSF0m0',
+    apiKey: 'AIzaSyCC5rldWkKogvMnt5rCAZ2tWCKQZyoXY-g',
     appId: '1:523807139910:android:e611c6a06e9df5e0b4c247',
     messagingSenderId: '523807139910',
     projectId: 'physiq-5811f',
@@ -59,25 +59,29 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyATXCKVTZQQELtF0AQ477DlDOaX2vkw1FE',
+    apiKey: 'AIzaSyBXItE_govqL8JxFhaX40XKJXt97OFARIQ',
     appId: '1:523807139910:ios:a1f36f286faaf00ab4c247',
     messagingSenderId: '523807139910',
     projectId: 'physiq-5811f',
     storageBucket: 'physiq-5811f.firebasestorage.app',
+    androidClientId: '523807139910-fu2uv508bdh7no32sqpuh00bq6ej2aq4.apps.googleusercontent.com',
+    iosClientId: '523807139910-ioohd84ujjdl01nqqntsmr9f4cnk8bth.apps.googleusercontent.com',
     iosBundleId: 'com.example.physiq',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyATXCKVTZQQELtF0AQ477DlDOaX2vkw1FE',
+    apiKey: 'AIzaSyBXItE_govqL8JxFhaX40XKJXt97OFARIQ',
     appId: '1:523807139910:ios:a1f36f286faaf00ab4c247',
     messagingSenderId: '523807139910',
     projectId: 'physiq-5811f',
     storageBucket: 'physiq-5811f.firebasestorage.app',
+    androidClientId: '523807139910-fu2uv508bdh7no32sqpuh00bq6ej2aq4.apps.googleusercontent.com',
+    iosClientId: '523807139910-ioohd84ujjdl01nqqntsmr9f4cnk8bth.apps.googleusercontent.com',
     iosBundleId: 'com.example.physiq',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBg4CbqVpKb8n7f3kPPaODQ43vZzIPMspA',
+    apiKey: 'AQ.Ab8RN6KrmfSRifnUxdcfGP8KsdFaYvf9uPCiPxqf1wvM4Nr-9w',
     appId: '1:523807139910:web:047ce8992e2f91c4b4c247',
     messagingSenderId: '523807139910',
     projectId: 'physiq-5811f',
@@ -85,4 +89,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'physiq-5811f.firebasestorage.app',
     measurementId: 'G-LY3DBY0WMW',
   );
+
 }
