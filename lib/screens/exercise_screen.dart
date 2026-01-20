@@ -28,17 +28,50 @@ class ExerciseScreen extends StatelessWidget {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 16.0,
+                ),
                 child: Wrap(
                   spacing: 16,
                   runSpacing: 16,
                   children: [
-                    _buildExerciseButton(context, 'Home', Icons.home_filled, Colors.orange),
-                    _buildExerciseButton(context, 'Gym', Icons.fitness_center, Colors.blue),
-                    _buildExerciseButton(context, 'Run', Icons.directions_run, Colors.green),
-                    _buildExerciseButton(context, 'Cycling', Icons.directions_bike, Colors.teal),
-                    _buildExerciseButton(context, 'Describe', Icons.mic, Colors.purple),
-                    _buildExerciseButton(context, 'Manual', Icons.edit, Colors.grey),
+                    _buildExerciseButton(
+                      context,
+                      'Home',
+                      Icons.home_filled,
+                      Colors.orange,
+                    ),
+                    _buildExerciseButton(
+                      context,
+                      'Gym',
+                      Icons.fitness_center,
+                      Colors.blue,
+                    ),
+                    _buildExerciseButton(
+                      context,
+                      'Run',
+                      Icons.directions_run,
+                      Colors.green,
+                    ),
+                    _buildExerciseButton(
+                      context,
+                      'Cycling',
+                      Icons.directions_bike,
+                      Colors.teal,
+                    ),
+                    _buildExerciseButton(
+                      context,
+                      'Describe',
+                      Icons.mic,
+                      Colors.purple,
+                    ),
+                    _buildExerciseButton(
+                      context,
+                      'Manual',
+                      Icons.edit,
+                      Colors.grey,
+                    ),
                   ],
                 ),
               ),
@@ -49,10 +82,15 @@ class ExerciseScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildExerciseButton(BuildContext context, String label, IconData icon, Color color) {
+  Widget _buildExerciseButton(
+    BuildContext context,
+    String label,
+    IconData icon,
+    Color color,
+  ) {
     // Assuming 2 columns with spacing
     final width = (MediaQuery.of(context).size.width - 48 - 16) / 2;
-    
+
     return Container(
       width: width,
       height: 120,
@@ -91,3 +129,4 @@ class ExerciseScreen extends StatelessWidget {
       ),
     );
   }
+}

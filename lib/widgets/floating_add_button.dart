@@ -40,7 +40,7 @@ class FloatingAddButton extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.bigCard)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
           child: Column(
@@ -52,14 +52,16 @@ class FloatingAddButton extends ConsumerWidget {
                 child: Text('Add a Meal', style: AppTextStyles.heading2),
               ),
               const SizedBox(height: 16),
-              _buildOptionTile(context, 'Snap Meal', Icons.camera_alt_outlined, () => showSnapMealFlow(context, ref)),
-              _buildOptionTile(context, 'Add Manually', Icons.edit_outlined, () => showManualEntryFlow(context, ref)),
-              _buildOptionTile(context, 'Voice Entry', Icons.mic_outlined, () => showVoiceEntryFlow(context, ref)),
+              // FIX: Passing 'context' (parent) instead of 'sheetContext' so it remains mounted after pop
+              _buildOptionTile(sheetContext, 'Snap Meal', Icons.camera_alt_outlined, () => showSnapMealFlow(context, ref)),
+              _buildOptionTile(sheetContext, 'Add Manually', Icons.edit_outlined, () => showManualEntryFlow(context, ref)),
+              _buildOptionTile(sheetContext, 'Voice Entry', Icons.mic_outlined, () => showVoiceEntryFlow(context, ref)),
             ],
           ),
         );
       },
     );
+
   }
 
   Widget _buildOptionTile(BuildContext context, String title, IconData icon, VoidCallback onTapAction) {

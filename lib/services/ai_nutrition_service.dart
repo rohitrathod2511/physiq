@@ -3,33 +3,17 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class AiNutritionService {
-  // ☁️ Firebase Cloud Function Endpoint
-  // Replace <project-id> and <region> if different from default.
-  // Based on firebase_options.dart, projectId is 'physiq-5811f'.
+  // ☁️ Firebase Cloud Function URL
   static const String _functionUrl = 
-      'https://us-central1-physiq-5811f.cloudfunctions.net/estimateNutrition';
+      'https://estimatenutrition-y4efoq7ega-uc.a.run.app';
 
   // ---------------------------------------------------------------------------
   // 1. ESTIMATE FROM TEXT
   // ---------------------------------------------------------------------------
   Future<Map<String, dynamic>> estimateFromText(String text) async {
-    // Prompt structure
-    final prompt = '''
-      Analyze this meal description: "$text".
-      Estimate the nutrition facts.
-      Return ONLY a valid JSON object with exactly these keys:
-      {
-        "meal_name": "Short descriptive name",
-        "calories": 0,
-        "protein_g": 0,
-        "carbs_g": 0,
-        "fat_g": 0
-      }
-      Do not include markdown formatting (like ```json). Just the raw JSON.
-    ''';
-
     final body = {
-      "prompt": prompt,
+      "type": "text",
+      "input": text,
     };
 
     return _callCloudFunction(body);
@@ -46,28 +30,24 @@ class AiNutritionService {
 
     final bytes = await file.readAsBytes();
     final base64Image = base64Encode(bytes);
+    final mimeType = _getMimeType(imagePath);
 
-    final prompt = '''
-      Identify this food/meal. Estimate the nutrition facts for a standard serving size visible or implied.
-      Return ONLY a valid JSON object with exactly these keys:
-      {
-        "meal_name": "Short descriptive name",
-        "calories": 0,
-        "protein_g": 0,
-        "carbs_g": 0,
-        "fat_g": 0
-      }
-      Do not include markdown formatting. Just the raw JSON.
-    ''';
-
-    // Send base64 image + prompt to backend
     final body = {
-      "prompt": prompt,
+      "type": "image",
       "image": base64Image,
-      "mimeType": "image/jpeg", 
+      "mimeType": mimeType,
     };
 
     return _callCloudFunction(body);
+  }
+
+  String _getMimeType(String path) {
+    final lower = path.toLowerCase();
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.heic')) return 'image/heic';
+    return 'image/jpeg'; // Default fallback
   }
 
   // ---------------------------------------------------------------------------
@@ -81,55 +61,32 @@ class AiNutritionService {
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 45)); // Extra time for Cold Starts
+      ).timeout(const Duration(seconds: 60)); // Vertex AI can take time
 
       if (response.statusCode != 200) {
-        throw Exception('Cloud Function Error (${response.statusCode}): ${response.body}');
+        throw Exception('Server Error (${response.statusCode}): ${response.body}');
       }
 
-      final rawText = response.body;
-      if (rawText.isEmpty) {
-        throw Exception('Server returned empty response.');
+      // Backend now returns pure JSON object
+      final data = jsonDecode(response.body);
+
+      // Validate structure just in case
+      final requiredKeys = ['meal_name', 'calories', 'protein_g', 'carbs_g', 'fat_g'];
+      if (data is! Map) throw Exception("Invalid JSON format from AI");
+
+      for (var key in requiredKeys) {
+        if (!data.containsKey(key)) {
+           // Fallback for safety, but typically the function should guarantee this
+           if (key == 'meal_name') data['meal_name'] = 'Unknown Meal';
+           else data[key] = 0;
+        }
       }
 
-      return _cleanAndParseJson(rawText);
+      return Map<String, dynamic>.from(data);
 
     } catch (e) {
       print('❌ AI Service Failed: $e');
       rethrow;
-    }
-  }
-
-  Map<String, dynamic> _cleanAndParseJson(String rawText) {
-    try {
-      // 1. Remove Markdown code blocks if present ( ```json ... ``` )
-      var clean = rawText.replaceAll(RegExp(r'```json'), '').replaceAll(RegExp(r'```'), '').trim();
-      
-      // 2. Find the first '{' and last '}' to extract just the JSON object
-      final startIndex = clean.indexOf('{');
-      final endIndex = clean.lastIndexOf('}');
-      
-      if (startIndex != -1 && endIndex != -1) {
-        clean = clean.substring(startIndex, endIndex + 1);
-      }
-
-      final jsonMap = jsonDecode(clean);
-
-      // 3. Validate Keys
-      final requiredKeys = ['meal_name', 'calories', 'protein_g', 'carbs_g', 'fat_g'];
-      for (var key in requiredKeys) {
-        if (!jsonMap.containsKey(key)) {
-           // Fallback defaults
-           if (key == 'meal_name') jsonMap['meal_name'] = 'Unknown Meal';
-           else jsonMap[key] = 0;
-        }
-      }
-
-      return Map<String, dynamic>.from(jsonMap);
-
-    } catch (e) {
-      print('❌ JSON Parse Error on text: $rawText');
-      throw Exception('Failed to parse AI response: $e');
     }
   }
 }

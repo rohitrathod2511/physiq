@@ -1,89 +1,175 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const { setGlobalOptions } = require("firebase-functions");
+const admin = require("firebase-admin");
 
-// Optimize cold starts
-setGlobalOptions({ maxInstances: 10 });
+// Initialize Firebase Admin (if not already initialized in another file, but safe to call here)
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 
-// The function is deployed to: https://<region>-<project-id>.cloudfunctions.net/estimateNutrition
+setGlobalOptions({ maxInstances: 10, timeoutSeconds: 60 });
+
 exports.estimateNutrition = onRequest({ cors: true }, async (req, res) => {
   try {
-    // 1. Validate Request
+    // 1. Validate Method
     if (req.method !== "POST") {
-      res.status(405).send("Method Not Allowed");
-      return;
+      return res.status(405).send("Method Not Allowed");
     }
 
-    const { prompt, image, mimeType } = req.body;
-    if (!prompt) {
-      res.status(400).send("Missing prompt");
-      return;
-    }
+    // 2. Validate Body
+    const { type, input, image, mimeType } = req.body || {};
 
-    // 2. Get API Key from Environment
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      logger.error("GEMINI_API_KEY is not set in environment.");
-      res.status(500).send("Server Configuration Error: API Key missing");
-      return;
-    }
-
-    // 3. Construct Gemini Payload
-    const parts = [{ text: prompt }];
-
-    // If image is provided in base64
-    if (image) {
-      parts.push({
-        inline_data: {
-          mime_type: mimeType || "image/jpeg",
-          data: image
-        }
-      });
-    }
-
-    const payload = {
-      contents: [{ parts }]
-    };
-
-    // 4. Call Gemini API
-    const model = "gemini-1.5-flash";
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-    const response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+    logger.info("Request received", {
+      type,
+      hasInput: !!input,
+      hasImage: !!image,
+      mimeType,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error("Gemini API Failed", { status: response.status, body: errorText });
-      res.status(500).send(`AI Error: ${response.statusText}`);
-      return;
+    let prompt;
+    let imagePart;
+
+    // Strict JSON schema prompt
+    const jsonInstruction = `
+Return ONLY a valid JSON object with exactly these keys:
+{
+  "meal_name": "string",
+  "calories": number,
+  "protein_g": number,
+  "carbs_g": number,
+  "fat_g": number
+}
+IMPORTANT: Return ONLY valid JSON. No markdown. No extra text. No backticks.
+Do NOT wrap the response in \`\`\`json ... \`\`\`.
+    `.trim();
+
+    if (type === "text" && input) {
+      prompt = `
+Analyze this meal description: "${input}".
+Estimate the nutrition facts.
+${jsonInstruction}
+      `.trim();
+    }
+    else if (type === "voice" && input) {
+      prompt = `
+Analyze this spoken meal description: "${input}".
+Estimate the nutrition facts.
+${jsonInstruction}
+      `.trim();
+    }
+    else if (type === "image" && image) {
+      prompt = `
+Identify this food/meal from the image.
+Estimate the nutrition facts.
+${jsonInstruction}
+      `.trim();
+
+      // Vertex AI format: inlineData
+      imagePart = {
+        inlineData: {
+          mimeType: mimeType || "image/jpeg",
+          data: image,
+        },
+      };
+    } 
+    else {
+      logger.warn("Invalid request body", req.body);
+      return res.status(400).send("Invalid input payload");
     }
 
-    const data = await response.json();
+    // 3. Get Access Token (Service Account)
+    // No API ID required, automatic via Google Cloud IAM
+    const accessToken = await admin.credential.applicationDefault().getAccessToken();
+    const token = accessToken.access_token;
 
-    // 5. Extract Text
-    const candidates = data.candidates;
-    if (!candidates || candidates.length === 0) {
-      logger.error("No candidates in response", data);
-      res.status(500).send("AI returned no results.");
-      return;
+    // 4. Project ID
+    const projectId = process.env.GCLOUD_PROJECT || admin.instanceId().app.options.projectId;
+    if (!projectId) {
+         logger.error("Could not determine Project ID");
+         return res.status(500).send("Server configuration error: Missing Project ID");
     }
 
-    const rawText = candidates[0].content?.parts?.[0]?.text;
-    if (!rawText) {
-      logger.error("No text in candidate", candidates[0]);
-      res.status(500).send("AI returned empty text.");
-      return;
+    // 5. Vertex AI Request
+    const model = "gemini-2.5-flash"; 
+    const location = "us-central1"; 
+    const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:generateContent`;
+
+    const parts = [{ text: prompt }];
+    if (imagePart) parts.push(imagePart);
+
+    const payload = {
+      contents: [{ role: "user", parts: parts }],
+      generationConfig: {
+        temperature: 0.2, // Lower temperature for more deterministic JSON
+        maxOutputTokens: 1024,
+      }
+    };
+
+    logger.info("Calling Vertex AI", { 
+        model, 
+        project: projectId,
+        hasImage: !!imagePart 
+    });
+
+    // Use native fetch (Node 18+)
+    const vertexRes = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!vertexRes.ok) {
+      const errText = await vertexRes.text();
+      logger.error("Vertex AI API Error", {
+        status: vertexRes.status,
+        body: errText,
+      });
+      return res.status(500).send(`Vertex AI Error: ${errText}`);
     }
 
-    // Return raw text (Flutter will parse)
-    res.status(200).send(rawText);
+    const vertexData = await vertexRes.json();
+    const aiText = vertexData?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-  } catch (error) {
-    logger.error("Internal Function Error", error);
-    res.status(500).send("Internal Server Error");
+    logger.info("Raw Vertex AI Response", { aiText });
+
+    if (!aiText) {
+      logger.error("Empty Vertex AI response", vertexData);
+      return res.status(500).send("AI returned empty response");
+    }
+
+    // 6. Parse JSON Safely
+    let clean = aiText;
+    // Remove markdown code blocks if present
+    clean = clean.replace(/```json/g, "").replace(/```/g, "").trim();
+    
+    // Find first '{' and last '}'
+    const start = clean.indexOf("{");
+    const end = clean.lastIndexOf("}");
+    
+    if (start !== -1 && end !== -1) {
+      clean = clean.substring(start, end + 1);
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch (parseErr) {
+      logger.error("JSON Parse Failed", { 
+        error: parseErr.message, 
+        raw: aiText, 
+        cleaned: clean 
+      });
+      return res.status(500).send("Failed to parse AI response");
+    }
+
+    return res.json(parsed);
+
+  } catch (err) {
+    logger.error("Fatal Function Error", err);
+    return res.status(500).send("Internal Server Error");
   }
 });

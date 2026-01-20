@@ -11,9 +11,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 final aiService = AiNutritionService();
 
-// ------------------------------------------------
+
 // SNAP MEAL
-// ------------------------------------------------
+
 Future<void> showSnapMealFlow(BuildContext context, WidgetRef ref) async {
   final picker = ImagePicker();
   final photo = await picker.pickImage(source: ImageSource.camera);
@@ -40,14 +40,16 @@ Future<void> showSnapMealFlow(BuildContext context, WidgetRef ref) async {
     debugPrint("Error analyzing meal: $e");
     navigator.pop(); // Close loading
     if (context.mounted) {
-      _showError(context, "Failed to analyze meal");
+      // Show actual error to help debugging
+      final msg = e.toString().replaceAll("Exception: ", "");
+      _showError(context, "Failed: $msg");
     }
   }
 }
 
-// ------------------------------------------------
+
 // MANUAL ENTRY
-// ------------------------------------------------
+
 void showManualEntryFlow(BuildContext context, WidgetRef ref) {
   showModalBottomSheet(
     context: context,
@@ -95,7 +97,8 @@ void showManualEntryFlow(BuildContext context, WidgetRef ref) {
                   debugPrint("Manual entry error: $e");
                   navigator.pop();
                   if (context.mounted) {
-                    _showError(context, "Failed to estimate meal");
+                    final msg = e.toString().replaceAll("Exception: ", "");
+                    _showError(context, "Error: $msg");
                   }
                 }
               },
@@ -108,9 +111,8 @@ void showManualEntryFlow(BuildContext context, WidgetRef ref) {
   );
 }
 
-// ------------------------------------------------
 // VOICE ENTRY
-// ------------------------------------------------
+
 void showVoiceEntryFlow(BuildContext context, WidgetRef ref) {
   showDialog(
     context: context,
@@ -176,13 +178,14 @@ class _VoiceListeningDialogState extends State<_VoiceListeningDialog> {
             data,
             source: 'voice',
           );
-        } catch (e) {
-          debugPrint("Voice error: $e");
-          navigator.pop();
-          if (widget.parentContext.mounted) {
-            _showError(widget.parentContext, "Voice analysis failed");
+          } catch (e) {
+            debugPrint("Voice error: $e");
+            navigator.pop();
+            if (widget.parentContext.mounted) {
+               final msg = e.toString().replaceAll("Exception: ", "");
+               _showError(widget.parentContext, "Voice Failed: $msg");
+            }
           }
-        }
       }
     });
   }
@@ -212,9 +215,9 @@ class _VoiceListeningDialogState extends State<_VoiceListeningDialog> {
   }
 }
 
-// ------------------------------------------------
+
 // LOADING / ERROR / PREVIEW
-// ------------------------------------------------
+
 
 void _showLoading(BuildContext context, String message) {
   showDialog(
