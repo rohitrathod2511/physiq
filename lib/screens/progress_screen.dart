@@ -9,6 +9,11 @@ import 'package:physiq/widgets/progress/ecg_graph_card.dart';
 import 'package:physiq/widgets/progress/progress_photo_card.dart';
 import 'package:physiq/widgets/progress/bmi_card.dart';
 import 'package:physiq/models/progress_photo_model.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:physiq/screens/progress_photos/photo_preview_screen.dart';
+import 'package:physiq/screens/progress_photos/progress_photos_grid_screen.dart';
+import 'package:physiq/screens/progress_photos/photo_viewer_screen.dart';
+
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -78,13 +83,28 @@ class ProgressScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
 
                     // Photos
-                    ProgressPhotoCard(
-                      photos: state.photos,
-                      onUploadTap: () => _showUploadPhotoDialog(context, viewModel, state.currentWeight),
-                      onPhotoTap: (photo) {
-                        // TODO: Open comparison viewer
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Comparison viewer coming soon!')));
+                    GestureDetector(
+                      onTap: () {
+                         Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ProgressPhotosGridScreen()),
+                        );
                       },
+                      child: ProgressPhotoCard(
+                        photos: state.photos,
+                        onUploadTap: () => _onCameraTap(context, state.currentWeight),
+                        onPhotoTap: (photo) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PhotoViewerScreen(
+                                initialPhotoId: photo.id,
+                                allPhotos: state.photos,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                     const SizedBox(height: 20),
 
@@ -105,6 +125,67 @@ class ProgressScreen extends ConsumerWidget {
   }
 
   // _showWeightOptions removed as per requirement to only allow logging weight directly
+
+  Future<void> _onCameraTap(BuildContext context, double currentWeight) async {
+    // Show modal to choose Camera or Gallery (Simulating the "button in camera" requirement by giving choice upfront)
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.card)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Take Photo', style: TextStyle(color: AppColors.primaryText)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndShowPreview(context, ImageSource.camera, currentWeight);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              title: const Text('Choose from Gallery', style: TextStyle(color: AppColors.primaryText)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndShowPreview(context, ImageSource.gallery, currentWeight);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndShowPreview(BuildContext context, ImageSource source, double currentWeight) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      // Compress here using imageQuality to target roughly < 300KB (heuristic)
+      // 1080p roughly, 70% quality usually yields < 300KB for JPEGs
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1920,
+        imageQuality: 70, 
+      );
+
+      if (image != null && context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PhotoPreviewScreen(
+              imageFile: image,
+              currentWeight: currentWeight,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
+  }
 
   void _showSetWeightDialog(BuildContext context, ProgressViewModel viewModel, double currentWeight) {
     final controller = TextEditingController(text: currentWeight.toString());
@@ -153,65 +234,6 @@ class ProgressScreen extends ConsumerWidget {
               textStyle: AppTextStyles.button,
             ),
             child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // _showSetGoalDialog removed or unused, kept if you want to reuse it later but not accessible via UI now.
-  // Actually, I'll remove it to be clean as per "Disable Update Goal Weight". 
-
-  void _showUploadPhotoDialog(BuildContext context, ProgressViewModel viewModel, double currentWeight) {
-    // Mock upload for now
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        title: Text('Upload Photo', style: AppTextStyles.heading2),
-        content: Text(
-          'Choose a source to upload your progress photo.',
-          style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
-        ),
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.secondaryText,
-                  textStyle: AppTextStyles.button,
-                ),
-                child: const Text('Cancel'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                 onPressed: () {
-                  // Mock adding a photo
-                  viewModel.addPhoto(ProgressPhoto(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    imageUrl: '', // Empty for now
-                    weightKg: currentWeight,
-                    date: DateTime.now(),
-                    uploadedAt: DateTime.now(),
-                  ));
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  textStyle: AppTextStyles.button,
-                ),
-                child: const Text('Simulate Camera'),
-              ),
-            ],
           ),
         ],
       ),

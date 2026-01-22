@@ -1,15 +1,20 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:intl/intl.dart';
 import 'package:physiq/models/weight_model.dart';
 import 'package:physiq/models/progress_photo_model.dart';
 import 'package:physiq/services/auth_service.dart';
+
 
 final progressRepositoryProvider = Provider((ref) => ProgressRepository());
 
 class ProgressRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // Mock Data (unused)
   final List<WeightEntry> _mockWeights = [];
@@ -94,11 +99,116 @@ class ProgressRepository {
   }
 
   Future<List<ProgressPhoto>> getProgressPhotos() async {
-    return [];
+    if (AppConfig.useMockBackend) return [];
+
+    final user = _auth.currentUser;
+    if (user == null) return [];
+
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('progressPhotos')
+          .orderBy('date', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) => ProgressPhoto.fromMap(doc.data())).toList();
+    } catch (e) {
+      print('Error fetching progress photos: $e');
+      return [];
+    }
   }
 
-  Future<void> uploadProgressPhoto(ProgressPhoto photo) async {
-    // Placeholder
+  Future<void> uploadProgressPhoto(File imageFile, double currentWeight) async {
+    if (AppConfig.useMockBackend) return;
+
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    try {
+      final now = DateTime.now();
+      final dateKey = DateFormat('yyyy-MM-dd').format(now);
+
+      // 1. Check Daily Limit
+      final todayPhotos = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('progressPhotos')
+          .where('dateKey', isEqualTo: dateKey)
+          .get();
+
+      if (todayPhotos.docs.length >= 3) {
+        throw Exception('Daily upload limit reached (max 3).');
+      }
+
+      // 2. Upload to Storage
+      final photoId = now.millisecondsSinceEpoch.toString();
+      final storageRef = _storage
+          .ref()
+          .child('progress_photos/${user.uid}/$photoId.jpg');
+
+      final uploadTask = await storageRef.putFile(imageFile); // Assuming pre-compressed
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      // 3. Save to Firestore
+      final photo = ProgressPhoto(
+        id: photoId,
+        imageUrl: downloadUrl,
+        weightKg: currentWeight,
+        date: now,
+        uploadedAt: now,
+      );
+
+      // Add dateKey for querying
+      final photoMap = photo.toMap();
+      photoMap['dateKey'] = dateKey;
+
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('progressPhotos')
+          .doc(photoId)
+          .set(photoMap);
+      
+    } catch (e) {
+      print('Error uploading progress photo: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteProgressPhoto(String photoId, String imageUrl) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // 1. Delete from Firestore
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('progressPhotos')
+          .doc(photoId)
+          .delete();
+
+      // 2. Delete from Storage
+      // Extract path or use stored ref if possible. 
+      // Based on structure: progress_photos/{uid}/{photoId}.jpg
+      // Ideally we would store the storage path, but we can reconstruct it or use the refFromURL if needed.
+      // However, safest is to use the ID if we stuck to the naming convention.
+      // But refFromURL is safer if we change naming later.
+      try {
+        final ref = _storage.refFromURL(imageUrl);
+        await ref.delete();
+      } catch (storageError) {
+        print('Error deleting from storage (might act odd if URL is weird): $storageError');
+        // Fallback to constructed path if URL parsing fails
+        final fallbackRef = _storage.ref().child('progress_photos/${user.uid}/$photoId.jpg');
+        await fallbackRef.delete();
+      }
+
+    } catch (e) {
+      print('Error deleting progress photo: $e');
+      rethrow;
+    }
   }
 
   Future<double> getGoalWeight() async {

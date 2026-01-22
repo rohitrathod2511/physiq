@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -255,10 +256,16 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
     await loadData();
   }
 
-  Future<void> addPhoto(ProgressPhoto photo) async {
-    await _repository.uploadProgressPhoto(photo);
+  Future<void> addPhoto(File file, double weight) async {
+    await _repository.uploadProgressPhoto(file, weight);
     // Reload photos only
     final photos = await _repository.getProgressPhotos();
     state = state.copyWith(photos: photos);
   }
+
+  Future<void> deletePhoto(ProgressPhoto photo) async {
+    await _repository.deleteProgressPhoto(photo.id, photo.imageUrl);
+    await loadData();
+  }
 }
+
