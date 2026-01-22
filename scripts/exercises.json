@@ -1,0 +1,162 @@
+[
+  {
+    "id": "push_ups",
+    "name": "Push-ups",
+    "category": "home",
+    "supportsIntensity": true,
+    "met": {
+      "low": 3.8,
+      "medium": 5.5,
+      "high": 8.0
+    }
+  },
+  {
+    "id": "squats",
+    "name": "Squats",
+    "category": "home",
+    "supportsIntensity": true,
+    "met": {
+      "low": 3.5,
+      "medium": 5.5,
+      "high": 7.5
+    }
+  },
+  {
+    "id": "plank",
+    "name": "Plank",
+    "category": "home",
+    "supportsIntensity": true,
+    "met": {
+      "low": 2.5,
+      "medium": 3.5,
+      "high": 5.0
+    }
+  },
+  {
+    "id": "lunges",
+    "name": "Lunges",
+    "category": "home",
+    "supportsIntensity": true,
+    "met": {
+      "low": 3.0,
+      "medium": 5.0,
+      "high": 7.0
+    }
+  },
+  {
+    "id": "burpees",
+    "name": "Burpees",
+    "category": "home",
+    "supportsIntensity": true,
+    "met": {
+      "low": 6.0,
+      "medium": 8.0,
+      "high": 11.0
+    }
+  },
+  {
+    "id": "bench_press",
+    "name": "Bench Press",
+    "category": "gym",
+    "supportsIntensity": true,
+    "met": {
+      "low": 3.5,
+      "medium": 5.0,
+      "high": 7.0
+    }
+  },
+  {
+    "id": "deadlift",
+    "name": "Deadlift",
+    "category": "gym",
+    "supportsIntensity": true,
+    "met": {
+      "low": 4.0,
+      "medium": 6.0,
+      "high": 8.5
+    }
+  },
+  {
+    "id": "squat_barbell",
+    "name": "Barbell Squat",
+    "category": "gym",
+    "supportsIntensity": true,
+    "met": {
+      "low": 4.0,
+      "medium": 6.0,
+      "high": 8.0
+    }
+  },
+  {
+    "id": "running",
+    "name": "Running",
+    "category": "cardio",
+    "supportsIntensity": true,
+    "met": {
+      "low": 6.0,
+      "medium": 9.8,
+      "high": 11.5
+    }
+  },
+  {
+    "id": "cycling",
+    "name": "Cycling",
+    "category": "cardio",
+    "supportsIntensity": true,
+    "met": {
+      "low": 4.0,
+      "medium": 7.5,
+      "high": 10.0
+    }
+  },
+  {
+    "id": "basketball",
+    "name": "Basketball",
+    "category": "sports",
+    "supportsIntensity": false,
+    "met": 8.0
+  },
+  {
+    "id": "football",
+    "name": "Football",
+    "category": "sports",
+    "supportsIntensity": false,
+    "met": 8.0
+  },
+  {
+    "id": "cricket",
+    "name": "Cricket",
+    "category": "sports",
+    "supportsIntensity": false,
+    "met": 5.0
+  },
+  {
+    "id": "swimming",
+    "name": "Swimming",
+    "category": "cardio",
+    "supportsIntensity": true,
+    "met": {
+      "low": 6.0,
+      "medium": 8.0,
+      "high": 10.0
+    }
+  },
+  {
+    "id": "yoga",
+    "name": "Yoga",
+    "category": "home",
+    "supportsIntensity": false,
+    "met": 3.0
+  },
+  {
+    "id": "hiit",
+    "name": "HIIT",
+    "category": "home",
+    "supportsIntensity": true,
+    "met": {
+      "low": 8.0,
+      "medium": 11.0,
+      "high": 14.0
+    }
+  }
+]

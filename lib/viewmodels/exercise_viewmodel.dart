@@ -59,17 +59,28 @@ class ExerciseViewModel extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  double estimateCalories({
+  Future<double> estimateCalories({
     required String exerciseType,
     required String intensity,
     required int durationMinutes,
     required double weightKg,
-  }) {
+  }) async {
+    final metadata = await _exerciseService.getExerciseMetadata(exerciseType);
+    double met = 5.0; // Default fallback
+
+    if (metadata != null) {
+      final metData = metadata['met'];
+      if (metadata['supportsIntensity'] == true && metData is Map) {
+         met = (metData[intensity] ?? metData['medium'] ?? 5.0).toDouble();
+      } else if (metData is num) {
+         met = metData.toDouble();
+      }
+    }
+    
     return CalorieCalculator.calculateCalories(
-      exerciseType: exerciseType,
-      intensity: intensity,
-      durationMinutes: durationMinutes,
+      met: met,
       weightKg: weightKg,
+      durationMinutes: durationMinutes,
     );
   }
   

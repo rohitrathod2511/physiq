@@ -3,6 +3,8 @@ import 'package:physiq/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:physiq/services/user_repository.dart';
 import 'package:physiq/models/meal_model.dart';
+import 'package:physiq/services/exercise_service.dart';
+import 'package:physiq/models/exercise_log_model.dart';
 
 final firestoreServiceProvider = Provider((ref) => FirestoreService());
 
@@ -11,14 +13,16 @@ final homeViewModelProvider = StateNotifierProvider<HomeViewModel, HomeState>((r
   return HomeViewModel(
     ref.watch(firestoreServiceProvider),
     ref.watch(userRepositoryProvider),
+    ExerciseService(),
   );
 });
 
 class HomeViewModel extends StateNotifier<HomeState> {
   final FirestoreService _firestoreService;
   final UserRepository _userRepository;
+  final ExerciseService _exerciseService;
 
-  HomeViewModel(this._firestoreService, this._userRepository)
+  HomeViewModel(this._firestoreService, this._userRepository, this._exerciseService)
       : super(HomeState(
           // Initialize with empty data to prevent infinite loading
           dailySummary: {
@@ -49,6 +53,11 @@ class HomeViewModel extends StateNotifier<HomeState> {
       if (user != null && user.currentPlan != null) {
         state = state.copyWith(currentPlan: user.currentPlan);
       }
+    });
+
+    // Listen to Recent Workouts
+    _exerciseService.getRecentLogs(uid).listen((logs) {
+      state = state.copyWith(recentWorkouts: logs);
     });
   }
 
@@ -103,6 +112,7 @@ class HomeState {
   final List<Map<String, dynamic>>? recentMeals;
   final bool isPremium;
   final Map<String, dynamic>? currentPlan;
+  final List<ExerciseLog>? recentWorkouts;
 
   HomeState({
     DateTime? selectedDate,
@@ -110,6 +120,7 @@ class HomeState {
     this.recentMeals,
     this.isPremium = false,
     this.currentPlan,
+    this.recentWorkouts,
   }) : selectedDate = selectedDate ?? DateTime.now();
 
   HomeState copyWith({
@@ -118,6 +129,7 @@ class HomeState {
     List<Map<String, dynamic>>? recentMeals,
     bool? isPremium,
     Map<String, dynamic>? currentPlan,
+    List<ExerciseLog>? recentWorkouts,
   }) {
     return HomeState(
       selectedDate: selectedDate ?? this.selectedDate,
@@ -125,6 +137,7 @@ class HomeState {
       recentMeals: recentMeals ?? this.recentMeals,
       isPremium: isPremium ?? this.isPremium,
       currentPlan: currentPlan ?? this.currentPlan,
+      recentWorkouts: recentWorkouts ?? this.recentWorkouts,
     );
   }
 }

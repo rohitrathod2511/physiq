@@ -5,6 +5,8 @@ import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/viewmodels/exercise_viewmodel.dart';
 import 'package:physiq/models/exercise_log_model.dart';
 import 'package:physiq/screens/exercise/add_burned_calories_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:physiq/services/user_repository.dart';
 
 class ExerciseDetailScreen extends ConsumerStatefulWidget {
   final String exerciseId;
@@ -47,7 +49,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: widget.category == 'home' ? 2 : 1, vsync: this);
   }
 
   @override
@@ -187,17 +189,27 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
     _weightController.text = current.toString();
   }
 
-  void _onSave() {
+  Future<void> _onSave() async {
     final viewModel = ref.read(exerciseViewModelProvider.notifier);
-    const double weightKg = 70.0; // Mock
+    
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    
+    // Fetch user weight
+    final user = await ref.read(userRepositoryProvider).streamUser(uid).first;
+    final double weightKg = (user?.weightKg ?? 70.0).toDouble();
 
     int durationMin = 0;
     double calories = 0;
 
-    if (_tabController.index == 1) { // Index 1 is now Timer
+    if (_tabController.index == (widget.category == 'home' ? 1 : -1)) { // Logic for timer tab index
+       // Re-evaluating index logic: 
+       // If Home: Tab 0 = Manual, Tab 1 = Timer.
+       // If Gym: Tab 0 = Manual. Timer tab not present.
+       // So if category == 'home' && index == 1, it's timer.
       // Timer mode
       durationMin = (_totalDurationSec / 60).ceil();
-      calories = viewModel.estimateCalories(
+      calories = await viewModel.estimateCalories(
         exerciseType: 'hiit', // Timer implies HIIT/Circuit
         intensity: 'high',
         durationMinutes: durationMin,
@@ -208,7 +220,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
       // Estimate duration: sets * (reps * 3s + 60s rest)
       // Simple heuristic: 2 mins per set
       durationMin = _sets.length * 2; 
-      calories = viewModel.estimateCalories(
+      calories = await viewModel.estimateCalories(
         exerciseType: widget.exerciseId, // Specific ID
         intensity: 'medium',
         durationMinutes: durationMin,
@@ -223,7 +235,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           initialCalories: calories,
           onLog: (finalCalories) {
             viewModel.logExercise(
-              userId: 'current_user_id',
+              userId: uid,
               exerciseId: widget.exerciseId,
               name: widget.name,
               type: widget.category == 'home' ? ExerciseType.home : ExerciseType.gym,
@@ -296,9 +308,9 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.secondaryText,
           indicatorColor: AppColors.primary,
-          tabs: const [
-            Tab(text: 'Manual Sets'), // Swapped
-            Tab(text: 'Timer'),
+          tabs: [
+            const Tab(text: 'Manual Sets'), // Swapped
+            if (widget.category == 'home') const Tab(text: 'Timer'),
           ],
         ),
       ),
@@ -351,8 +363,10 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           Expanded(flex: 2, child: _buildInput('Sets', _setsController)),
                           const SizedBox(width: 12),
                           Expanded(flex: 3, child: _buildInput('Reps', _repsController)),
-                          const SizedBox(width: 12),
-                          Expanded(flex: 3, child: _buildInput('Weight (kg)', _weightController, onSuffixTap: _incrementWeight)),
+                          if (widget.category != 'home') ...[
+                            const SizedBox(width: 12),
+                            Expanded(flex: 3, child: _buildInput('Weight (kg)', _weightController, onSuffixTap: _incrementWeight)),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -375,7 +389,8 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
             ),
           ),
             // Timer Tab (Now Second)
-          Column(
+          if (widget.category == 'home')
+            Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(_isWork ? 'Start' : 'Rest', style: AppTextStyles.heading1.copyWith(color: _isWork ? Colors.green : Colors.orange)),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/screens/exercise/add_burned_calories_screen.dart';
 import 'package:physiq/viewmodels/exercise_viewmodel.dart';
@@ -88,7 +89,7 @@ class _DescribeExerciseScreenState extends ConsumerState<DescribeExerciseScreen>
     setState(() => _isAnalyzing = false);
   }
 
-  void _onContinue() {
+  void _onContinue() async {
     // Simple heuristic parsing
     final text = _controller.text.toLowerCase();
     int duration = 30;
@@ -114,7 +115,7 @@ class _DescribeExerciseScreenState extends ConsumerState<DescribeExerciseScreen>
 
     const double weightKg = 70.0;
     final viewModel = ref.read(exerciseViewModelProvider.notifier);
-    final calories = viewModel.estimateCalories(
+    final calories = await viewModel.estimateCalories(
       exerciseType: type,
       intensity: intensity,
       durationMinutes: duration,
@@ -127,8 +128,10 @@ class _DescribeExerciseScreenState extends ConsumerState<DescribeExerciseScreen>
         builder: (_) => AddBurnedCaloriesScreen(
           initialCalories: calories,
           onLog: (finalCalories) {
+            final uid = FirebaseAuth.instance.currentUser?.uid;
+            if (uid == null) return;
             viewModel.logExercise(
-              userId: 'current_user_id',
+              userId: uid,
               exerciseId: 'describe',
               name: 'Custom Workout',
               type: ExerciseType.other,

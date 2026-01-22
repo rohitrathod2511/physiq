@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/viewmodels/exercise_viewmodel.dart';
 import 'package:physiq/models/exercise_log_model.dart';
@@ -95,8 +96,11 @@ class _ManualEntryScreenState extends ConsumerState<ManualEntryScreen> {
     final calories = double.tryParse(_controller.text) ?? 0.0;
     if (calories <= 0) return;
 
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
     ref.read(exerciseViewModelProvider.notifier).logExercise(
-      userId: 'current_user_id',
+      userId: uid,
       exerciseId: 'manual',
       name: 'Manual Entry',
       type: ExerciseType.manual,

@@ -7,6 +7,26 @@ import 'package:physiq/services/user_repository.dart'; // Assuming this exists f
 class ExerciseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _kPendingLogsKey = 'pending_exercise_logs';
+  final Map<String, dynamic> _metadataCache = {};
+  bool _hasFetchedMetadata = false;
+
+  Future<void> _ensureMetadataFetched() async {
+    if (_hasFetchedMetadata && _metadataCache.isNotEmpty) return;
+    try {
+      final snapshot = await _firestore.collection('exercise_metadata').get();
+      for (var doc in snapshot.docs) {
+        _metadataCache[doc.id] = doc.data();
+      }
+      _hasFetchedMetadata = true;
+    } catch (e) {
+      print('Error fetching exercise metadata: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> getExerciseMetadata(String exerciseId) async {
+    await _ensureMetadataFetched();
+    return _metadataCache[exerciseId];
+  }
 
   Future<void> logExercise(ExerciseLog log) async {
     try {
@@ -23,7 +43,7 @@ class ExerciseService {
       final dailyRef = _firestore
           .collection('users')
           .doc(log.userId)
-          .collection('daily')
+          .collection('daily_summaries')
           .doc(dateKey);
 
       await _firestore.runTransaction((transaction) async {
@@ -32,13 +52,13 @@ class ExerciseService {
         if (!snapshot.exists) {
           transaction.set(dailyRef, {
             'exerciseCalories': log.calories,
-            'totalCaloriesBurned': log.calories, // + BMR + steps (handled elsewhere)
+            'caloriesBurned': log.calories, // + BMR + steps (handled elsewhere)
             'lastUpdatedAt': FieldValue.serverTimestamp(),
           });
         } else {
           transaction.update(dailyRef, {
             'exerciseCalories': FieldValue.increment(log.calories),
-            'totalCaloriesBurned': FieldValue.increment(log.calories),
+            'caloriesBurned': FieldValue.increment(log.calories),
             'lastUpdatedAt': FieldValue.serverTimestamp(),
           });
         }
@@ -85,6 +105,8 @@ class ExerciseService {
   Future<List<Map<String, dynamic>>> loadExerciseCategories() async {
     // In a real app, fetch from Firestore or RemoteConfig
     // Returning hardcoded list for now as per requirements
+    // Ensure metadata is fetched so we have data available for subsequent calls
+    await _ensureMetadataFetched(); 
     return [
       {'id': 'home', 'title': 'Home', 'subtitle': 'Bodyweight & at-home routines', 'icon': 'home'},
       {'id': 'gym', 'title': 'Gym', 'subtitle': 'Gym & equipment-based', 'icon': 'fitness_center'},
@@ -92,6 +114,21 @@ class ExerciseService {
       {'id': 'cycling', 'title': 'Cycling', 'subtitle': 'Cycle, spin, outdoor', 'icon': 'directions_bike'},
       {'id': 'describe', 'title': 'Describe', 'subtitle': 'Write your workout in text', 'icon': 'edit'},
       {'id': 'manual', 'title': 'Manual', 'subtitle': 'Enter exact calories burned', 'icon': 'add_circle_outline'},
+      {'id': 'sports', 'title': 'Sports', 'subtitle': 'Basketball, Football, etc.', 'icon': 'sports_basketball'},
     ];
+  }
+
+  Stream<List<ExerciseLog>> getRecentLogs(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('exerciseLogs')
+        .orderBy('timestamp', descending: true)
+        .limit(20) // Fetch a bit more to allow for filtering
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ExerciseLog.fromMap(doc.data()))
+            .where((log) => log.type != ExerciseType.manual && log.name != 'Manual Entry')
+            .toList());
   }
 }

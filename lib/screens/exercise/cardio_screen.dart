@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/widgets/exercise/intensity_slider.dart';
 import 'package:physiq/widgets/exercise/duration_selector.dart';
@@ -129,7 +130,7 @@ class _CardioScreenState extends ConsumerState<CardioScreen> {
 
     // 2. Calculate calories
     final viewModel = ref.read(exerciseViewModelProvider.notifier);
-    final calories = viewModel.estimateCalories(
+    final calories = await viewModel.estimateCalories(
       exerciseType: widget.type,
       intensity: _intensity,
       durationMinutes: _duration,
@@ -143,8 +144,13 @@ class _CardioScreenState extends ConsumerState<CardioScreen> {
         builder: (_) => AddBurnedCaloriesScreen(
           initialCalories: calories,
           onLog: (finalCalories) {
+            final uid = FirebaseAuth.instance.currentUser?.uid;
+            if (uid == null) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: Not logged in')));
+              return;
+            }
             viewModel.logExercise(
-              userId: 'current_user_id', // Replace with actual auth ID
+              userId: uid,
               exerciseId: widget.type,
               name: widget.type == 'run' ? 'Run' : 'Cycling',
               type: ExerciseType.cardio,
