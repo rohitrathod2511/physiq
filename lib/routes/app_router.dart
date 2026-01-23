@@ -224,13 +224,13 @@ final GoRouter router = GoRouter(
     GoRoute(path: '/onboarding/activity', builder: (context, state) => const ActivityLifestyleScreen()),
     GoRoute(path: '/onboarding/goal', builder: (context, state) => const GoalScreen()),
     GoRoute(path: '/onboarding/target-weight', builder: (context, state) => const TargetWeightScreen()),
-    GoRoute(path: '/onboarding/motivational-message', builder: (context, state) => const GeneratePlanScreen()),
+    GoRoute(path: '/onboarding/motivational-message', builder: (context, state) => const MotivationalMessageScreen()),
     GoRoute(path: '/onboarding/timeframe', builder: (context, state) => const TimeframeScreen()),
     GoRoute(path: '/onboarding/result-message', builder: (context, state) => const ResultMessageScreen()),
     GoRoute(path: '/onboarding/diet-preference', builder: (context, state) => const DietPreferenceScreen()),
     GoRoute(path: '/onboarding/notification', builder: (context, state) => const NotificationScreen()),
     GoRoute(path: '/onboarding/referral', builder: (context, state) => const ReferralScreen()),
-    GoRoute(path: '/onboarding/generate-plan', builder: (context, state) => const MotivationalMessageScreen()),
+    GoRoute(path: '/onboarding/generate-plan', builder: (context, state) => const GeneratePlanScreen()),
     GoRoute(path: '/onboarding/loading', builder: (context, state) => const LoadingScreen()),
     
     // Review & Paywall

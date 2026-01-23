@@ -109,12 +109,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 value: isDark,
                                 activeColor: AppColors.primary,
                                 onChanged: (val) async {
-                                  // Update global notifier triggers MaterialApp rebuild
-                                  themeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
-                                  
-                                  // Save preference locally
-                                  final prefs = await SharedPreferences.getInstance();
-                                  await prefs.setString('app_theme', val ? 'dark' : 'light');
+                                  final newMode = val ? ThemeMode.dark : ThemeMode.light;
+                                  themeNotifier.value = newMode;
+                                  await ref.read(preferencesProvider.notifier).setThemeMode(newMode);
                                 },
                               ),
                             );

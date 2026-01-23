@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:physiq/routes/app_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/providers/preferences_provider.dart';
+import 'package:physiq/services/messaging_service.dart';
 import 'firebase_options.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
@@ -12,6 +13,9 @@ final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Initialize Firebase Messaging
+  await MessagingService().initialize();
 
   final sharedPrefs = await SharedPreferences.getInstance();
   

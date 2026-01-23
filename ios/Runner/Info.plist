@@ -53,5 +53,10 @@
 	<string>This app needs speech recognition to convert your voice to text for nutrition logging.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to upload meal photos.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

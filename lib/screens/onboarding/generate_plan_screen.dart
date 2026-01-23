@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 
-class MotivationalMessageScreen extends StatelessWidget {
-  const MotivationalMessageScreen({super.key});
+class GeneratePlanScreen extends StatelessWidget {
+  const GeneratePlanScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +61,7 @@ class MotivationalMessageScreen extends StatelessWidget {
                         children: [
                           const Icon(Icons.check_circle, color: Colors.orange, size: 20),
                           const SizedBox(width: 8),
-                          Text("All done!", style: AppTextStyles.bodyBold.copyWith(color: Colors.black)),
+                          Text("All done!", style: AppTextStyles.bodyBold.copyWith(color: AppColors.primaryText)),
                         ],
                       ),
                     ),
@@ -82,7 +82,7 @@ class MotivationalMessageScreen extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () => context.push('/onboarding/loading'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -103,4 +103,3 @@ class MotivationalMessageScreen extends StatelessWidget {
     );
   }
 }
-
