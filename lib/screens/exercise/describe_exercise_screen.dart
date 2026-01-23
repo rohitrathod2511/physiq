@@ -25,7 +25,7 @@ class _DescribeExerciseScreenState extends ConsumerState<DescribeExerciseScreen>
         title: Text('Describe Workout', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),

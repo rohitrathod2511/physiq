@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 void showStreakCalendar(BuildContext context) {
@@ -34,26 +34,29 @@ class _StreakCalendarPopupState extends State<StreakCalendarPopup> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Streak Calendar', style: AppTextStyles.heading1.copyWith(fontSize: 20)),
-          const SizedBox(height: 16),
-          _buildCalendar(),
-          const SizedBox(height: 24),
-          if (_selectedDay != null) _buildDaySummaryPanel(),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              'You have a 24-hour grace period to edit your entries.',
-              style: AppTextStyles.subheading,
-              textAlign: TextAlign.center,
+    return Container(
+      color: AppColors.card,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Streak Calendar', style: AppTextStyles.heading1.copyWith(fontSize: 20)),
+            const SizedBox(height: 16),
+            _buildCalendar(),
+            const SizedBox(height: 24),
+            if (_selectedDay != null) _buildDaySummaryPanel(),
+            const SizedBox(height: 16),
+            Center(
+              child: Text(
+                'You have a 24-hour grace period to edit your entries.',
+                style: AppTextStyles.subheading,
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -75,8 +78,8 @@ class _StreakCalendarPopupState extends State<StreakCalendarPopup> {
         titleCentered: true,
         formatButtonVisible: false,
         titleTextStyle: AppTextStyles.bodyBold!.copyWith(fontSize: 16),
-        leftChevronIcon: const Icon(Icons.chevron_left, color: AppColors.accent),
-        rightChevronIcon: const Icon(Icons.chevron_right, color: AppColors.accent),
+        leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.accent),
+        rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.accent),
       ),
       daysOfWeekStyle: DaysOfWeekStyle(
         weekdayStyle: AppTextStyles.subheading.copyWith(fontSize: 12),
@@ -103,6 +106,22 @@ class _StreakCalendarPopupState extends State<StreakCalendarPopup> {
           );
         },
       ),
+      calendarStyle: CalendarStyle(
+        defaultTextStyle: AppTextStyles.body,
+        weekendTextStyle: AppTextStyles.body,
+        outsideTextStyle: AppTextStyles.subheading,
+        disabledTextStyle: AppTextStyles.subheading,
+        selectedTextStyle: AppTextStyles.bodyBold.copyWith(color: Colors.white), // Visible on Black (Light) & Dark (Dark)
+        todayTextStyle: AppTextStyles.bodyBold.copyWith(color: Colors.white),
+        selectedDecoration: BoxDecoration(
+          color: AppColors.primary,
+          shape: BoxShape.circle,
+        ),
+        todayDecoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.5),
+          shape: BoxShape.circle,
+        ),
+      ),
     );
   }
 
@@ -122,12 +141,12 @@ class _StreakCalendarPopupState extends State<StreakCalendarPopup> {
           ),
           const SizedBox(height: 12),
           // Placeholder for summary details
-          const Text('Calories eaten: 500'),
-          const Text('Calories burned: 200'),
+          Text('Calories eaten: 500', style: AppTextStyles.body),
+          Text('Calories burned: 200', style: AppTextStyles.body),
           const SizedBox(height: 8),
           Text('Meals:', style: AppTextStyles.bodyBold),
-          const Text('- Meal A'),
-          const Text('- Meal B'),
+          Text('- Meal A', style: AppTextStyles.body),
+          Text('- Meal B', style: AppTextStyles.body),
         ],
       ),
     );

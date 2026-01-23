@@ -86,7 +86,7 @@ class _MacroAdjustmentScreenState extends ConsumerState<MacroAdjustmentScreen> {
         title: Text('Edit Nutrition Goals', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -153,7 +153,7 @@ class _MacroAdjustmentScreenState extends ConsumerState<MacroAdjustmentScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.edit, size: 16, color: AppColors.secondaryText),
+          Icon(Icons.edit, size: 16, color: AppColors.secondaryText),
         ],
       ),
     );

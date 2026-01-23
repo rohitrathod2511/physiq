@@ -138,13 +138,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 child: Column(
                   children: [
                     // 1. Success Icon (Checkmark)
-                    Container(
-                       padding: const EdgeInsets.all(12),
-                       decoration: const BoxDecoration(
-                         color: Colors.black,
+                     Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                         color: AppColors.primaryText,
                          shape: BoxShape.circle,
                        ),
-                       child: const Icon(Icons.check, color: Colors.white, size: 32),
+                       child: Icon(Icons.check, color: AppColors.background, size: 32),
                     ),
                     const SizedBox(height: 24),
   
@@ -159,13 +159,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     // 3. Subtext (Goal)
                     Text(
                       "You should ${isGain ? 'Gain' : 'Lose'}:",
-                      style: AppTextStyles.bodyBold.copyWith(fontSize: 16, color: Colors.black87),
+                      style: AppTextStyles.bodyBold.copyWith(fontSize: 16, color: AppColors.primaryText),
                     ),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -178,10 +178,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   
                     // 4. Daily Recommendation Section
                     Container(
-                      width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8F9FE), // Light background for the section
+                        color: AppColors.card, // Light background for the section
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Column(
@@ -259,11 +258,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: AppColors.shadow,
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -323,8 +322,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primaryText,
+                    foregroundColor: AppColors.background,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
@@ -354,11 +353,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.shadow,
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

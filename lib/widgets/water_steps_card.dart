@@ -54,7 +54,7 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.card,
         title: Text("Set Step Goal", style: AppTextStyles.heading2),
         content: TextField(
           controller: controller,
@@ -117,7 +117,7 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -232,7 +232,7 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
       height: 220,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
@@ -281,7 +281,7 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
                                 const SizedBox(width: 4),
                                 GestureDetector(
                                   onTap: _editStepGoal,
-                                  child: const Icon(Icons.edit, size: 16, color: AppColors.secondaryText),
+                                  child: Icon(Icons.edit, size: 16, color: AppColors.secondaryText),
                                 )
                               ],
                             ),
@@ -446,8 +446,8 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
     @override
     Widget build(BuildContext context) {
         return Container(
-            decoration: const BoxDecoration(
-                color: Colors.white,
+            decoration: BoxDecoration(
+                color: AppColors.card,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
             ),
             padding: EdgeInsets.only(
@@ -512,7 +512,7 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
                         children: [
                             IconButton(
                               onPressed: () => _adjustGoal(-1),
-                              icon: const Icon(Icons.remove_circle_outline, color: AppColors.secondaryText),
+                              icon: Icon(Icons.remove_circle_outline, color: AppColors.secondaryText),
                             ),
                             const SizedBox(width: 8),
                             Column(
@@ -529,7 +529,7 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
                             const SizedBox(width: 8),
                             IconButton(
                               onPressed: () => _adjustGoal(1),
-                              icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                              icon: Icon(Icons.add_circle_outline, color: AppColors.primary),
                             ),
                         ],
                     ),
@@ -589,12 +589,12 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
             child: Container(
                 width: 50, height: 50,
                 decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.card,
                     shape: BoxShape.circle,
                     boxShadow: [AppShadows.card],
                     border: Border.all(color: Colors.grey.shade100),
                 ),
-                child: Icon(icon, color: Colors.black),
+                child: Icon(icon, color: AppColors.primaryText),
             ),
         );
     }

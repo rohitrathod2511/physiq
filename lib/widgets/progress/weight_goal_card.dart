@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class WeightGoalCard extends StatelessWidget {
   final double currentWeight;

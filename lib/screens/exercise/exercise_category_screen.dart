@@ -18,7 +18,7 @@ class ExerciseCategoryScreen extends StatelessWidget {
         title: Text(title, style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(24),

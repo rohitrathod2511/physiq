@@ -18,7 +18,7 @@ class SettingsCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -98,17 +98,17 @@ class SettingsRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: titleColor ?? const Color(0xFF111111),
+                      color: titleColor ?? Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: Color(0xFF666666),
+                        color: Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF666666),
                       ),
                     ),
                   ],
@@ -220,7 +220,7 @@ class LeaderboardCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -246,10 +246,10 @@ class LeaderboardCard extends StatelessWidget {
                     color: AppColors.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.leaderboard, color: AppColors.primary, size: 20),
+                  child: Icon(Icons.leaderboard, color: AppColors.primary, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -257,7 +257,7 @@ class LeaderboardCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111111),
+                        color: AppColors.primaryText,
                       ),
                     ),
                     Text(
@@ -265,13 +265,13 @@ class LeaderboardCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: Color(0xFF666666),
+                        color: AppColors.secondaryText,
                       ),
                     ),
                   ],
                 ),
                 const Spacer(),
-                const Icon(Icons.chevron_right, color: Color(0xFF999999), size: 20),
+                Icon(Icons.chevron_right, color: AppColors.secondaryText, size: 20),
               ],
             ),
           ),

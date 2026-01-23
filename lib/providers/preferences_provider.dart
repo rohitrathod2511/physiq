@@ -32,7 +32,7 @@ class PreferencesNotifier extends StateNotifier<PreferencesState> {
   static ThemeMode _parseThemeMode(String? value) {
     if (value == 'light') return ThemeMode.light;
     if (value == 'dark') return ThemeMode.dark;
-    return ThemeMode.system;
+    return ThemeMode.light;
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -68,7 +68,7 @@ class PreferencesNotifier extends StateNotifier<PreferencesState> {
     await _prefs.remove('app_theme');
     await _prefs.remove('app_language');
     // Reset state to defaults
-    state = PreferencesState(themeMode: ThemeMode.system, locale: const Locale('en'));
+    state = PreferencesState(themeMode: ThemeMode.light, locale: const Locale('en'));
   }
 }
 

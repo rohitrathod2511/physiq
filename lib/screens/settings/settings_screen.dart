@@ -18,6 +18,8 @@ import 'package:physiq/services/cloud_functions_client.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:physiq/widgets/header_widget.dart';
+import 'package:physiq/main.dart';
+
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -38,14 +40,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final language = prefsState.locale.languageCode == 'hi' ? 'Hindi' : 'English';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            const SliverAppBar(
+            SliverAppBar(
               pinned: true,
               floating: false,
-              backgroundColor: AppColors.background,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               scrolledUnderElevation: 0,
               elevation: 0,
               toolbarHeight: 80,
@@ -95,17 +97,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           showChevron: false,
                           onTap: () => _showLanguageDialog(language),
                         ),
-                        SettingsRow(
-                          icon: isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                          title: 'Dark Mode',
-                          showChevron: false,
-                          trailing: Switch(
-                            value: isDarkMode,
-                            activeColor: AppColors.primary,
-                            onChanged: (val) {
-                              ref.read(preferencesProvider.notifier).setThemeMode(val ? ThemeMode.dark : ThemeMode.light);
-                            },
-                          ),
+                        ValueListenableBuilder<ThemeMode>(
+                          valueListenable: themeNotifier,
+                          builder: (context, mode, child) {
+                            final isDark = mode == ThemeMode.dark;
+                            return SettingsRow(
+                              icon: isDark ? Icons.dark_mode : Icons.light_mode,
+                              title: 'Dark Mode',
+                              showChevron: false,
+                              trailing: Switch(
+                                value: isDark,
+                                activeColor: AppColors.primary,
+                                onChanged: (val) async {
+                                  // Update global notifier triggers MaterialApp rebuild
+                                  themeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
+                                  
+                                  // Save preference locally
+                                  final prefs = await SharedPreferences.getInstance();
+                                  await prefs.setString('app_theme', val ? 'dark' : 'light');
+                                },
+                              ),
+                            );
+                          },
                         ),
                       ]),
                     ),
@@ -417,7 +430,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.logout, color: AppColors.primary, size: 32),
+                child: Icon(Icons.logout, color: AppColors.primary, size: 32),
               ),
               const SizedBox(height: 16),
               Text('Log out', style: AppTextStyles.heading2),

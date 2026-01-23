@@ -32,7 +32,7 @@ class _AddBurnedCaloriesScreenState extends State<AddBurnedCaloriesScreen> {
         title: Text('Summary', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -72,7 +72,7 @@ class _AddBurnedCaloriesScreenState extends State<AddBurnedCaloriesScreen> {
                               ),
                             ),
                           ),
-                          const Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
+                          Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
                         ],
                       ),
                       Text('kcal', style: AppTextStyles.bodyMedium),

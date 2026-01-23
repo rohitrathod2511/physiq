@@ -24,7 +24,7 @@ class ProgressScreen extends ConsumerWidget {
     final viewModel = ref.read(progressViewModelProvider.notifier);
 
     if (state.isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.background,
         body: Center(child: CircularProgressIndicator()),
       );
@@ -36,7 +36,7 @@ class ProgressScreen extends ConsumerWidget {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            const SliverAppBar(
+            SliverAppBar(
               pinned: true,
               floating: false,
               backgroundColor: AppColors.background,
@@ -138,16 +138,16 @@ class ProgressScreen extends ConsumerWidget {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-              title: const Text('Take Photo', style: TextStyle(color: AppColors.primaryText)),
+              leading: Icon(Icons.camera_alt, color: AppColors.primary),
+              title: Text('Take Photo', style: TextStyle(color: AppColors.primaryText)),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickAndShowPreview(context, ImageSource.camera, currentWeight);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.primary),
-              title: const Text('Choose from Gallery', style: TextStyle(color: AppColors.primaryText)),
+              leading: Icon(Icons.photo_library, color: AppColors.primary),
+              title: Text('Choose from Gallery', style: TextStyle(color: AppColors.primaryText)),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickAndShowPreview(context, ImageSource.gallery, currentWeight);
@@ -205,7 +205,7 @@ class ProgressScreen extends ConsumerWidget {
           decoration: InputDecoration(
             suffixText: 'kg',
             suffixStyle: AppTextStyles.body,
-            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300)),
           ),
         ),

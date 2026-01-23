@@ -82,7 +82,7 @@ class RecentWorkoutsList extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadii.bigCard),
         boxShadow: [AppShadows.card],
       ),
@@ -97,8 +97,8 @@ class RecentWorkoutsList extends StatelessWidget {
               color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Center(
-              child: Icon(Icons.fitness_center, color: AppColors.primary, size: 28),
+            child: Center(
+              child: Icon(Icons.fitness_center, color: AppColors.primaryText, size: 28),
             ),
           ),
           const SizedBox(width: 16),

@@ -42,7 +42,7 @@ class _CardioScreenState extends ConsumerState<CardioScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Column(
         children: [

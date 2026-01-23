@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:physiq/models/weight_model.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 import 'package:intl/intl.dart';
 
 class EcgGraphCard extends StatelessWidget {

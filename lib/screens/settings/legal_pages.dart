@@ -12,7 +12,7 @@ class TermsPage extends StatelessWidget {
         title: Text('Terms & Conditions', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -58,7 +58,7 @@ class PrivacyPage extends StatelessWidget {
         title: Text('Privacy Policy', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

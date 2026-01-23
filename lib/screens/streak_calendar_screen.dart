@@ -91,7 +91,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -172,7 +172,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
       
       final status = dataEntry.value['status'];
       
-      Color bgColor = Colors.white;
+      Color bgColor = AppColors.card;
       Color textColor = AppColors.primaryText;
       List<BoxShadow>? shadows;
       
@@ -191,7 +191,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
           textColor = const Color(0xFF14532D); // Dark Green Text
       } else {
           // Empty
-          bgColor = Colors.white;
+          bgColor = AppColors.card;
           textColor = AppColors.secondaryText;
       }
 
@@ -228,7 +228,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
         const SizedBox(width: 16),
         _buildLegendItem(const Color(0xFF86EFAC).withOpacity(0.5), "Partial"),
         const SizedBox(width: 16),
-        _buildLegendItem(Colors.white, "Missed", hasBorder: true),
+        _buildLegendItem(AppColors.card, "Missed", hasBorder: true),
       ],
     );
   }
@@ -265,9 +265,9 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
         maxChildSize: 0.9,
         minChildSize: 0.4,
         builder: (_, scrollController) => Container(
-            decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             ),
             child: ListView(
                 controller: scrollController,

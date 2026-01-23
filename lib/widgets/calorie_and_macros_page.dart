@@ -40,7 +40,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.card,
             borderRadius: BorderRadius.circular(32),
             boxShadow: [
               BoxShadow(
@@ -183,7 +183,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -209,7 +209,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
           const SizedBox(height: 12),
           RichText(
             text: TextSpan(
-              style: AppTextStyles.bodyBold.copyWith(color: Colors.black, height: 1.0),
+              style: AppTextStyles.bodyBold.copyWith(color: AppColors.primaryText, height: 1.0),
               children: [
                 TextSpan(
                   text: '$consumed',

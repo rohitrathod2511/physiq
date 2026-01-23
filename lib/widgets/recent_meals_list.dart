@@ -35,7 +35,7 @@ class RecentMealsList extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 4),
             padding: const EdgeInsets.all(16), // Reduced padding
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(AppRadii.bigCard),
               boxShadow: [AppShadows.card],
             ),
@@ -106,7 +106,7 @@ class RecentMealsList extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadii.bigCard),
         boxShadow: [AppShadows.card],
       ),
@@ -216,7 +216,7 @@ class RecentMealsList extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadii.bigCard),
         boxShadow: [AppShadows.card],
       ),
@@ -231,7 +231,7 @@ class RecentMealsList extends StatelessWidget {
               color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(Icons.fitness_center, color: AppColors.primary, size: 28),
             ),
           ),

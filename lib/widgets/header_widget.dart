@@ -55,7 +55,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                       shape: BoxShape.circle,
                       boxShadow: [AppShadows.card],
                     ),
-                    child: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryText, size: 20),
+                    child: Icon(Icons.calendar_month_rounded, color: AppColors.primaryText, size: 20),
                   ),
                 ),
                 const SizedBox(width: 12),

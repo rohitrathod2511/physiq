@@ -35,7 +35,7 @@ class ProgressPhotosGridScreen extends ConsumerWidget {
         title: const HeaderWidget(title: 'Progress Gallery', showActions: false),
         centerTitle: false,
         backgroundColor: AppColors.background,
-        iconTheme: const IconThemeData(color: AppColors.primaryText),
+        iconTheme: IconThemeData(color: AppColors.primaryText),
         elevation: 0,
         scrolledUnderElevation: 0,
       ),

@@ -302,7 +302,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
         title: Text(widget.name, style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
@@ -376,7 +376,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           onPressed: _addSet,
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            side: const BorderSide(color: AppColors.primary),
+                            side: BorderSide(color: AppColors.primary),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
                           child: Text('Add Set', style: AppTextStyles.button),
@@ -401,7 +401,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                 children: [
                   Text('$_timeLeft', style: AppTextStyles.largeNumber.copyWith(fontSize: 80)),
                   IconButton(
-                    icon: const Icon(Icons.edit, color: AppColors.secondaryText),
+                    icon: Icon(Icons.edit, color: AppColors.secondaryText),
                     onPressed: _editSettings,
                   ),
                 ],

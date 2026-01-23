@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class ProgressRingCard extends StatelessWidget {
   final double percent; // 0.0 to 1.0

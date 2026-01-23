@@ -1,28 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'package:physiq/main.dart';
 
 class BottomNavBar extends StatelessWidget {
   const BottomNavBar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BottomAppBar(
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8.0,
-      color: AppColors.background,
-      elevation: 0,
-      surfaceTintColor: Colors.transparent,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: <Widget>[
-          _buildNavItem(context, activeIcon: Icons.home_filled, inactiveIcon: Icons.home_outlined, label: 'Home', route: '/home'),
-          _buildNavItem(context, activeIcon: Icons.bar_chart_rounded, inactiveIcon: Icons.bar_chart_outlined, label: 'Progress', route: '/progress'),
-          const SizedBox(width: 48), // The space for the FAB
-          _buildNavItem(context, activeIcon: Icons.fitness_center, inactiveIcon: Icons.fitness_center_outlined, label: 'Exercise', route: '/exercise'),
-          _buildNavItem(context, activeIcon: Icons.settings, inactiveIcon: Icons.settings_outlined, label: 'Settings', route: '/settings'),
-        ],
-      ),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, themeMode, _) {
+        return BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0,
+          color: AppColors.background,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+              _buildNavItem(context, activeIcon: Icons.home_filled, inactiveIcon: Icons.home_outlined, label: 'Home', route: '/home'),
+              _buildNavItem(context, activeIcon: Icons.bar_chart_rounded, inactiveIcon: Icons.bar_chart_outlined, label: 'Progress', route: '/progress'),
+              const SizedBox(width: 48), // The space for the FAB
+              _buildNavItem(context, activeIcon: Icons.fitness_center, inactiveIcon: Icons.fitness_center_outlined, label: 'Exercise', route: '/exercise'),
+              _buildNavItem(context, activeIcon: Icons.settings, inactiveIcon: Icons.settings_outlined, label: 'Settings', route: '/settings'),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -43,7 +49,7 @@ class BottomNavBar extends StatelessWidget {
           children: <Widget>[
             Icon(
               isSelected ? activeIcon : inactiveIcon,
-              color: isSelected ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
+              color: isSelected ? AppColors.primaryText : AppColors.secondaryText,
               // Increased icon size
               size: 28,
             ),
@@ -55,7 +61,7 @@ class BottomNavBar extends StatelessWidget {
                 // Increased font size
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
+                color: isSelected ? AppColors.primaryText : AppColors.secondaryText,
               ),
             ),
           ],

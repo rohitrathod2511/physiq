@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:physiq/models/progress_photo_model.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 import 'package:intl/intl.dart';
 
 class ProgressPhotoCard extends StatelessWidget {
@@ -33,7 +33,7 @@ class ProgressPhotoCard extends StatelessWidget {
               Text('Progress Photos', style: AppTextStyles.heading2),
               IconButton(
                 onPressed: onUploadTap,
-                icon: const Icon(Icons.add_a_photo, color: AppColors.accent),
+                icon: Icon(Icons.add_a_photo, color: AppColors.accent),
               ),
             ],
           ),
@@ -63,13 +63,13 @@ class ProgressPhotoCard extends StatelessWidget {
                           height: 80,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            color: Colors.grey[200],
+                            color: AppColors.background,
                             image: photo.imageUrl.isNotEmpty
                                 ? DecorationImage(image: NetworkImage(photo.imageUrl), fit: BoxFit.cover)
                                 : null,
                           ),
                           child: photo.imageUrl.isEmpty
-                              ? const Icon(Icons.image, color: Colors.grey)
+                              ? Icon(Icons.image, color: AppColors.secondaryText)
                               : null,
                         ),
                         const SizedBox(height: 4),

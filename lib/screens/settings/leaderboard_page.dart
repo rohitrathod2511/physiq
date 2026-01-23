@@ -60,7 +60,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
         title: Text('Leaderboard', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -169,45 +169,51 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                       final user = _top10[index];
                       final isMe = user.uid == uid;
                       
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: isMe ? AppColors.primary.withOpacity(0.05) : AppColors.card,
-                          borderRadius: BorderRadius.circular(AppRadii.card),
-                          border: isMe ? Border.all(color: AppColors.primary, width: 1.5) : null,
-                          boxShadow: [AppShadows.card],
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              '#${user.rank}',
-                              style: AppTextStyles.heading2.copyWith(
-                                color: isMe ? AppColors.primary : AppColors.secondaryText,
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            CircleAvatar(
-                              radius: 18,
-                              backgroundColor: Colors.grey.shade200,
-                              child: Text(user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : '?', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                user.displayName,
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  fontWeight: isMe ? FontWeight.bold : FontWeight.w500,
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: isMe ? AppColors.primary.withOpacity(0.05) : AppColors.card,
+                            borderRadius: BorderRadius.circular(AppRadii.card),
+                            border: isMe ? Border.all(color: AppColors.primary, width: 1.5) : null,
+                            boxShadow: [AppShadows.card],
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                '#${user.rank}',
+                                style: AppTextStyles.heading2.copyWith(
+                                  color: isMe ? AppColors.primary : AppColors.secondaryText,
                                 ),
                               ),
-                            ),
-                            Text(
-                              '${user.score.toInt()} pts',
-                              style: AppTextStyles.bodyBold.copyWith(color: AppColors.primary),
-                            ),
-                          ],
-                        ),
-                      );
+                              const SizedBox(width: 20),
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: isMe ? AppColors.primary : Colors.grey.shade200,
+                                child: Text(
+                                  user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : '?',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isMe ? Colors.white : Colors.black, // Visible text on gray/primary
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  user.displayName,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: isMe ? FontWeight.bold : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${user.score.toInt()} pts',
+                                style: AppTextStyles.bodyBold.copyWith(color: AppColors.primary),
+                              ),
+                            ],
+                          ),
+                        );
                     },
                   ),
                 ),

@@ -164,7 +164,7 @@ class _EditGoalWeightPageState extends State<EditGoalWeightPage> {
         title: Text('Goal Weight', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Column(
         children: [
@@ -282,7 +282,7 @@ class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
         title: Text('Height & Weight', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -468,7 +468,7 @@ class _EditDOBPageState extends State<EditDOBPage> {
         title: Text('Date of Birth', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -638,7 +638,7 @@ class _EditGenderPageState extends State<EditGenderPage> {
         title: Text('Gender', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -743,7 +743,7 @@ class _EditStepGoalPageState extends State<EditStepGoalPage> {
         title: Text('Daily Step Goal', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Column(
         children: [

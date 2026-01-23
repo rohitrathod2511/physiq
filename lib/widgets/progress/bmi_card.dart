@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class BmiCard extends StatelessWidget {
   final double bmi;
@@ -25,7 +25,7 @@ class BmiCard extends StatelessWidget {
             children: [
               Text('BMI', style: AppTextStyles.heading2),
               IconButton(
-                icon: const Icon(Icons.help_outline, color: AppColors.secondaryText),
+                icon: Icon(Icons.help_outline, color: AppColors.secondaryText),
                 onPressed: () {
                   // Show info dialog
                   showDialog(
@@ -154,7 +154,7 @@ class BmiCard extends StatelessWidget {
                   child: Container(
                     width: 2,
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: AppColors.primaryText,
                       borderRadius: BorderRadius.circular(1),
                     ),
                   ),

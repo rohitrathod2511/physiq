@@ -23,7 +23,7 @@ class _ManualEntryScreenState extends ConsumerState<ManualEntryScreen> {
         title: Text('Manual Entry', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.primaryText),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -63,7 +63,7 @@ class _ManualEntryScreenState extends ConsumerState<ManualEntryScreen> {
                               ),
                             ),
                           ),
-                          const Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
+                          Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
                         ],
                       ),
                       Text('Calories', style: AppTextStyles.bodyMedium),
