@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class UnitToggle extends StatelessWidget {
   final String value;
@@ -22,7 +23,7 @@ class UnitToggle extends StatelessWidget {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: AppColors.secondaryText.withOpacity(0.1),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Stack(
@@ -35,7 +36,7 @@ class UnitToggle extends StatelessWidget {
               width: MediaQuery.of(context).size.width * 0.4, // Approx half width minus padding
               margin: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(21),
                 boxShadow: [
                   BoxShadow(
@@ -59,7 +60,7 @@ class UnitToggle extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.bold,
-                        color: isLeft ? Colors.black : Colors.grey.shade400,
+                        color: isLeft ? Colors.white : AppColors.secondaryText,
                       ),
                     ),
                   ),
@@ -75,7 +76,7 @@ class UnitToggle extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.bold,
-                        color: !isLeft ? Colors.black : Colors.grey.shade400,
+                        color: !isLeft ? Colors.white : AppColors.secondaryText,
                       ),
                     ),
                   ),

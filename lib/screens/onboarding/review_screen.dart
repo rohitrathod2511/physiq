@@ -127,7 +127,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SafeArea(
         child: Column(
@@ -210,7 +210,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                _buildMacroCard(
                                  title: "Calories",
                                  icon: Icons.local_fire_department_rounded,
-                                 color: Colors.black,
+                                 color: AppColors.primaryText,
                                  controller: _caloriesController,
                                  unit: "",
                                  isEditable: true,
@@ -322,8 +322,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryText,
-                    foregroundColor: AppColors.background,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),

@@ -57,7 +57,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -73,7 +73,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
               child: Center(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.card,
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
@@ -87,7 +87,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     controller: _controller,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.black,
+                      color: AppColors.primaryText,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'Inter',
@@ -95,7 +95,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     decoration: InputDecoration(
                       hintText: 'Enter your name',
                       hintStyle: TextStyle(
-                        color: Colors.grey.shade400,
+                        color: AppColors.secondaryText,
                         fontSize: 16,
                         fontWeight: FontWeight.w400,
                         fontFamily: 'Inter',
@@ -107,14 +107,15 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide(
-                          color: Colors.grey.shade300,
+                          color: AppColors.secondaryText.withOpacity(0.3),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide(
-                          color: Colors.black,
-                          width: 1.5,
+                          color: AppColors.primary,
+                          width: 1.5, // Closing parenthesis removed from original content? No, target content includes it.
+
                         ),
                       ),
                     ),
@@ -127,8 +128,8 @@ class _NameScreenState extends ConsumerState<NameScreen> {
               child: ElevatedButton(
                 onPressed: _isValid ? _onContinue : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.grey.shade300,
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.secondaryText.withOpacity(0.2),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

@@ -64,7 +64,7 @@ class EcgGraphCard extends StatelessWidget {
             child: Text(
               range,
               style: AppTextStyles.smallLabel.copyWith(
-                color: isSelected ? Colors.white : AppColors.secondaryText,
+                color: isSelected ? AppColors.background : AppColors.secondaryText,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),

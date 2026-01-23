@@ -43,7 +43,7 @@ class _DietPreferenceScreenState extends ConsumerState<DietPreferenceScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -87,10 +87,10 @@ class _DietPreferenceScreenState extends ConsumerState<DietPreferenceScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.black : Colors.white,
+                              color: isSelected ? AppColors.accent : AppColors.card,
                               borderRadius: BorderRadius.circular(30),
                               border: Border.all(
-                                color: isSelected ? Colors.black : Colors.grey.shade300,
+                                color: isSelected ? AppColors.accent : AppColors.secondaryText.withOpacity(0.3),
                               ),
                               boxShadow: [
                                 if (!isSelected)
@@ -106,14 +106,14 @@ class _DietPreferenceScreenState extends ConsumerState<DietPreferenceScreen> {
                               children: [
                                 Icon(
                                   icon,
-                                  color: isSelected ? Colors.white : Colors.black,
+                                  color: isSelected ? AppColors.background : AppColors.primaryText,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   option,
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.black,
+                                    color: isSelected ? AppColors.background : AppColors.primaryText,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     fontFamily: 'Inter',
@@ -134,8 +134,8 @@ class _DietPreferenceScreenState extends ConsumerState<DietPreferenceScreen> {
               child: ElevatedButton(
                 onPressed: _selectedDiet != null ? _onContinue : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.grey.shade300,
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.secondaryText.withOpacity(0.2),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

@@ -26,12 +26,12 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
+          icon: Icon(Icons.close, color: AppColors.primaryText),
           onPressed: _completeOnboarding,
         ),
       ),
@@ -91,7 +91,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                           "₹1,999.00",
                           style: TextStyle(
                             decoration: TextDecoration.lineThrough,
-                            color: Colors.black,
+                            color: AppColors.secondaryText,
                             fontSize: 20,
                           ),
                         ),
@@ -131,8 +131,8 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAFA), // Subtle contrast
-                      border: Border.all(color: Colors.black, width: 2),
+                      color: AppColors.card, // Subtle contrast
+                      border: Border.all(color: AppColors.primaryText, width: 2),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -157,7 +157,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("12mo • ₹1,118.00", style: AppTextStyles.body.copyWith(color: Colors.grey)),
+                            Text("12mo • ₹1,118.00", style: AppTextStyles.body.copyWith(color: AppColors.secondaryText)),
                           ],
                         ),
                       ],
@@ -171,7 +171,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                     child: ElevatedButton(
                       onPressed: _completeOnboarding,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         shape: RoundedRectangleBorder(
@@ -199,7 +199,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          Icon(icon, color: isWarning ? Colors.amber : Colors.grey, size: 24),
+          Icon(icon, color: isWarning ? Colors.amber : AppColors.secondaryText, size: 24),
           const SizedBox(width: 16),
           Expanded(child: Text(text, style: AppTextStyles.bodyMedium)),
         ],

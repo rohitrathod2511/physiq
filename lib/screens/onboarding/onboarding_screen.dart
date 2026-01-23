@@ -177,7 +177,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.arrow_back, color: AppColors.primaryText),
+              child: Icon(Icons.arrow_back, color: AppColors.primaryText),
             ),
           ),
         ),

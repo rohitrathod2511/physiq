@@ -48,7 +48,7 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -98,7 +98,7 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                                     (index + 1).toString(),
                                     style: AppTextStyles.h2.copyWith(
                                       fontSize: 24,
-                                      color: Colors.black,
+                                      color: AppColors.primaryText,
                                     ),
                                   ),
                                 );
@@ -129,7 +129,7 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                                     months[index],
                                     style: AppTextStyles.h2.copyWith(
                                       fontSize: 24,
-                                      color: Colors.black,
+                                      color: AppColors.primaryText,
                                     ),
                                   ),
                                 );
@@ -163,8 +163,8 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                                   child: AnimatedDefaultTextStyle(
                                     duration: const Duration(milliseconds: 200),
                                     style: isSelected
-                                        ? AppTextStyles.h1.copyWith(fontSize: 28, color: Colors.black)
-                                        : AppTextStyles.h2.copyWith(fontSize: 24, color: Colors.grey.withOpacity(0.4)),
+                                        ? AppTextStyles.h1.copyWith(fontSize: 28, color: AppColors.primaryText)
+                                        : AppTextStyles.h2.copyWith(fontSize: 24, color: AppColors.secondaryText.withOpacity(0.4)),
                                     child: Text(year.toString()),
                                   ),
                                 );
@@ -183,8 +183,8 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
               child: ElevatedButton(
                 onPressed: _onContinue,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.grey.shade300,
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.secondaryText.withOpacity(0.3),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

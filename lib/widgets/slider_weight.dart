@@ -29,10 +29,10 @@ class SliderWeight extends StatelessWidget {
         const SizedBox(height: 16),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
-            activeTrackColor: Colors.black,
-            inactiveTrackColor: Colors.grey.shade300,
-            thumbColor: Colors.black,
-            overlayColor: Colors.black.withOpacity(0.1),
+            activeTrackColor: AppColors.primary,
+            inactiveTrackColor: AppColors.secondaryText.withOpacity(0.3),
+            thumbColor: AppColors.primary,
+            overlayColor: AppColors.primary.withOpacity(0.1),
             trackHeight: 6.0,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12.0),
           ),

@@ -36,7 +36,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
         _handleBack();
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -81,7 +81,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.check, color: Colors.black, size: 20),
+                  Icon(Icons.check, color: AppColors.primaryText, size: 20),
                   const SizedBox(width: 8),
                   Text("No Commitment - Cancel Anytime", style: AppTextStyles.bodyBold),
                 ],
@@ -92,7 +92,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                 child: ElevatedButton(
                   onPressed: _completeOnboarding,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -127,7 +127,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check, color: Colors.black),
+          Icon(Icons.check, color: AppColors.primaryText),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -154,10 +154,10 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.grey.shade100 : Colors.white,
+              color: isSelected ? AppColors.card : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? Colors.black : Colors.grey.shade300,
+                color: isSelected ? AppColors.primaryText : AppColors.secondaryText.withOpacity(0.3),
                 width: 2,
               ),
             ),
@@ -182,7 +182,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                   alignment: Alignment.centerRight,
                   child: Icon(
                     isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: isSelected ? Colors.black : Colors.grey,
+                    color: isSelected ? AppColors.primaryText : AppColors.secondaryText,
                   ),
                 ),
               ],
@@ -197,7 +197,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(

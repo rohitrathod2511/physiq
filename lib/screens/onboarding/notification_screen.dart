@@ -62,7 +62,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SafeArea(
         child: Center(
@@ -70,7 +70,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 24),
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -83,15 +83,15 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.notifications_active_rounded, size: 64, color: Colors.black),
+                Icon(Icons.notifications_active_rounded, size: 64, color: AppColors.primaryText),
                 const SizedBox(height: 24),
                 
-                const Text(
+                Text(
                   "Physiq would like to send you Notifications",
                   style: TextStyle(
                     fontSize: 20, 
                     fontWeight: FontWeight.bold, 
-                    color: Colors.black,
+                    color: AppColors.primaryText,
                     height: 1.3,
                   ),
                   textAlign: TextAlign.center,
@@ -111,7 +111,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                   child: ElevatedButton(
                     onPressed: _onContinue,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -137,7 +137,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                       _onContinue();
                     },
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey,
+                      foregroundColor: AppColors.secondaryText,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),

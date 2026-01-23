@@ -67,7 +67,7 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -117,7 +117,7 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
               child: ElevatedButton(
                 onPressed: _onContinue,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

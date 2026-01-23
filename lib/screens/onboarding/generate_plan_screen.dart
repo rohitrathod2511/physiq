@@ -13,7 +13,7 @@ class MotivationalMessageScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SafeArea(
         child: CustomScrollView(

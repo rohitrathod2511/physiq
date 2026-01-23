@@ -25,7 +25,7 @@ class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -48,7 +48,7 @@ class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.check, color: Colors.black),
+                Icon(Icons.check, color: AppColors.primaryText),
                 const SizedBox(width: 8),
                 Text("No Payment Due Now", style: AppTextStyles.bodyBold),
               ],
@@ -59,7 +59,7 @@ class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
               child: ElevatedButton(
                 onPressed: () => context.push('/onboarding/paywall-notification'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

@@ -82,7 +82,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
               // Percentage
               Text(
                 "${(_percent * 100).toInt()}%",
-                style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: Colors.black),
+                style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: AppColors.primaryText),
               ),
               const SizedBox(height: 16),
               // Main Title
@@ -120,7 +120,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -175,7 +175,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
           AnimatedOpacity(
             duration: const Duration(milliseconds: 300),
             opacity: isVisible ? 1.0 : 0.0,
-            child: const Icon(Icons.check_circle, color: Colors.black, size: 24),
+            child: Icon(Icons.check_circle, color: AppColors.primaryText, size: 24),
           ),
         ],
       ),

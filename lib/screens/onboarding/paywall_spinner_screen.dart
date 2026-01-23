@@ -146,7 +146,7 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen> with Single
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.card,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: const Center(child: Text("Almost there!", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20))),
           content: Column(
@@ -163,7 +163,7 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen> with Single
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -184,7 +184,7 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen> with Single
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.card,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: const Center(child: Text("🎉 You Unlocked a Special Offer!", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18), textAlign: TextAlign.center)),
           content: Column(
@@ -204,7 +204,7 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen> with Single
                     context.pushReplacement('/onboarding/paywall-offer');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -225,11 +225,11 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen> with Single
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SafeArea(
         child: Column(
@@ -300,7 +300,7 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen> with Single
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.card,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.grey.shade200, width: 4),
                       boxShadow: [
@@ -434,7 +434,7 @@ class WheelPainter extends CustomPainter {
     
     // Outer Border
     paint
-      ..color = Colors.black
+      ..color = AppColors.primaryText
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
     canvas.drawCircle(center, radius, paint);

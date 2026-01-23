@@ -63,7 +63,7 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SafeArea(
         child: Padding(
@@ -134,8 +134,8 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
                 child: ElevatedButton(
                   onPressed: _selectedInternalValue != null ? _onContinue : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    disabledBackgroundColor: Colors.grey.shade300,
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.secondaryText.withOpacity(0.2),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

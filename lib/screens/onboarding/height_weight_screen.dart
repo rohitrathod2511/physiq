@@ -117,7 +117,7 @@ class _HeightWeightScreenState extends ConsumerState<HeightWeightScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -191,17 +191,17 @@ class _HeightWeightScreenState extends ConsumerState<HeightWeightScreen> {
                                   child: AnimatedDefaultTextStyle(
                                     duration: const Duration(milliseconds: 200),
                                     style: isSelected
-                                        ? const TextStyle(
+                                        ? TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 28,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black,
+                                            color: AppColors.primaryText,
                                           )
                                         : TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 24,
                                             fontWeight: FontWeight.w500,
-                                            color: Colors.grey.withOpacity(0.4),
+                                            color: AppColors.secondaryText.withOpacity(0.4),
                                           ),
                                     child: Text(text),
                                   ),
@@ -249,17 +249,17 @@ class _HeightWeightScreenState extends ConsumerState<HeightWeightScreen> {
                                   child: AnimatedDefaultTextStyle(
                                     duration: const Duration(milliseconds: 200),
                                     style: isSelected
-                                        ? const TextStyle(
+                                        ? TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 28,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black,
+                                            color: AppColors.primaryText,
                                           )
                                         : TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 24,
                                             fontWeight: FontWeight.w500,
-                                            color: Colors.grey.withOpacity(0.4),
+                                            color: AppColors.secondaryText.withOpacity(0.4),
                                           ),
                                     child: Text(text),
                                   ),
@@ -289,7 +289,7 @@ class _HeightWeightScreenState extends ConsumerState<HeightWeightScreen> {
               child: ElevatedButton(
                 onPressed: _onContinue,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

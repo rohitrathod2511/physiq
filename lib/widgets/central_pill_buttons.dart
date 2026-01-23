@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class CentralPillButtons extends StatelessWidget {
   final List<String> options;
@@ -27,10 +28,10 @@ class CentralPillButtons extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.black : Colors.white,
+                color: isSelected ? AppColors.accent : AppColors.card,
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
-                  color: isSelected ? Colors.black : Colors.grey.shade300,
+                  color: isSelected ? AppColors.accent : AppColors.secondaryText.withOpacity(0.3),
                 ),
                 boxShadow: [
                   if (!isSelected)
@@ -45,7 +46,7 @@ class CentralPillButtons extends StatelessWidget {
                 child: Text(
                   option,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
+                    color: isSelected ? AppColors.background : AppColors.primaryText,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Inter',

@@ -78,8 +78,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text('Sign Up with Email', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.card,
+        title: const Text('Sign Up with Email', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -135,7 +135,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
             child: const Text('Sign Up'),
@@ -152,7 +152,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: BackButton(color: AppColors.primaryText),
       ),
       body: SafeArea(
         child: Padding(
@@ -176,7 +176,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   icon: const Icon(Icons.g_mobiledata, size: 28), 
                   label: const Text('Continue with Google'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -190,7 +190,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 OutlinedButton(
                   onPressed: _handleEmailSignIn,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
+                    foregroundColor: AppColors.primaryText,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(
@@ -205,7 +205,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 OutlinedButton(
                   onPressed: _handleAnonymousSignIn,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
+                    foregroundColor: AppColors.primaryText,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(
