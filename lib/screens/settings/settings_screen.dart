@@ -68,9 +68,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     
                     // Leaderboard Button
-                    LeaderboardCard(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardPage())),
-                    ),
+
 
                     const SizedBox(height: 8),
 
@@ -142,12 +140,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           showChevron: false,
                           onTap: _sendSupportEmail,
                         ),
-                        SettingsRow(
-                          icon: Icons.feedback_outlined,
-                          title: 'Feature Requests',
-                          showChevron: false,
-                          onTap: _showFeatureRequestDialog,
-                        ),
+
                         SettingsRow(
                           icon: Icons.delete_outline,
                           title: 'Delete Account',

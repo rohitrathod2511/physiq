@@ -36,10 +36,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Merge and sort logs
     final combinedLogs = <dynamic>[];
     if (homeState.recentMeals != null) {
-      combinedLogs.addAll(homeState.recentMeals!);
+      final filteredMeals = homeState.recentMeals!.where((m) {
+        final ts = (m['timestamp'] as Timestamp).toDate();
+        return DateUtils.isSameDay(ts, homeState.selectedDate);
+      });
+      combinedLogs.addAll(filteredMeals);
     }
     if (homeState.recentWorkouts != null) {
-      combinedLogs.addAll(homeState.recentWorkouts!);
+      final filteredWorkouts = homeState.recentWorkouts!.where((w) {
+        return DateUtils.isSameDay(w.timestamp, homeState.selectedDate);
+      });
+      combinedLogs.addAll(filteredWorkouts);
     }
     
     combinedLogs.sort((a, b) {

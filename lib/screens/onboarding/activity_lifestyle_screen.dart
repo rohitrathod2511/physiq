@@ -80,13 +80,23 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: _activityOptions.map((option) {
                         final isSelected = _selectedInternalValue == option['value'];
+                        final val = option['value'];
+                        IconData icon;
+                        if (val == 'Sedentary') {
+                          icon = Icons.weekend_outlined;
+                        } else if (val == 'Lightly active') {
+                          icon = Icons.directions_walk;
+                        } else {
+                          icon = Icons.fitness_center;
+                        }
+
                         return GestureDetector(
                           onTap: () => setState(() => _selectedInternalValue = option['value']),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             width: double.infinity,
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                            margin: const EdgeInsets.only(bottom: 20), // Increased spacing
+                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24), // More open padding
                             decoration: BoxDecoration(
                               color: isSelected ? AppColors.primary : AppColors.card,
                               borderRadius: BorderRadius.circular(AppRadii.card),
@@ -98,25 +108,38 @@ class _ActivityLifestyleScreenState extends ConsumerState<ActivityLifestyleScree
                                   ? [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))] 
                                   : [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 4)],
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
+                            child: Row(
                               children: [
-                                Text(
-                                  option['label']!,
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.heading2.copyWith(
-                                    color: isSelected ? Colors.white : AppColors.primaryText,
-                                    fontSize: 18,
-                                  ),
+                                Icon(
+                                  icon,
+                                  color: isSelected ? Colors.white : AppColors.primary,
+                                  size: 28,
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  option['subtitle']!,
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.h2.copyWith(
-                                    color: isSelected ? Colors.white : AppColors.primaryText,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        option['label']!,
+                                        textAlign: TextAlign.start,
+                                        style: AppTextStyles.heading2.copyWith(
+                                          color: isSelected ? Colors.white : AppColors.primaryText,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        option['subtitle']!,
+                                        textAlign: TextAlign.start,
+                                        style: AppTextStyles.h2.copyWith(
+                                          color: isSelected ? Colors.white : AppColors.primaryText,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600, // Slightly lighter than w800 for readability
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

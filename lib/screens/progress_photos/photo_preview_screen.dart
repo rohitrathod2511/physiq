@@ -54,7 +54,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
     final dateStr = DateFormat('MMM d, yyyy').format(now);
 
     return Scaffold(
-      backgroundColor: Colors.black, // Dark background for photo focus
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -65,11 +65,9 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(Icons.close, color: AppColors.primaryText),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text('New Entry', style: AppTextStyles.heading2.copyWith(color: Colors.white)),
-                  const SizedBox(width: 48), // Balance close button
                 ],
               ),
             ),
@@ -81,7 +79,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _infoBadge(widget.currentWeight.toStringAsFixed(1), 'kg'),
-                  Container(width: 1, height: 24, color: Colors.white24),
+                  Container(width: 1, height: 24, color: AppColors.secondaryText.withOpacity(0.3)),
                   _infoBadge(dateStr, ''),
                 ],
               ),
@@ -103,24 +101,24 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
 
             // Submit Button
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 40.0, top: 16.0), // Increased bottom, moved up effectively
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isUploading ? null : _submitPhoto,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
                   ),
                   child: _isUploading
                       ? const SizedBox(
                           height: 24, 
                           width: 24, 
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
                         )
-                      : Text('Upload Photo', style: AppTextStyles.button.copyWith(fontSize: 16)),
+                      : Text('Upload Photo', style: AppTextStyles.button.copyWith(fontSize: 16, color: Colors.white)),
                 ),
               ),
             ),
@@ -137,10 +135,10 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(value, style: AppTextStyles.heading2.copyWith(color: Colors.white)),
+            Text(value, style: AppTextStyles.heading2),
             if (unit.isNotEmpty) ...[
               const SizedBox(width: 4),
-              Text(unit, style: AppTextStyles.body.copyWith(color: Colors.white70)),
+              Text(unit, style: AppTextStyles.body.copyWith(color: AppColors.secondaryText)),
             ],
           ],
         ),

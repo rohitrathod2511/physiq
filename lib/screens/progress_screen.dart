@@ -128,31 +128,66 @@ class ProgressScreen extends ConsumerWidget {
 
   Future<void> _onCameraTap(BuildContext context, double currentWeight) async {
     // Show modal to choose Camera or Gallery (Simulating the "button in camera" requirement by giving choice upfront)
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.card)),
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Update Progress', style: AppTextStyles.heading2),
+              const SizedBox(height: 24),
+              _buildDialogOption(
+                ctx,
+                icon: Icons.camera_alt_outlined,
+                label: 'Take Photo',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndShowPreview(context, ImageSource.camera, currentWeight);
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildDialogOption(
+                ctx,
+                icon: Icons.photo_library_outlined,
+                label: 'Choose from Gallery',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndShowPreview(context, ImageSource.gallery, currentWeight);
+                },
+              ),
+            ],
+          ),
+        ),
       ),
-      builder: (ctx) => SafeArea(
-        child: Wrap(
+    );
+  }
+
+  Widget _buildDialogOption(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        ),
+        child: Row(
           children: [
-            ListTile(
-              leading: Icon(Icons.camera_alt, color: AppColors.primary),
-              title: Text('Take Photo', style: TextStyle(color: AppColors.primaryText)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickAndShowPreview(context, ImageSource.camera, currentWeight);
-              },
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 20),
             ),
-            ListTile(
-              leading: Icon(Icons.photo_library, color: AppColors.primary),
-              title: Text('Choose from Gallery', style: TextStyle(color: AppColors.primaryText)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickAndShowPreview(context, ImageSource.gallery, currentWeight);
-              },
-            ),
+            const SizedBox(width: 16),
+            Text(label, style: AppTextStyles.bodyBold),
           ],
         ),
       ),

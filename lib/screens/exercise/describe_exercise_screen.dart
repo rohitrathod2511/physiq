@@ -48,19 +48,7 @@ class _DescribeExerciseScreenState extends ConsumerState<DescribeExerciseScreen>
               ),
             ),
             const SizedBox(height: 24),
-            if (_isAnalyzing)
-              const CircularProgressIndicator()
-            else
-              ElevatedButton.icon(
-                onPressed: _analyzeWithAI,
-                icon: const Icon(Icons.auto_awesome, color: Colors.white),
-                label: Text('Created by AI', style: AppTextStyles.button.copyWith(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-              ),
+            // AI Button removed as requested
             const Spacer(),
             SizedBox(
               width: double.infinity,

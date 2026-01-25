@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'dart:math' as math;
 
 class CalorieAndMacrosPage extends StatelessWidget {
   final Map<String, dynamic> dailySummary;
@@ -73,7 +74,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "${caloriesGoal - caloriesConsumed}",
+                      "${math.max(0, caloriesGoal - caloriesConsumed)}",
                       style: AppTextStyles.heading2.copyWith(fontSize: 28, fontWeight: FontWeight.w800),
                     ),
                     Text(

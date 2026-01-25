@@ -49,7 +49,11 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> {
                     return const Center(child: Text('Error loading categories'));
                   }
 
-                  final categories = snapshot.data ?? [];
+                  final categories = (snapshot.data ?? []).where((c) {
+                    final id = c['id'].toString().toLowerCase();
+                    final title = c['title'].toString().toLowerCase();
+                    return id != 'sports' && title != 'sports';
+                  }).toList();
 
                   return ListView.builder(
                     padding: const EdgeInsets.all(24),

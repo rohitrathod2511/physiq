@@ -68,46 +68,39 @@ class _PhotoViewerScreenState extends ConsumerState<PhotoViewerScreen> {
   Widget build(BuildContext context) {
     if (widget.allPhotos.isEmpty) return const SizedBox.shrink();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentPhoto = widget.allPhotos[_currentIndex];
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: isDark ? Colors.black : AppColors.background,
       appBar: AppBar(
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _deletePhoto(widget.allPhotos[_currentIndex]),
-          ),
-          IconButton(
-            icon: const Icon(Icons.compare_arrows),
-             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ComparePhotosScreen(
-                    initialPhoto: widget.allPhotos[_currentIndex],
-                    allPhotos: widget.allPhotos,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
+        leading: BackButton(color: isDark ? Colors.white : AppColors.primaryText),
+        title: Column(
+          children: [
+            Text(
+              DateFormat('MMM d, yyyy').format(currentPhoto.date),
+              style: AppTextStyles.heading3.copyWith(
+                color: isDark ? Colors.white : AppColors.primaryText,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${currentPhoto.weightKg} kg',
+              style: AppTextStyles.heading3.copyWith( // Using same style base
+                color: isDark ? Colors.white : AppColors.primaryText, // Same color as well for uniformity? User said "Same font style & size" 
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        actions: const [], // Actions moved to bottom
       ),
-      extendBodyBehindAppBar: true,
       body: Column(
         children: [
-          // Top Info (Weight / Date)
-          // We put it in a SafeArea manually or use the AppBar title? 
-          // Custom overlay looks nicer.
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: _buildTopInfo(widget.allPhotos[_currentIndex]),
-            ),
-          ),
-          
           // Main Image
           Expanded(
             child: PageView.builder(
@@ -124,7 +117,11 @@ class _PhotoViewerScreenState extends ConsumerState<PhotoViewerScreen> {
                       fit: BoxFit.contain,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
-                        return const Center(child: CircularProgressIndicator(color: Colors.white));
+                        return Center(
+                          child: CircularProgressIndicator(
+                            color: isDark ? Colors.white : AppColors.primary
+                          )
+                        );
                       },
                     ),
                   ),
@@ -132,40 +129,80 @@ class _PhotoViewerScreenState extends ConsumerState<PhotoViewerScreen> {
               },
             ),
           ),
-
-          // Bottom Thumbnails
-          Container(
-            height: 80,
-            color: Colors.black.withOpacity(0.5),
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              scrollDirection: Axis.horizontal,
-              itemCount: widget.allPhotos.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final photo = widget.allPhotos[index];
-                final isSelected = index == _currentIndex;
-                return GestureDetector(
-                  onTap: () {
-                    _pageController.jumpToPage(index);
-                  },
-                  child: Container(
-                    width: 60,
+          
+          // Slider Indicator (Dots) - "Horizontal slider"
+          if (widget.allPhotos.length > 1)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  widget.allPhotos.length > 10 ? 0 : widget.allPhotos.length, // Hide if too many
+                  (index) => Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: 8,
+                    height: 8,
                     decoration: BoxDecoration(
-                      border: isSelected ? Border.all(color: Colors.white, width: 2) : null,
-                      borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                        image: NetworkImage(photo.imageUrl),
-                        fit: BoxFit.cover,
+                      shape: BoxShape.circle,
+                      color: _currentIndex == index 
+                          ? (isDark ? Colors.white : AppColors.primary)
+                          : (isDark ? Colors.white24 : Colors.grey.shade300),
+                    ),
+                  )
+                ),
+              ),
+            ),
+
+          // Bottom Actions
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: Row(
+                children: [
+                  // Compare Button
+                  Expanded(
+                    flex: 1, // Same flex as delete button
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ComparePhotosScreen(
+                              initialPhoto: widget.allPhotos[_currentIndex],
+                              allPhotos: widget.allPhotos,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
+                      child: const Text('Compare', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
-                );
-              },
+                  const SizedBox(width: 16),
+                  
+                  // Delete Button
+                  Expanded(
+                    flex: 1,
+                    child: OutlinedButton(
+                      onPressed: () => _deletePhoto(widget.allPhotos[_currentIndex]),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12), // Match Compare vertical padding
+                        side: const BorderSide(color: Colors.red),
+                        foregroundColor: Colors.red,
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      ),
+                      child: const Icon(Icons.delete_outline),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          // Add some bottom padding for safe area
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
     );

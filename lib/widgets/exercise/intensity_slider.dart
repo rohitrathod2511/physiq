@@ -49,9 +49,9 @@ class IntensitySlider extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildLabel('Low', 'Easy pace', currentIntensity == 'low'),
-            _buildLabel('Medium', 'Moderate', currentIntensity == 'medium'),
-            _buildLabel('High', 'Intense', currentIntensity == 'high'),
+            _buildLabel('Low', 'Run', currentIntensity == 'low'),
+            _buildLabel('Medium', 'Jog', currentIntensity == 'medium'),
+            _buildLabel('High', 'Sprint', currentIntensity == 'high'),
           ],
         ),
       ],
