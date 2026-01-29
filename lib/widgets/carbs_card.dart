@@ -34,7 +34,7 @@ class CarbsCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: AppColors.background,
                 ),
-                child: const Icon(Icons.bakery_dining, color: Colors.orange, size: 18),
+                child: const Center(child: Text('🌾', style: TextStyle(fontSize: 18))),
               ),
             ),
           ],

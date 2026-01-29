@@ -34,7 +34,7 @@ class ProteinCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: AppColors.background,
                 ),
-                child: const Icon(Icons.fastfood, color: Colors.red, size: 18),
+                child: const Center(child: Text('🍗', style: TextStyle(fontSize: 18))),
               ),
             ),
           ],

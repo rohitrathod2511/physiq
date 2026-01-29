@@ -79,13 +79,13 @@ class SettingsRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        height: 64,
+        height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16), // Match card padding spec
         child: Row(
           children: [
             // Icon with padding
             Padding(
-              padding: const EdgeInsets.only(right: 12.0), // "Left icon padding: 12 dp" (interpreted as gap)
+              padding: const EdgeInsets.only(right: 16.0), // "Left icon padding: 12 dp" (interpreted as gap)
               child: Icon(icon, size: 20, color: AppColors.primaryText),
             ),
             Expanded(

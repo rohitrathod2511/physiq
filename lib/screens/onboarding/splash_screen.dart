@@ -61,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               const Icon(Icons.fitness_center, size: 64, color: Colors.black),
               const SizedBox(height: 16),
               Text(
-                'Physiq',
+                'Physiq AI',
                 style: AppTextStyles.h1.copyWith(
                   fontSize: 48,
                   fontWeight: FontWeight.w600, // Semi-bold

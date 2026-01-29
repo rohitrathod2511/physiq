@@ -268,7 +268,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           decoration: BoxDecoration(
             color: AppColors.card,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: AppColors.secondaryText.withOpacity(0.2)),
           ),
           child: TextField(
             controller: controller,
@@ -330,9 +330,9 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.card,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(color: AppColors.secondaryText.withOpacity(0.1)),
                         ),
                         child: ListTile(
                           title: Text('Set ${index + 1}', style: AppTextStyles.bodyBold),
@@ -350,7 +350,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.card,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
@@ -412,8 +412,9 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.secondaryText.withOpacity(0.1)),
                 ),
                 child: Text('Round $_rounds / $_targetRounds', style: AppTextStyles.bodyBold),
               ),

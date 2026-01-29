@@ -87,7 +87,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                 const SizedBox(height: 24),
                 
                 Text(
-                  "Physiq would like to send you Notifications",
+                  "Physiq AI would like to send you Notifications",
                   style: TextStyle(
                     fontSize: 20, 
                     fontWeight: FontWeight.bold, 

@@ -22,14 +22,14 @@ class TermsPage extends StatelessWidget {
             Text('Introduction', style: AppTextStyles.h3),
             const SizedBox(height: 8),
             Text(
-              'Welcome to Physiq. By using our app, you agree to these terms...',
+              'Welcome to Physiq AI. By using our app, you agree to these terms...',
               style: AppTextStyles.body,
             ),
             const SizedBox(height: 24),
             Text('Services', style: AppTextStyles.h3),
             const SizedBox(height: 8),
             Text(
-              'Physiq provides health and fitness tracking services...',
+              'Physiq AI provides health and fitness tracking services...',
               style: AppTextStyles.body,
             ),
             const SizedBox(height: 24),

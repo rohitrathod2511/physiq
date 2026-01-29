@@ -31,7 +31,7 @@ class PaywallScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Text('Unlock Physiq Premium', style: AppTextStyles.h1),
+              Text('Unlock Physiq AI Premium', style: AppTextStyles.h1),
               const SizedBox(height: 16),
               _buildFeatureItem('AI Snap Meal Tracking'),
               _buildFeatureItem('Voice Log Entry'),

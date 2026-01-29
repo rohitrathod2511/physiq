@@ -1,9 +1,10 @@
-import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'package:physiq/services/firestore_service.dart';
 
 class StreakCalendarScreen extends StatefulWidget {
   const StreakCalendarScreen({super.key});
@@ -13,50 +14,80 @@ class StreakCalendarScreen extends StatefulWidget {
 }
 
 class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
-  DateTime _focusedDay = DateTime.now();
+  // Use DateTime.now() as the base for the 3-month view
+  final DateTime _baseDate = DateTime.now();
+  
+  // Data State
   Map<DateTime, String> _monthStatus = {};
-  int _targetCalories = 2000; // Default, updated from Firebase
+  int _targetCalories = 2000;
+  int _streak = 0;
+  int _score = 0; // Placeholder as per requirements
+  DateTime? _selectedDay;
 
   @override
   void initState() {
     super.initState();
-    _fetchMonthData(_focusedDay);
+    _selectedDay = DateTime.now(); // Default to today as requested
+    _fetchData();
   }
 
-  Future<void> _fetchMonthData(DateTime month) async {
+  Future<void> _fetchData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // 1. Fetch Target Calories from User Profile
+    // 1. Fetch Streak & Target Calories
     try {
+      final firestoreService = FirestoreService();
+      final s = await firestoreService.calculateStreak(user.uid);
+      
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      int targetCals = 2000;
       if (userDoc.exists) {
         final data = userDoc.data();
         final currentPlan = data?['currentPlan'] as Map<String, dynamic>?;
-        if (currentPlan != null) {
-          // Try different possible keys for calories
-          _targetCalories = (currentPlan['calories'] ?? currentPlan['goalCalories'] ?? 2000) as int;
-        } else {
-           // Fallback to nutrition map
-          final nutrition = data?['nutrition'] as Map<String, dynamic>?;
-           _targetCalories = (nutrition?['calories'] ?? 2000) as int;
-        }
+        final nutrition = data?['nutrition'] as Map<String, dynamic>?;
+        
+        targetCals = (currentPlan?['calories'] ?? 
+                      currentPlan?['goalCalories'] ?? 
+                      nutrition?['calories'] ?? 
+                      2000).toInt();
+      }
+
+      if (mounted) {
+        setState(() {
+          _streak = s;
+          _targetCalories = targetCals;
+        });
       }
     } catch (e) {
-      print("Error fetching user goal: $e");
+      print("Error fetching user stats: $e");
     }
 
-    // 2. Fetch Daily Summaries for the Month
-    final start = DateTime(month.year, month.month, 1);
-    final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+    // 2. Fetch Data for continuous 3-month range
+    // Range: Start of Grid (Mon before Jan 1) -> End of Grid (Sun after Mar 31)
+    
+    // Determine grid bounds
+    final firstDayOfCurrentMonth = DateTime(_baseDate.year, _baseDate.month, 1);
+    // Find start of week (Monday)
+    // weekday: Mon=1 ... Sun=7. 
+    // If Jan 1 is Mon(1), shift=0. Start = Jan 1.
+    // If Jan 1 is Thu(4), shift=3. Start = Dec 29.
+    // Logic: subtract (weekday - 1) days
+    final startGrid = firstDayOfCurrentMonth.subtract(Duration(days: firstDayOfCurrentMonth.weekday - 1));
+    
+    // End of 3rd month from now
+    // Month + 3 (e.g. current=1, target=4 i.e. April. day=0 means Mar 31)
+    final lastDayOfTargetMonth = DateTime(_baseDate.year, _baseDate.month + 3, 0); 
+    // Find end of week (Sunday)
+    // weekday: Mon=1 ... Sun=7.
+    // Stop at Sun(7). Add (7 - weekday) days.
+    final endGrid = lastDayOfTargetMonth.add(Duration(days: 7 - lastDayOfTargetMonth.weekday));
 
-    final String startId = DateFormat('yyyy-MM-dd').format(start);
-    final String endId = DateFormat('yyyy-MM-dd').format(end);
+    // For query string
+    final String startId = DateFormat('yyyy-MM-dd').format(startGrid);
+    final String endId = DateFormat('yyyy-MM-dd').format(endGrid);
 
     try {
-      // Strategy: 
-      // Query "daily_summaries" for nutrition view.
-      // This is the source of truth for "consumed stats".
       final summariesSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -90,10 +121,6 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
         }
       }
       
-      // Also check for days not in summary but might have meals (fallback)
-      // Though technically logMeal updates summary, so summary should be enough.
-      // We will stick to summary for efficiency as per constraints.
-      
       if (mounted) {
         setState(() {
           _monthStatus = newStatus;
@@ -105,177 +132,253 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
     }
   }
 
-  void _onPageChanged(int pageIndex) {
-    // Logic to handle page change in custom calendar if implemented
-    // But here we are just changing focused day manually usually
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: BackButton(color: AppColors.primaryText),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: Column(
-          children: [
-             _buildMonthHeader(),
-             const SizedBox(height: 32),
-             _buildWeekDaysRow(),
-             const SizedBox(height: 16),
-             _buildCalendarGrid(),
-             const SizedBox(height: 32),
-             _buildLegend(),
-          ],
+      backgroundColor: AppColors.background, // Adaptive background
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               _buildHeader(context),
+               const SizedBox(height: 8), // Minimized
+               _buildStatsRow(),
+               const SizedBox(height: 12), // Minimized
+               
+               // Continuous Grid Block
+               Text(
+                  DateFormat('MMMM yyyy').format(_baseDate),
+                  style: AppTextStyles.heading3.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+               const SizedBox(height: 8), // Minimized
+               _buildWeekDaysRow(),
+               const SizedBox(height: 4), // Minimized
+               _buildContinuousGrid(),
+               
+               const SizedBox(height: 12),
+               _buildLegend(),
+               const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMonthHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        IconButton(
-          icon: Icon(Icons.chevron_left, color: AppColors.primaryText),
-          onPressed: () {
-            setState(() {
-              _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1);
-              _fetchMonthData(_focusedDay); // Re-fetch
-            });
-          },
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.arrow_back, color: AppColors.primaryText, size: 24),
         ),
+        PopupMenuButton<int>(
+          icon: Icon(Icons.help_outline, color: AppColors.primaryText, size: 24),
+          color: AppColors.card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              enabled: false,
+              child: Text(
+                "1. Your leaderboard rank is decided by your score.",
+                style: AppTextStyles.body.copyWith(color: AppColors.primaryText, fontSize: 13),
+              ),
+            ),
+            PopupMenuItem(
+              enabled: false,
+              child: Text(
+                "2. Click a date to see the activity you have done on that specific day.",
+                style: AppTextStyles.body.copyWith(color: AppColors.primaryText, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // _showInstructionDialog removed as replaced by PopupMenuButton above.
+
+  Widget _buildStatsRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildStatItem("YOUR SCORE", NumberFormat("#,###").format(_score), alignLeft: true),
+        _buildStatItem("YOUR STREAK", "$_streak Days", alignLeft: true), // Corrected to 'Days'
+      ],
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, {bool alignLeft = true}) {
+    // Actually visual shows left-aligned columns? 
+    // Reference image stats row is usually:
+    // [ScoreLabel]   [StreakLabel]
+    // [ScoreValue]   [StreakValue]
+    // It looks like two columns.
+    return Column(
+      crossAxisAlignment: alignLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      children: [
         Text(
-          DateFormat('MMMM yyyy').format(_focusedDay).toUpperCase(),
-          style: AppTextStyles.heading3.copyWith(
-            letterSpacing: 1.5,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+          label,
+          style: AppTextStyles.smallLabel.copyWith(
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+            fontSize: 10,
           ),
         ),
-        IconButton(
-          icon: Icon(Icons.chevron_right, color: AppColors.primaryText),
-          onPressed: () {
-             setState(() {
-              _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1);
-              _fetchMonthData(_focusedDay); // Re-fetch
-            });
-          },
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: AppTextStyles.heading2.copyWith(
+            fontSize: 24, // Slightly reduced
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildWeekDaysRow() {
-    final days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    // Mon -> Sun for this specific UI
+    final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: days.map((d) => SizedBox(
-        width: 40,
+        width: 32, // Match grid cell width roughly
         child: Center(
           child: Text(d, style: AppTextStyles.smallLabel.copyWith(
              fontWeight: FontWeight.bold,
-             color: AppColors.secondaryText,
+             color: Colors.grey.shade600,
+             fontSize: 12,
           )),
         ),
       )).toList(),
     );
   }
 
-  Widget _buildCalendarGrid() {
-      final daysInMonth = DateUtils.getDaysInMonth(_focusedDay.year, _focusedDay.month);
-      final firstDayDate = DateTime(_focusedDay.year, _focusedDay.month, 1);
-      final shift = (firstDayDate.weekday == 7) ? 0 : firstDayDate.weekday;
+  Widget _buildContinuousGrid() {
+      // Logic to build single list of dates
+      final firstDayOfCurrentMonth = DateTime(_baseDate.year, _baseDate.month, 1);
+      final startGrid = firstDayOfCurrentMonth.subtract(Duration(days: firstDayOfCurrentMonth.weekday - 1));
+      
+      final lastDayOfTargetMonth = DateTime(_baseDate.year, _baseDate.month + 3, 0); 
+      final endGrid = lastDayOfTargetMonth.add(Duration(days: 7 - lastDayOfTargetMonth.weekday));
+      
+      final int dayCount = endGrid.difference(startGrid).inDays + 1;
 
       return GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: daysInMonth + shift,
+        itemCount: dayCount,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
            crossAxisCount: 7,
-           crossAxisSpacing: 10,
-           mainAxisSpacing: 10,
-           childAspectRatio: 1, // Square
+           crossAxisSpacing: 2, // Minimal spacing as requested
+           mainAxisSpacing: 2, // Minimal spacing to pull rows up
+           childAspectRatio: 1.45, // Very rectangular to compress height significantly
         ),
         itemBuilder: (context, index) {
-            if (index < shift) return const SizedBox();
-            
-            final day = index - shift + 1;
-            final date = DateTime(_focusedDay.year, _focusedDay.month, day);
+            final date = startGrid.add(Duration(days: index));
             return _buildDayCell(date);
         },
       );
   }
 
   Widget _buildDayCell(DateTime date) {
-      final isToday = DateUtils.isSameDay(date, DateTime.now());
+      final isCurrentDate = DateUtils.isSameDay(date, DateTime.now());
+      var isSelected = _selectedDay != null && DateUtils.isSameDay(date, _selectedDay!);
       
-      // Look up status (stripped of time time)
       final dateKey = DateTime(date.year, date.month, date.day);
       final status = _monthStatus[dateKey] ?? 'none';
+      final isPast = dateKey.isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
       
-      Color bgColor = AppColors.card;
-      Color textColor = AppColors.primaryText;
-      List<BoxShadow>? shadows;
-      
+      // Visuals
+      Color? fillColor;
+      BoxBorder? border;
+      Color textColor = AppColors.primaryText; 
+
       if (status == 'full') {
-          bgColor = const Color(0xFF22C55E); // Green 500
-          textColor = Colors.white;
-          shadows = [
-              BoxShadow(
-                  color: const Color(0xFF22C55E).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-              )
-          ];
+         fillColor = const Color(0xFF22C55E); 
+         textColor = Colors.white; 
       } else if (status == 'partial') {
-          bgColor = const Color(0xFF86EFAC).withOpacity(0.5); // Faded Green
-          textColor = const Color(0xFF14532D); // Dark Green Text
+         fillColor = const Color(0xFF22C55E).withOpacity(0.5);
+         textColor = Colors.white;
       } else {
-          // Empty
-          bgColor = AppColors.card;
-          textColor = AppColors.secondaryText;
+         if (isPast) {
+           fillColor = Colors.transparent;
+           // Explicit color for visibility (Missed)
+           border = Border.all(color: Colors.grey.shade700, width: 1); 
+           textColor = AppColors.secondaryText;
+         } else {
+           // Future / Upcoming
+           fillColor = Colors.transparent;
+           // Add a faded ring for future dates too, as requested
+           border = Border.all(color: Colors.grey.shade800, width: 1); // Faded ring
+           textColor = Colors.grey.shade600; 
+         }
+      }
+
+      if (isSelected) {
+         border = Border.all(color: AppColors.primaryText, width: 2);
+         if (status != 'full' && status != 'partial') {
+           textColor = AppColors.primaryText;
+         }
+      } else if (isCurrentDate) {
+         // Keep current date ring DARK/Bold if not selected (or default selected handles it)
+         // Assuming user wants current date distinguished even if logic wasn't fully capturing it
+         border = Border.all(color: AppColors.primaryText, width: 2);
+         if (status != 'full' && status != 'partial') {
+           textColor = AppColors.primaryText;
+         }
       }
 
       return GestureDetector(
-          onTap: () => _showDayDetails(date),
-          child: Container(
-              decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(12),
-                  // Border for today or empty cells to give shape?
-                  border: isToday 
-                    ? Border.all(color: Colors.black, width: 2) 
-                    : (status == 'none' ? Border.all(color: Colors.grey.shade100) : null),
-                  boxShadow: shadows,
-              ),
-              child: Center(
-                  child: Text(
-                      '${date.day}',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                          color: textColor,
-                          fontWeight: (status == 'full' || isToday) ? FontWeight.bold : FontWeight.w500,
-                      ),
-                  ),
-              ),
+          onTap: () {
+            setState(() {
+              _selectedDay = date;
+            });
+            _showDayDetails(date);
+          },
+          child: Center(
+            child: Container(
+                width: 28, // Good size for touch
+                height: 28,
+                decoration: BoxDecoration(
+                    color: fillColor,
+                    shape: BoxShape.circle,
+                    border: border,
+                ),
+                child: Center(
+                    child: Text(
+                        '${date.day}',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                            color: textColor,
+                            fontWeight: FontWeight.bold, // Force Bold Always
+                            fontSize: 12,
+                        ),
+                    ),
+                ),
+            ),
           ),
       );
   }
   
   Widget _buildLegend() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start, // Left aligned or Below? Prompt says "Horizontal layout".
       children: [
         _buildLegendItem(const Color(0xFF22C55E), "Completed"),
         const SizedBox(width: 16),
-        _buildLegendItem(const Color(0xFF86EFAC).withOpacity(0.5), "Partial"),
+        _buildLegendItem(const Color(0xFF22C55E).withOpacity(0.5), "Partial"),
         const SizedBox(width: 16),
-        _buildLegendItem(AppColors.card, "Missed", hasBorder: true),
+        _buildLegendItem(Colors.transparent, "Missed", hasBorder: true),
       ],
     );
   }
@@ -284,15 +387,21 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
     return Row(
       children: [
         Container(
-          width: 12, height: 12,
+          width: 8, height: 8,
           decoration: BoxDecoration(
              color: color,
-             borderRadius: BorderRadius.circular(4),
-             border: hasBorder ? Border.all(color: Colors.grey.shade300) : null,
+             shape: BoxShape.circle,
+             border: hasBorder ? Border.all(color: Colors.grey.shade600) : null,
           ),
         ),
-        const SizedBox(width: 6),
-        Text(label, style: AppTextStyles.smallLabel),
+        const SizedBox(width: 8),
+        Text(
+          label, 
+          style: AppTextStyles.smallLabel.copyWith(
+            color: Colors.grey.shade500,
+            fontSize: 12,
+          )
+        ),
       ],
     );
   }

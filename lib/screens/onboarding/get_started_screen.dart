@@ -4,7 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 
-class GetStartedScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:physiq/providers/preferences_provider.dart';
+import 'package:physiq/l10n/app_localizations.dart';
+
+class GetStartedScreen extends ConsumerWidget {
   const GetStartedScreen({super.key});
 
   void _showSignInSheet(BuildContext context) {
@@ -17,7 +21,8 @@ class GetStartedScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -25,10 +30,47 @@ class GetStartedScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
             children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: PopupMenuButton<Locale>(
+                  icon: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.language, size: 18, color: Colors.black),
+                        const SizedBox(width: 8),
+                        Text(
+                          Localizations.localeOf(context).languageCode == 'en' ? 'English' : 'Hindi',
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                  onSelected: (Locale locale) {
+                    ref.read(preferencesProvider.notifier).setLocale(locale);
+                  },
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
+                    const PopupMenuItem<Locale>(
+                      value: Locale('en'),
+                      child: Text('English'),
+                    ),
+                    const PopupMenuItem<Locale>(
+                      value: Locale('hi'),
+                      child: Text('Hindi'),
+                    ),
+                  ],
+                ),
+              ),
               const Spacer(),
               // Headline
               Text(
-                'Build Your Dream Body',
+                l10n.getStartedTitle,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.h1.copyWith(fontSize: 32),
               ),
@@ -49,7 +91,7 @@ class GetStartedScreen extends StatelessWidget {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Get Started',
+                    l10n.getStartedButton,
                     style: AppTextStyles.button.copyWith(color: Colors.white, fontSize: 16),
                   ),
                 ),
@@ -62,13 +104,13 @@ class GetStartedScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Already have an account?',
+                    l10n.alreadyHaveAccount,
                     style: AppTextStyles.body.copyWith(color: AppColors.secondaryText, fontSize: 14),
                   ),
                   TextButton(
                     onPressed: () => _showSignInSheet(context),
                     child: Text(
-                      'Sign in',
+                      l10n.signIn,
                       style: AppTextStyles.button.copyWith(color: Colors.blue, fontSize: 14),
                     ),
                   ),
@@ -135,6 +177,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -160,7 +203,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             ),
           ),
           Text(
-            "Welcome Back",
+            l10n.welcomeBack,
             style: AppTextStyles.h2,
             textAlign: TextAlign.center,
           ),
@@ -172,7 +215,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             ElevatedButton.icon(
               onPressed: _handleGoogleSignIn,
               icon: const Icon(Icons.g_mobiledata, size: 28), 
-              label: const Text('Continue with Google'),
+              label: Text(l10n.continueWithGoogle),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
@@ -195,7 +238,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Continue with Email'),
+              child: Text(l10n.continueWithEmail),
             ),
             const SizedBox(height: 24),
           ],
@@ -264,6 +307,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Handling keyboard overlap
     return Padding(
       padding: EdgeInsets.only(
@@ -294,7 +338,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
               ),
             ),
             Text(
-              "Sign In",
+              l10n.signInTitle,
               style: AppTextStyles.h2,
               textAlign: TextAlign.center,
             ),
@@ -302,18 +346,18 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
             
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email', 
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
+              decoration: InputDecoration(
+                labelText: l10n.emailLabel, 
+                border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
               ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password', 
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
+              decoration: InputDecoration(
+                labelText: l10n.passwordLabel, 
+                border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
               ),
               obscureText: true,
             ),
@@ -332,7 +376,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(l10n.signIn, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
 
              const SizedBox(height: 16),
@@ -340,7 +384,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
              TextButton(
                onPressed: _forgotPassword,
                child: Text(
-                 "Forgot password?",
+                 l10n.forgotPassword,
                  style: AppTextStyles.body.copyWith(color: Colors.grey),
                ),
              ),

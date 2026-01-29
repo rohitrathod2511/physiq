@@ -68,7 +68,7 @@ class _ComparePhotosScreenState extends State<ComparePhotosScreen> {
         final file = await File('${tempDir.path}/progress_comparison.png').create();
         await file.writeAsBytes(pngBytes);
 
-        await Share.shareXFiles([XFile(file.path)], text: 'Check out my progress on Physiq!');
+        await Share.shareXFiles([XFile(file.path)], text: 'Check out my progress on Physiq AI!');
       }
     } catch (e) {
       print('Error sharing: $e');

@@ -10,11 +10,14 @@ import 'package:physiq/widgets/settings/preferences_sheet.dart';
 
 import 'package:physiq/widgets/header_widget.dart';
 
+import 'package:physiq/l10n/app_localizations.dart';
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final userRepo = ref.watch(userRepositoryProvider);
     // In a real app, we'd watch a user provider. For now, fetching stream.
     final authService = AuthService();
@@ -33,9 +36,9 @@ class SettingsScreen extends ConsumerWidget {
               elevation: 0,
               toolbarHeight: 70,
               titleSpacing: 0,
-              title: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.0),
-                child: HeaderWidget(),
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: HeaderWidget(title: l10n.settingsTitle),
               ),
             ),
             SliverToBoxAdapter(
@@ -47,7 +50,7 @@ class SettingsScreen extends ConsumerWidget {
                     // Title
                     Padding(
                       padding: const EdgeInsets.only(bottom: 24.0),
-                      child: Text('Settings', style: AppTextStyles.heading2.copyWith(fontSize: 24)),
+                      child: Text(l10n.settingsTitle, style: AppTextStyles.heading2.copyWith(fontSize: 24)),
                     ),
 
                     // 1. Invite Friend (Top-most tile)
@@ -56,7 +59,7 @@ class SettingsScreen extends ConsumerWidget {
                     // 2. Personal Details
                     _buildSectionItem(
                       icon: Icons.person_outline,
-                      title: 'Personal details',
+                      title: l10n.personalDetails,
                       subtitle:
                       'Goal: ${currentUser?.goalWeightKg ?? "--"}kg • Age: ${currentUser?.birthYear != null ? DateTime.now().year - currentUser!.birthYear! : "--"}',
                       onTap: () => _showPersonalDetails(context),
@@ -66,7 +69,7 @@ class SettingsScreen extends ConsumerWidget {
                     // 3. Leaderboard
                     _buildSectionItem(
                       icon: Icons.leaderboard_outlined,
-                      title: 'Leaderboard',
+                      title: l10n.leaderboard,
                       onTap: () => _showLeaderboard(context),
                     ),
                     const SizedBox(height: 32),
@@ -74,7 +77,7 @@ class SettingsScreen extends ConsumerWidget {
                     // 4. Adjust Macronutrients
                     _buildSectionItem(
                       icon: Icons.pie_chart_outline, // Changed icon
-                      title: 'Adjust macronutrients',
+                      title: l10n.adjustMacros,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -89,17 +92,17 @@ class SettingsScreen extends ConsumerWidget {
                     // 5. Preferences
                     _buildSectionItem(
                       icon: Icons.settings_outlined,
-                      title: 'Preferences',
+                      title: l10n.preferences,
                       onTap: () => _showPreferences(context),
                     ),
                     const SizedBox(height: 48),
 
                     // 6. Legal & Support
-                    Text('Legal & Support', style: AppTextStyles.heading2),
+                    Text(l10n.legalSupport, style: AppTextStyles.heading2),
                     const SizedBox(height: 24),
                     _buildSectionItem(
                       icon: Icons.description_outlined,
-                      title: 'Terms of Service',
+                      title: l10n.termsOfService,
                       onTap: () => _showLegalDialog(
                         context,
                         'Terms of Service',
@@ -109,7 +112,7 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     _buildSectionItem(
                       icon: Icons.privacy_tip_outlined,
-                      title: 'Privacy Policy',
+                      title: l10n.privacyPolicy,
                       onTap: () => _showLegalDialog(
                         context,
                         'Privacy Policy',
@@ -119,7 +122,7 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     _buildSectionItem(
                       icon: Icons.help_outline,
-                      title: 'Support',
+                      title: l10n.support,
                       onTap: () => _showLegalDialog(
                         context,
                         'Support',
@@ -129,7 +132,7 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     _buildSectionItem(
                       icon: Icons.feedback_outlined,
-                      title: 'Feature Request',
+                      title: l10n.featureRequest,
                       onTap: () => _showFeatureRequestDialog(context),
                     ),
 
@@ -140,7 +143,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: TextButton(
                         onPressed: () => _confirmLogout(context),
                         child: Text(
-                          'Log out',
+                          l10n.logout,
                           style: AppTextStyles.button.copyWith(color: Colors.red),
                         ),
                       ),
@@ -149,7 +152,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: TextButton(
                         onPressed: () => _confirmDeleteAccount(context, ref),
                         child: Text(
-                          'Delete account',
+                          l10n.deleteAccount,
                           style: AppTextStyles.smallLabel.copyWith(color: Colors.red),
                         ),
                       ),

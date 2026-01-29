@@ -55,7 +55,7 @@ class _InviteFriendsPageState extends State<InviteFriendsPage> {
     if (uid != null) {
       _promoService.logInviteShare(uid, _promoCode);
     }
-    Share.share('Join me on Physiq! Use my code $_promoCode to earn rewards. Download here: https://physiq.app/invite/$_promoCode');
+    Share.share('Join me on Physiq AI! Use my code $_promoCode to earn rewards. Download here: https://physiq.app/invite/$_promoCode');
   }
 
   @override

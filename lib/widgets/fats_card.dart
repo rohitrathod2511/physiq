@@ -34,7 +34,7 @@ class FatsCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: AppColors.background,
                 ),
-                child: const Icon(Icons.water_drop, color: Colors.blue, size: 18),
+                child: const Center(child: Text('🥑', style: TextStyle(fontSize: 18))),
               ),
             ),
           ],

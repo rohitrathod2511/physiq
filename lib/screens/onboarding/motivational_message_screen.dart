@@ -63,7 +63,7 @@ class MotivationalMessageScreen extends ConsumerWidget {
               
               // Title
               Text(
-                "${(store.goal?.toLowerCase().contains('lose') ?? false) ? 'Lose' : 'Gain'} 10X weight with Physiq vs\non your own",
+                "${(store.goal?.toLowerCase().contains('lose') ?? false) ? 'Lose' : 'Gain'} 10X weight with Physiq AI vs\non your own",
                 style: AppTextStyles.h1.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ),
@@ -79,7 +79,7 @@ class MotivationalMessageScreen extends ConsumerWidget {
                       // Bar 1 (Without)
                       Column(
                         children: [
-                          Text("Without\nPhysiq", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
+                          Text("Without\nPhysiq AI", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
                           const SizedBox(height: 12),
                           Container(
                             width: 80,
@@ -97,7 +97,7 @@ class MotivationalMessageScreen extends ConsumerWidget {
                       // Bar 2 (With)
                       Column(
                         children: [
-                          Text("With\nPhysiq", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
+                          Text("With\nPhysiq AI", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
                           const SizedBox(height: 12),
                           Container( 
                             width: 80,
@@ -115,7 +115,7 @@ class MotivationalMessageScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    "Physiq makes it easy and holds\nyou accountable",
+                    "Physiq AI makes it easy and holds\nyou accountable",
                     style: AppTextStyles.h2.copyWith(color: AppColors.secondaryText),
                     textAlign: TextAlign.center,
                   ),

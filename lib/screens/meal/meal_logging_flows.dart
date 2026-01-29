@@ -8,6 +8,7 @@ import 'package:physiq/services/ai_nutrition_service.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:physiq/screens/meal/describe_meal_screen.dart';
 
 final aiService = AiNutritionService();
 
@@ -21,7 +22,7 @@ Future<void> showSnapMealFlow(BuildContext context, WidgetRef ref) async {
 
   // Capture navigator to ensure we can pop dialog even if context unmounts
   final navigator = Navigator.of(context, rootNavigator: true);
-  _showLoading(context, "Analyzing food...");
+  showLoading(context, "Analyzing food...");
 
   try {
     final result = await aiService.estimateFromImage(photo.path);
@@ -29,7 +30,7 @@ Future<void> showSnapMealFlow(BuildContext context, WidgetRef ref) async {
     navigator.pop(); // Close loading
 
     if (!context.mounted) return;
-    _showMealPreview(
+    showMealPreview(
       context,
       ref,
       result,
@@ -42,72 +43,19 @@ Future<void> showSnapMealFlow(BuildContext context, WidgetRef ref) async {
     if (context.mounted) {
       // Show actual error to help debugging
       final msg = e.toString().replaceAll("Exception: ", "");
-      _showError(context, "Failed: $msg");
+      showError(context, "Failed: $msg");
     }
   }
 }
 
 
-// MANUAL ENTRY
+// MANUAL ENTRY (DESCRIBE MEAL)
 
 void showManualEntryFlow(BuildContext context, WidgetRef ref) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColors.background,
-    builder: (sheetContext) {
-      return Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-          left: 16,
-          right: 16,
-          top: 16,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("What did you eat?", style: AppTextStyles.h2),
-            const SizedBox(height: 12),
-            TextField(
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: "e.g. 2 eggs and toast",
-                filled: true,
-                fillColor: AppColors.card,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onSubmitted: (value) async {
-                Navigator.pop(sheetContext);
-                if (value.trim().isEmpty || !context.mounted) return;
-
-                final navigator = Navigator.of(context, rootNavigator: true);
-                _showLoading(context, "Estimating nutrition...");
-
-                try {
-                  final result = await aiService.estimateFromText(value);
-
-                  navigator.pop();
-
-                  if (!context.mounted) return;
-                  _showMealPreview(context, ref, result, source: 'manual');
-                } catch (e) {
-                  debugPrint("Manual entry error: $e");
-                  navigator.pop();
-                  if (context.mounted) {
-                    final msg = e.toString().replaceAll("Exception: ", "");
-                    _showError(context, "Error: $msg");
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      );
-    },
+  // Navigate to the new full-screen UX
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => const DescribeMealScreen()),
   );
 }
 
@@ -163,7 +111,7 @@ class _VoiceListeningDialogState extends State<_VoiceListeningDialog> {
         if (!widget.parentContext.mounted) return;
 
         final navigator = Navigator.of(widget.parentContext, rootNavigator: true);
-        _showLoading(widget.parentContext, "Analyzing speech...");
+        showLoading(widget.parentContext, "Analyzing speech...");
 
         try {
           final data =
@@ -172,7 +120,7 @@ class _VoiceListeningDialogState extends State<_VoiceListeningDialog> {
           navigator.pop();
 
           if (!widget.parentContext.mounted) return;
-          _showMealPreview(
+          showMealPreview(
             widget.parentContext,
             widget.ref,
             data,
@@ -183,7 +131,7 @@ class _VoiceListeningDialogState extends State<_VoiceListeningDialog> {
             navigator.pop();
             if (widget.parentContext.mounted) {
                final msg = e.toString().replaceAll("Exception: ", "");
-               _showError(widget.parentContext, "Voice Failed: $msg");
+               showError(widget.parentContext, "Voice Failed: $msg");
             }
           }
       }
@@ -219,7 +167,7 @@ class _VoiceListeningDialogState extends State<_VoiceListeningDialog> {
 // LOADING / ERROR / PREVIEW
 
 
-void _showLoading(BuildContext context, String message) {
+void showLoading(BuildContext context, String message) {
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -238,17 +186,17 @@ void _showLoading(BuildContext context, String message) {
   );
 }
 
-void _closeLoading(BuildContext context) {
+void closeLoading(BuildContext context) {
   Navigator.of(context, rootNavigator: true).pop();
 }
 
-void _showError(BuildContext context, String msg) {
+void showError(BuildContext context, String msg) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(msg), backgroundColor: Colors.red),
   );
 }
 
-void _showMealPreview(
+void showMealPreview(
   BuildContext context,
   WidgetRef ref,
   Map<String, dynamic> data, {
@@ -324,4 +272,250 @@ Widget _macro(String label, String value) {
       children: [Text(label), Text(value)],
     ),
   );
+}
+
+// MANUAL NUTRITION ENTRY (Exact Macros)
+
+void showManualNutritionFlow(BuildContext context, WidgetRef ref) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.background,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        left: 20,
+        right: 20,
+        top: 24,
+      ),
+      child: _ManualNutritionForm(ref: ref),
+    ),
+  );
+}
+
+class _ManualNutritionForm extends StatefulWidget {
+  final WidgetRef ref;
+  const _ManualNutritionForm({required this.ref});
+
+  @override
+  State<_ManualNutritionForm> createState() => _ManualNutritionFormState();
+}
+
+class _ManualNutritionFormState extends State<_ManualNutritionForm> {
+  final _nameController = TextEditingController();
+  final _calController = TextEditingController();
+  final _proteinController = TextEditingController();
+  final _carbsController = TextEditingController();
+  final _fatController = TextEditingController();
+
+  void _submit() {
+    final name = _nameController.text.trim();
+    final cals = int.tryParse(_calController.text.trim());
+    final protein = int.tryParse(_proteinController.text.trim());
+    final carbs = int.tryParse(_carbsController.text.trim()) ?? 0;
+    final fat = int.tryParse(_fatController.text.trim()) ?? 0;
+
+    if (name.isEmpty) {
+      showError(context, "Please enter a food name");
+      return;
+    }
+    if (cals == null || cals < 0) {
+      showError(context, "Please enter valid calories");
+      return;
+    }
+    if (protein == null || protein < 0) {
+      showError(context, "Please enter valid protein");
+      return;
+    }
+    if (carbs < 0) {
+      showError(context, "Please enter valid carbohydrates");
+      return;
+    }
+    if (fat < 0) {
+      showError(context, "Please enter valid fat");
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final meal = MealModel(
+      id: '',
+      userId: user.uid,
+      name: name,
+      calories: cals,
+      proteinG: protein,
+      carbsG: carbs,
+      fatG: fat,
+      timestamp: DateTime.now(),
+      imageUrl: null,
+      source: 'manual_nutrition',
+    );
+
+    widget.ref.read(homeViewModelProvider.notifier).logMeal(meal);
+    Navigator.pop(context);
+  } 
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text("Manual Nutrition", style: AppTextStyles.h2),
+        const SizedBox(height: 20),
+        
+        // Food Name
+        Text("Food Name", style: AppTextStyles.label),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _nameController,
+          style: AppTextStyles.body,
+          decoration: InputDecoration(
+            hintText: "e.g. Protein Bar",
+            filled: true,
+            fillColor: AppColors.card,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.all(16),
+          ),
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        const SizedBox(height: 16),
+
+        // Row for Calories & Protein
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Calories (kcal)", style: AppTextStyles.label),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _calController,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.body,
+                    decoration: InputDecoration(
+                      hintText: "0",
+                      filled: true,
+                      fillColor: AppColors.card,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Protein (g)", style: AppTextStyles.label),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _proteinController,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.body,
+                    decoration: InputDecoration(
+                      hintText: "0",
+                      filled: true,
+                      fillColor: AppColors.card,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        
+        const SizedBox(height: 16),
+
+        // Row for Carbs & Fat (Optional)
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Carbohydrates (g)", style: AppTextStyles.label),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _carbsController,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.body,
+                    decoration: InputDecoration(
+                      hintText: "0",
+                      filled: true,
+                      fillColor: AppColors.card,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Fat (g)", style: AppTextStyles.label),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _fatController,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.body,
+                    decoration: InputDecoration(
+                      hintText: "0",
+                      filled: true,
+                      fillColor: AppColors.card,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        
+        const SizedBox(height: 24),
+        
+        ElevatedButton(
+          onPressed: _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 0,
+          ),
+          child: const Text("Log Meal", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
 }

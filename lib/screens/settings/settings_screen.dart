@@ -77,19 +77,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       padding: EdgeInsets.zero,
                       child: _buildSettingsList([
                         SettingsRow(
-                          icon: Icons.person_outline,
+                          icon: Icons.person,
                           title: 'Personal details',
                           showChevron: false,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalDetailsPage())),
                         ),
                         SettingsRow(
-                          icon: Icons.pie_chart_outline,
+                          icon: Icons.tune,
                           title: 'Adjust macronutrients',
                           showChevron: false,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MacroAdjustmentScreen())),
                         ),
                         SettingsRow(
-                          icon: Icons.language,
+                          icon: Icons.public,
                           title: 'Language',
                           subtitle: language,
                           showChevron: false,
@@ -100,7 +100,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           builder: (context, mode, child) {
                             final isDark = mode == ThemeMode.dark;
                             return SettingsRow(
-                              icon: isDark ? Icons.dark_mode : Icons.light_mode,
+                              icon: isDark ? Icons.brightness_2 : Icons.wb_sunny,
                               title: 'Dark Mode',
                               showChevron: false,
                               trailing: Switch(

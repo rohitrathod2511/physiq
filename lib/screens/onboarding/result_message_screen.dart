@@ -58,7 +58,7 @@ class ResultMessageScreen extends ConsumerWidget {
                     const SizedBox(height: 34),
                     
                     Text(
-                      "90% of users say that the change is obvious after using Physiq and it is not easy to rebound.",
+                      "90% of users say that the change is obvious after using Physiq AI and it is not easy to rebound.",
                       style: AppTextStyles.h2.copyWith(
                         color: AppColors.primaryText,
                         height: 1.5,

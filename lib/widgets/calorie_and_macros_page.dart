@@ -110,9 +110,9 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   label: 'Protein',
                   consumed: proteinConsumed,
                   goal: proteinGoal,
-                  color: const Color(0xFFFEE2E2), // Light Red/Pink
-                  iconColor: const Color(0xFFEF4444), // Red
-                  icon: Icons.restaurant_menu,
+                  color: const Color(0xFFFEE2E2), 
+                  iconColor: const Color(0xFFEF4444), 
+                  centerWidget: const Text('🍗', style: TextStyle(fontSize: 24)),
                   percent: _getMacroPercent(proteinConsumed, proteinGoal.toDouble()), 
                 ),
               ),
@@ -122,9 +122,9 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   label: 'Carbs',
                   consumed: carbsConsumed,
                   goal: carbsGoal,
-                  color: const Color(0xFFFEF3C7), // Light Yellow
-                  iconColor: const Color(0xFFF59E0B), // Amber
-                  icon: Icons.wb_sunny_outlined,
+                  color: const Color(0xFFFEF3C7), 
+                  iconColor: const Color(0xFFF59E0B), 
+                  centerWidget: const Text('🌾', style: TextStyle(fontSize: 24)),
                   percent: _getMacroPercent(carbsConsumed, carbsGoal.toDouble()),
                 ),
               ),
@@ -134,9 +134,9 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   label: 'Fats',
                   consumed: fatConsumed,
                   goal: fatGoal,
-                  color: const Color(0xFFDBEAFE), // Light Blue
-                  iconColor: const Color(0xFF3B82F6), // Blue
-                  icon: Icons.water_drop_outlined,
+                  color: const Color(0xFFDBEAFE), 
+                  iconColor: const Color(0xFF3B82F6), 
+                  centerWidget: const Text('🥑', style: TextStyle(fontSize: 24)),
                   percent: _getMacroPercent(fatConsumed, fatGoal.toDouble()),
                 ),
               ),
@@ -179,7 +179,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
     required int goal,
     required Color color,
     required Color iconColor,
-    required IconData icon,
+    required Widget centerWidget,
     required double percent,
   }) {
     return Container(
@@ -205,7 +205,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
               circularStrokeCap: CircularStrokeCap.round,
               backgroundColor: const Color(0xFFF3F4F6),
               progressColor: iconColor,
-              center: Icon(icon, color: iconColor, size: 24),
+              center: centerWidget,
             ),
           const SizedBox(height: 12),
           RichText(

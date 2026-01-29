@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/main.dart';
+import 'package:physiq/l10n/app_localizations.dart';
 
 class BottomNavBar extends StatelessWidget {
   const BottomNavBar({super.key});
@@ -20,11 +21,11 @@ class BottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
-              _buildNavItem(context, activeIcon: Icons.home_filled, inactiveIcon: Icons.home_outlined, label: 'Home', route: '/home'),
-              _buildNavItem(context, activeIcon: Icons.bar_chart_rounded, inactiveIcon: Icons.bar_chart_outlined, label: 'Progress', route: '/progress'),
+              _buildNavItem(context, activeIcon: Icons.home_filled, inactiveIcon: Icons.home_outlined, label: AppLocalizations.of(context)!.home, route: '/home'),
+              _buildNavItem(context, activeIcon: Icons.bar_chart_rounded, inactiveIcon: Icons.bar_chart_outlined, label: AppLocalizations.of(context)!.progress, route: '/progress'),
               const SizedBox(width: 48), // The space for the FAB
-              _buildNavItem(context, activeIcon: Icons.fitness_center, inactiveIcon: Icons.fitness_center_outlined, label: 'Exercise', route: '/exercise'),
-              _buildNavItem(context, activeIcon: Icons.settings, inactiveIcon: Icons.settings_outlined, label: 'Settings', route: '/settings'),
+              _buildNavItem(context, activeIcon: Icons.fitness_center, inactiveIcon: Icons.fitness_center_outlined, label: AppLocalizations.of(context)!.exercise, route: '/exercise'),
+              _buildNavItem(context, activeIcon: Icons.settings, inactiveIcon: Icons.settings_outlined, label: AppLocalizations.of(context)!.settingsTitle, route: '/settings'),
             ],
           ),
         );

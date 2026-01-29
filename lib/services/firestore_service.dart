@@ -232,6 +232,74 @@ class FirestoreService {
     return '$y-$m-$day';
   }
 
+  // ----------------------------
+  // Water & Streak
+  // ----------------------------
+  Future<void> logWater(String uid, int amountMl, DateTime date) async {
+     final dateId = _formatDateId(date);
+     // Use set with merge to create/update
+     await _firestore.collection('users').doc(uid).collection('daily_summaries').doc(dateId).set({
+       'waterConsumed': FieldValue.increment(amountMl),
+       'date': dateId,
+     }, SetOptions(merge: true));
+  }
+
+  Future<void> updateWaterGoal(String uid, int goalMl, DateTime date) async {
+    final dateId = _formatDateId(date);
+    await _firestore.collection('users').doc(uid).collection('daily_summaries').doc(dateId).set({
+      'waterGoal': goalMl,
+    }, SetOptions(merge: true));
+  }
+
+  Future<int> calculateStreak(String uid) async {
+    try {
+      // Fetch last 60 days summaries
+      final snap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('daily_summaries')
+          .orderBy('date', descending: true)
+          .limit(60)
+          .get();
+      
+      final activeDates = <String>{};
+      for (var doc in snap.docs) {
+         final d = doc.data();
+         // Check activity (Calories, Water, Steps)
+         if (_toIntSafe(d['calories']) > 0 || 
+             _toIntSafe(d['caloriesConsumed']) > 0 ||
+             _toIntSafe(d['waterConsumed']) > 0 || 
+             _toIntSafe(d['steps']) > 0) {
+           activeDates.add(doc.id);
+         }
+      }
+      
+      int streak = 0;
+      int misses = 0;
+      DateTime check = DateTime.now();
+      
+      // Iterate back strictly
+      for (int i = 0; i < 60; i++) {
+        final id = _formatDateId(check);
+        if (activeDates.contains(id)) {
+          streak++;
+          misses = 0;
+        } else {
+          misses++;
+          // If today is empty, it doesn't break the streak immediately if yesterday was active
+          // But strict logic: "Resets after 3 consecutive missed days".
+          if (misses >= 3) break;
+        }
+        check = check.subtract(const Duration(days: 1));
+      }
+      
+      return streak;
+    } catch (e) {
+      print('Streak calculation error: $e');
+      return 0;
+    }
+  }
+
   static int _toIntSafe(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;

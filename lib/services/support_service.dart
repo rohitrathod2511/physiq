@@ -10,7 +10,7 @@ class SupportService {
         scheme: 'mailto',
         path: 'support@physiq.example',
         query: _encodeQueryParameters(<String, String>{
-          'subject': 'Physiq Support Request',
+          'subject': 'Physiq AI Support Request',
           'body': '\n\n\n--\nUID: $uid\nVersion: $appVersion',
         }),
       );

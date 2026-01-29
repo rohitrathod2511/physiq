@@ -5,8 +5,9 @@ import 'package:physiq/screens/streak_calendar_screen.dart';
 class HeaderWidget extends StatefulWidget {
   final String title;
   final bool showActions;
+  final int streak;
 
-  const HeaderWidget({super.key, required this.title, this.showActions = true});
+  const HeaderWidget({super.key, required this.title, this.showActions = true, this.streak = 0});
 
   @override
   State<HeaderWidget> createState() => _HeaderWidgetState();
@@ -82,7 +83,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                         children: [
                           const Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 20),
                           const SizedBox(width: 6),
-                          Text('3', style: AppTextStyles.button.copyWith(fontSize: 16)), // Mock streak
+                          Text('${widget.streak}', style: AppTextStyles.button.copyWith(fontSize: 16)),
                         ],
                       ),
                     ),
@@ -157,7 +158,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                     children: [
                       Text('Current Streak', style: AppTextStyles.smallLabel),
                       const SizedBox(height: 4),
-                      Text('3 Days', style: AppTextStyles.heading2.copyWith(color: Colors.orange)),
+                      Text('${widget.streak} Days', style: AppTextStyles.heading2.copyWith(color: Colors.orange)),
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

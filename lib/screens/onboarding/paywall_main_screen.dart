@@ -57,7 +57,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Unlock Physiq to get your Dream Body.",
+                "Unlock Physiq AI to get your Dream Body.",
                 style: AppTextStyles.h1.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ),

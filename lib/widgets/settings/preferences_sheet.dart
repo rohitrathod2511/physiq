@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/utils/design_system.dart';
+import 'package:physiq/providers/preferences_provider.dart';
+import 'package:physiq/l10n/app_localizations.dart';
 
 class PreferencesSheet extends ConsumerStatefulWidget {
   const PreferencesSheet({super.key});
@@ -10,12 +12,18 @@ class PreferencesSheet extends ConsumerStatefulWidget {
 }
 
 class _PreferencesSheetState extends ConsumerState<PreferencesSheet> {
-  String _language = 'en';
   String _theme = 'light';
   String _units = 'metric';
 
   @override
   Widget build(BuildContext context) {
+    final prefs = ref.watch(preferencesProvider);
+    final l10n = AppLocalizations.of(context)!;
+    
+    // We don't use local state for language anymore, we rely on the provider
+    // _theme and _units can remain local if not in provider yet, but typically should be in provider too.
+    // For now I'll just focus on Language as requested.
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.background,
@@ -37,13 +45,17 @@ class _PreferencesSheetState extends ConsumerState<PreferencesSheet> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Preferences', style: AppTextStyles.heading2),
+          Text(l10n.preferences, style: AppTextStyles.heading2),
           const SizedBox(height: 24),
           _buildDropdown(
-            'Language',
-            _language,
+            l10n.language,
+            prefs.locale.languageCode,
             {'en': 'English', 'hi': 'Hindi'},
-            (val) => setState(() => _language = val!),
+            (val) {
+               if (val != null) {
+                 ref.read(preferencesProvider.notifier).setLocale(Locale(val));
+               }
+            },
           ),
           const SizedBox(height: 16),
           _buildDropdown(

@@ -40,7 +40,7 @@ class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
           children: [
             const SizedBox(height: 20),
             Text(
-              "We want you to\ntry Physiq for free.",
+              "We want you to\ntry Physiq AI for free.",
               style: AppTextStyles.h1.copyWith(fontSize: 32),
               textAlign: TextAlign.center,
             ),

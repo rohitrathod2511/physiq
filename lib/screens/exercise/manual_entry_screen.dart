@@ -41,7 +41,7 @@ class _ManualEntryScreenState extends ConsumerState<ManualEntryScreen> {
                       value: 1.0,
                       strokeWidth: 16,
                       color: AppColors.primary,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor: AppColors.secondaryText.withOpacity(0.1),
                     ),
                   ),
                   Column(

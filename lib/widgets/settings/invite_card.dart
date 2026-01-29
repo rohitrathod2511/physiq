@@ -13,8 +13,8 @@ class InviteCard extends StatelessWidget {
       onTap: () {
         // This uses the share_plus package to open the native share sheet.
         Share.share(
-          'Check out Physiq! It helps me track my fitness and nutrition goals. Download it here: [Your App Link]',
-          subject: 'Join me on Physiq!',
+          'Check out Physiq AI! It helps me track my fitness and nutrition goals. Download it here: [Your App Link]',
+          subject: 'Join me on Physiq AI!',
         );
       },
       child: Container(

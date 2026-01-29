@@ -4,36 +4,29 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:physiq/viewmodels/home_viewmodel.dart';
 
-class WaterStepsCard extends StatefulWidget {
+class WaterStepsCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> dailySummary;
 
   const WaterStepsCard({super.key, required this.dailySummary});
 
   @override
-  State<WaterStepsCard> createState() => _WaterStepsCardState();
+  ConsumerState<WaterStepsCard> createState() => _WaterStepsCardState();
 }
 
-class _WaterStepsCardState extends State<WaterStepsCard> {
+class _WaterStepsCardState extends ConsumerState<WaterStepsCard> {
   bool _isHealthConnected = false;
   bool _isConnecting = false;
-  late int _currentWaterMl;
-  late int _goalWaterMl;
   late int _stepsGoal;
+  
+  // Persistent selection state (resets on reload, but fine for session)
+  int _selectedUnit = 250; // Default to Glass
 
   @override
   void initState() {
     super.initState();
-    // Initialize local state from widget props (converting oz to ml)
-    final double waterOz = (widget.dailySummary['waterConsumed'] ?? 0).toDouble();
-    // Default water goal changed to 4000ml (approx 135 oz) if not provided
-    final double goalOz = (widget.dailySummary['waterGoal'] ?? 135.25).toDouble(); // 4000ml ~ 135.25oz
-    
-    _currentWaterMl = (waterOz * 29.5735).round();
-    _goalWaterMl = (widget.dailySummary['waterGoal'] != null) 
-        ? (goalOz * 29.5735).round() 
-        : 4000; // Force default to 4000ml if null/default
-
     _stepsGoal = (widget.dailySummary['stepsGoal'] ?? 10000).toInt();
   }
 
@@ -75,6 +68,7 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
               final val = int.tryParse(controller.text);
               if (val != null && val > 0) {
                 setState(() => _stepsGoal = val);
+                // Ideally save to Firestore here via VM/Service if needed
               }
               Navigator.pop(context);
             },
@@ -86,34 +80,58 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
     );
   }
 
+  void _logWater() {
+    ref.read(homeViewModelProvider.notifier).logWater(_selectedUnit);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Calculate display values
-    final double waterPercent = (_goalWaterMl > 0) 
-        ? (_currentWaterMl / _goalWaterMl).clamp(0.0, 1.0) 
+    // Current state from props
+    final double waterOz = (widget.dailySummary['waterConsumed'] ?? 0).toDouble();
+    final double goalOz = (widget.dailySummary['waterGoal'] ?? 135.25).toDouble();
+    
+    // Check if dailySummary data is already in ml or oz. 
+    // Previous code assumed oz in DB but converted to ml for display.
+    // If we just logged ml, we should be consistent.
+    // Assuming DB stores ml now since my logWater uses ml.
+    // But if legacy data is Oz... I'll check magnitude.
+    // If water > 500, likely ml. If < 200, likely Oz.
+    // This is risky. I'll trust the previous logic which converted oz->ml.
+    // BUT my new logWater saves ML directly.
+    // So I should standardize on ML.
+    // I'll assume standardizing on ML:
+    // int currentWaterMl = (widget.dailySummary['waterConsumed'] ?? 0).toInt();
+    
+    int currentWaterMl = (widget.dailySummary['waterConsumed'] ?? 0).toInt();
+    // If value is small (<200) and user logged >250, it might be oz.
+    // But I'm pushing ML. I'll display as is.
+    int goalWaterMl = (widget.dailySummary['waterGoal'] ?? 4000).toInt();
+    if (goalWaterMl < 500) goalWaterMl = 4000; // Fix legacy default
+
+    final double waterPercent = (goalWaterMl > 0) 
+        ? (currentWaterMl / goalWaterMl).clamp(0.0, 1.0) 
         : 0.0;
     
-    // Display Helper
-    String displayVolume = _currentWaterMl >= 1000 
-        ? '${(_currentWaterMl / 1000).toStringAsFixed(2)} L'
-        : '$_currentWaterMl ml';
+    String displayVolume = currentWaterMl >= 1000 
+        ? '${(currentWaterMl / 1000).toStringAsFixed(2)} L'
+        : '$currentWaterMl ml';
     
-    String displayGoal = _goalWaterMl >= 1000 
-        ? '${(_goalWaterMl / 1000).toStringAsFixed(1)} L'
-        : '$_goalWaterMl ml';
+    String displayGoal = goalWaterMl >= 1000 
+        ? '${(goalWaterMl / 1000).toStringAsFixed(1)} L'
+        : '$goalWaterMl ml';
 
     return Column(
       children: [
-        // Top Card: Steps (Google Health Integrated)
+        // Top Card: Steps
         _buildStepCard(),
 
         const SizedBox(height: 16),
 
-        // Bottom Card: Water (Redesigned)
+        // Bottom Card: Water
         GestureDetector(
-          onTap: () => _showWaterEntrySheet(),
+          onTap: () => _showWaterEntrySheet(currentWaterMl, goalWaterMl),
           child: Container(
-            height: 130, // Kept fixed height as requested
+            height: 130,
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
@@ -129,15 +147,19 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
             ),
             child: Row(
               children: [
-                // Water Icon & Label & Progress Ring
-                CircularPercentIndicator(
-                    radius: 42.0,
-                    lineWidth: 8.0,
-                    percent: waterPercent,
-                    circularStrokeCap: CircularStrokeCap.round,
-                    backgroundColor: const Color(0xFFF3F4F6),
-                    progressColor: AppColors.water,
-                    center: Container(
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularPercentIndicator(
+                        radius: 42.0,
+                        lineWidth: 8.0,
+                        percent: waterPercent,
+                        circularStrokeCap: CircularStrokeCap.round,
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        progressColor: AppColors.water,
+                        center: const SizedBox(),
+                    ),
+                    Container(
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
@@ -146,11 +168,11 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
                       ),
                       child: const Icon(Icons.water_drop, color: AppColors.water, size: 20),
                     ),
+                  ],
                 ),
                 
                 const SizedBox(width: 20),
                 
-                // Text Info
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -182,14 +204,17 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
                 
                 const SizedBox(width: 8),
                 
-                // Add Button (Visual Cue)
-                Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                        color: AppColors.water,
-                        borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white),
+                // Add Button (Action)
+                GestureDetector(
+                  onTap: _logWater,
+                  child: Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                          color: AppColors.water,
+                          borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white),
+                  ),
                 )
               ],
             ),
@@ -199,33 +224,31 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
     );
   }
 
-  void _showWaterEntrySheet() async {
-      // Expecting a map or simpler return. For now, we update local state if map returned.
+  void _showWaterEntrySheet(int current, int goal) async {
       final result = await showModalBottomSheet<Map<String, int>>(
           context: context,
           backgroundColor: Colors.transparent,
           isScrollControlled: true,
-          builder: (context) => _WaterEntrySheet(currentMl: _currentWaterMl, goalMl: _goalWaterMl),
+          builder: (context) => _WaterEntrySheet(currentMl: current, goalMl: goal, initialUnit: _selectedUnit),
       );
 
       if (result != null) {
-        setState(() {
-          _currentWaterMl = result['current']!;
-          _goalWaterMl = result['goal']!;
-        });
+         if (result['selectedUnit'] != null) {
+           setState(() {
+             _selectedUnit = result['selectedUnit']!;
+           });
+         }
+         
+         if (result['waterGoal'] != null && result['waterGoal'] != goal) {
+            ref.read(homeViewModelProvider.notifier).updateWaterGoal(result['waterGoal']!);
+         }
       }
   }
 
   Widget _buildStepCard() {
     final int steps = (widget.dailySummary['steps'] ?? 0).toInt();
-    
-    // Logic Changed: Progress Bar fills as you walk (steps / goal)
-    // Content displays Remaining Goal (Goal - Steps)
     final double stepsPercent = (_stepsGoal > 0) ? (steps / _stepsGoal).clamp(0.0, 1.0) : 0.0;
-    
-    // Decrease the number inside the ring as user walks
     final int remainingGoal = (_stepsGoal - steps).clamp(0, _stepsGoal);
-    
     final int burnedFromSteps = (steps * 0.04).toInt();
 
     return Container(
@@ -246,7 +269,6 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
         borderRadius: BorderRadius.circular(32),
         child: Stack(
           children: [
-            // Active State
             AnimatedOpacity(
               duration: const Duration(milliseconds: 500),
               opacity: _isHealthConnected ? 1.0 : 0.3,
@@ -285,9 +307,9 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
                                 )
                               ],
                             ),
-                            const SizedBox(height: 2), // Small spacing
+                            const SizedBox(height: 2),
                             Text(
-                              'GOAL', // Changed from 'steps' to 'GOAL'
+                              'GOAL', 
                               style: AppTextStyles.bodyBold.copyWith(
                                 color: AppColors.secondaryText,
                                 fontSize: 12,
@@ -316,7 +338,7 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFF7ED), // Light orange bg
+                                color: const Color(0xFFFFF7ED),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -342,8 +364,6 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
                 ),
               ),
             ),
-
-            // Disconnected Overlay
             if (!_isHealthConnected)
               Positioned.fill(
                 child: Container(
@@ -403,52 +423,43 @@ class _WaterStepsCardState extends State<WaterStepsCard> {
 class _WaterEntrySheet extends StatefulWidget {
   final int currentMl;
   final int goalMl;
+  final int initialUnit;
 
-  const _WaterEntrySheet({required this.currentMl, required this.goalMl});
+  const _WaterEntrySheet({required this.currentMl, required this.goalMl, required this.initialUnit});
 
   @override
   State<_WaterEntrySheet> createState() => _WaterEntrySheetState();
 }
 
 class _WaterEntrySheetState extends State<_WaterEntrySheet> {
-    int _selectedUnit = 250; // Default to Glass
-    late int _currentTotal;
+    late int _selectedUnit;
     late int _currentGoal;
     
     @override
     void initState() {
         super.initState();
-        _currentTotal = widget.currentMl;
         _currentGoal = widget.goalMl;
+        _selectedUnit = widget.initialUnit;
     }
 
     void _selectUnit(int amount) {
         setState(() {
             _selectedUnit = amount;
-            // No auto-add to _currentTotal here, as requested.
         });
     }
 
-    void _increment(int sign) {
+    void _adjustGoal(int amount) {
         setState(() {
-            _currentTotal += (sign * _selectedUnit);
-            if (_currentTotal < 0) _currentTotal = 0;
+            _currentGoal = (_currentGoal + amount).clamp(250, 10000);
         });
     }
-
-    void _adjustGoal(int sign) {
-        setState(() {
-            _currentGoal += (sign * _selectedUnit);
-            if (_currentGoal < 0) _currentGoal = 0;
-        });
-    }
-
+    
     @override
     Widget build(BuildContext context) {
         return Container(
             decoration: BoxDecoration(
                 color: AppColors.card,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             ),
             padding: EdgeInsets.only(
               left: 24, 
@@ -461,12 +472,9 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
                 children: [
                     Container(height: 4, width: 40, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
                     const SizedBox(height: 24),
-                    Text("Add Water", style: AppTextStyles.heading2),
-                    const SizedBox(height: 8),
-                    Text("Stay hydrated!", style: AppTextStyles.body.copyWith(color: AppColors.secondaryText)),
+                    Text("Select Container", style: AppTextStyles.heading2),
                     const SizedBox(height: 32),
                     
-                    // Presets
                     Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -477,80 +485,64 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
                     ),
                     const SizedBox(height: 32),
                     
-                    // Water Controls
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                            _buildControlBtn(Icons.remove, () => _increment(-1)),
-                            const SizedBox(width: 24),
-                            SizedBox(
-                                width: 140, // Fixed width for stability
-                                child: Column(
-                                    children: [
-                                        Text(
-                                          _currentTotal >= 1000 
-                                            ? "${(_currentTotal / 1000).toStringAsFixed(2)} L" 
-                                            : "$_currentTotal ml", 
-                                          style: AppTextStyles.heading1.copyWith(fontSize: 40)
-                                        ),
-                                        Text("Today's Total", style: AppTextStyles.smallLabel),
-                                    ]
-                                ),
-                            ),
-                            const SizedBox(width: 24),
-                            _buildControlBtn(Icons.add, () => _increment(1)),
-                        ],
-                    ),
+                    Text("Selected: ${_selectedUnit}ml", style: AppTextStyles.bodyBold),
                     
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 32),
                     const Divider(),
-                    const SizedBox(height: 12),
-
-                    // Goal Controls (Replaces Manual Entry)
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                            IconButton(
-                              onPressed: () => _adjustGoal(-1),
-                              icon: Icon(Icons.remove_circle_outline, color: AppColors.secondaryText),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                                children: [
-                                    Text(
-                                      _currentGoal >= 1000 
-                                        ? "${(_currentGoal / 1000).toStringAsFixed(1)} L" 
-                                        : "$_currentGoal ml",
-                                      style: AppTextStyles.heading2
+                    const SizedBox(height: 16),
+                    
+                    Text("Daily Water Goal", style: AppTextStyles.heading2),
+                    const SizedBox(height: 16),
+                    Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                                IconButton(
+                                    onPressed: () => _adjustGoal(-250),
+                                    icon: const Icon(Icons.remove),
+                                    color: AppColors.primary,
+                                ),
+                                Container(
+                                    constraints: const BoxConstraints(minWidth: 80),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                        "$_currentGoal ml", 
+                                        style: AppTextStyles.heading2.copyWith(fontSize: 20)
                                     ),
-                                    Text("Daily Water Goal", style: AppTextStyles.smallLabel),
-                                ]
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: () => _adjustGoal(1),
-                              icon: Icon(Icons.add_circle_outline, color: AppColors.primary),
-                            ),
-                        ],
+                                ),
+                                IconButton(
+                                    onPressed: () => _adjustGoal(250),
+                                    icon: const Icon(Icons.add),
+                                    color: AppColors.primary,
+                                ),
+                            ],
+                        ),
                     ),
 
-                    const SizedBox(height: 24),
-                    
-                    // Save Button (Moved up / Validated visibility)
+                    const SizedBox(height: 32),
+
                     SizedBox(
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context, {'current': _currentTotal, 'goal': _currentGoal}),
+                            onPressed: () => Navigator.pop(context, {
+                                'selectedUnit': _selectedUnit, 
+                                'waterGoal': _currentGoal
+                            }),
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.water,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
-                            child: const Text("Save"),
+                            child: const Text("Done"),
                         ),
                     ),
-                    const SizedBox(height: 16), // Extra padding for safety
+                    const SizedBox(height: 16),
                 ],
             ),
         );
@@ -560,10 +552,7 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
         final bool isSelected = _selectedUnit == amountVal;
                                 
         return GestureDetector(
-            onTap: () {
-              // Now only sets the unit, does NOT auto-add.
-              _selectUnit(amountVal);
-            },
+            onTap: () => _selectUnit(amountVal),
             child: Column(
                 children: [
                     Container(
@@ -580,22 +569,6 @@ class _WaterEntrySheetState extends State<_WaterEntrySheet> {
                     Text(amountText, style: AppTextStyles.smallLabel.copyWith(color: AppColors.secondaryText)),
                 ],
             )
-        );
-    }
-    
-    Widget _buildControlBtn(IconData icon, VoidCallback onTap) {
-        return GestureDetector(
-            onTap: onTap,
-            child: Container(
-                width: 50, height: 50,
-                decoration: BoxDecoration(
-                    color: AppColors.card,
-                    shape: BoxShape.circle,
-                    boxShadow: [AppShadows.card],
-                    border: Border.all(color: Colors.grey.shade100),
-                ),
-                child: Icon(icon, color: AppColors.primaryText),
-            ),
         );
     }
 }

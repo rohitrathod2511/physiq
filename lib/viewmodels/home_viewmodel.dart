@@ -58,7 +58,33 @@ class HomeViewModel extends StateNotifier<HomeState> {
     // Listen to Recent Workouts
     _exerciseService.getRecentLogs(uid).listen((logs) {
       state = state.copyWith(recentWorkouts: logs);
+      fetchStreak(uid);
     });
+    
+    // Fetch Streak
+    fetchStreak(uid);
+  }
+
+  Future<void> fetchStreak(String uid) async {
+    final s = await _firestoreService.calculateStreak(uid);
+    state = state.copyWith(streak: s);
+  }
+
+  Future<void> logWater(int amountMl) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await _firestoreService.logWater(uid, amountMl, state.selectedDate);
+      fetchDailySummary(state.selectedDate, uid); // Refresh summary for water
+      fetchStreak(uid); // Always refresh streak
+    }
+  }
+
+  Future<void> updateWaterGoal(int goalMl) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await _firestoreService.updateWaterGoal(uid, goalMl, state.selectedDate);
+      fetchDailySummary(state.selectedDate, uid);
+    }
   }
 
   void selectDate(DateTime date) {
@@ -103,6 +129,8 @@ class HomeViewModel extends StateNotifier<HomeState> {
     fetchRecentMeals(uid);
     // Refresh daily summary (will trigger stream listener or new fetch)
     fetchDailySummary(state.selectedDate, uid);
+    // Refresh streak
+    fetchStreak(uid);
   }
 }
 
@@ -113,6 +141,7 @@ class HomeState {
   final bool isPremium;
   final Map<String, dynamic>? currentPlan;
   final List<ExerciseLog>? recentWorkouts;
+  final int streak;
 
   HomeState({
     DateTime? selectedDate,
@@ -121,6 +150,7 @@ class HomeState {
     this.isPremium = false,
     this.currentPlan,
     this.recentWorkouts,
+    this.streak = 0,
   }) : selectedDate = selectedDate ?? DateTime.now();
 
   HomeState copyWith({
@@ -130,6 +160,7 @@ class HomeState {
     bool? isPremium,
     Map<String, dynamic>? currentPlan,
     List<ExerciseLog>? recentWorkouts,
+    int? streak,
   }) {
     return HomeState(
       selectedDate: selectedDate ?? this.selectedDate,
@@ -138,6 +169,7 @@ class HomeState {
       isPremium: isPremium ?? this.isPremium,
       currentPlan: currentPlan ?? this.currentPlan,
       recentWorkouts: recentWorkouts ?? this.recentWorkouts,
+      streak: streak ?? this.streak,
     );
   }
 }

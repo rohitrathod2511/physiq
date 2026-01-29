@@ -166,37 +166,48 @@ class _EditGoalWeightPageState extends State<EditGoalWeightPage> {
         elevation: 0,
         leading: BackButton(color: AppColors.primaryText),
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 40),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: SliderWeight(
-              value: _currentValue,
-              min: 30,
-              max: 150,
-              unit: _unitSystem == 'Metric' ? 'kg' : 'lbs',
-              onChanged: (val) => setState(() => _currentValue = val),
-            ),
-          ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: SizedBox(
-               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 40),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: SliderWeight(
+                        value: _currentValue,
+                        min: 30,
+                        max: 150,
+                        unit: _unitSystem == 'Metric' ? 'kg' : 'lbs',
+                        onChanged: (val) => setState(() => _currentValue = val),
+                      ),
+                    ),
+                    const Spacer(),
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: SizedBox(
+                         width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          ),
+                          child: const Text('Save'),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text('Save'),
               ),
             ),
-          ),
-        ],
+          );
+        }
       ),
     );
   }
