@@ -185,7 +185,7 @@ abstract class AppLocalizations {
   /// No description provided for @personalDetails.
   ///
   /// In en, this message translates to:
-  /// **'Personal details'**
+  /// **'Personal Details'**
   String get personalDetails;
 
   /// No description provided for @leaderboard.
@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// No description provided for @adjustMacros.
   ///
   /// In en, this message translates to:
-  /// **'Adjust macronutrients'**
+  /// **'Adjust Macronutrients'**
   String get adjustMacros;
 
   /// No description provided for @preferences.

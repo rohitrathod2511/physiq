@@ -138,7 +138,7 @@ class _CalorieMainCardState extends State<CalorieMainCard>
                       value: _progressAnimation.value,
                       strokeWidth: 8,
                       backgroundColor: AppColors.background,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
+                      valueColor: AlwaysStoppedAnimation<Color>(
                         AppColors.accent,
                       ),
                     ),

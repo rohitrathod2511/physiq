@@ -51,13 +51,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inviteFriends => 'Invite Friends';
 
   @override
-  String get personalDetails => 'Personal details';
+  String get personalDetails => 'Personal Details';
 
   @override
   String get leaderboard => 'Leaderboard';
 
   @override
-  String get adjustMacros => 'Adjust macronutrients';
+  String get adjustMacros => 'Adjust Macronutrients';
 
   @override
   String get preferences => 'Preferences';

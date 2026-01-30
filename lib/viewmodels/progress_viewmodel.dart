@@ -203,23 +203,25 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
     // Safety check
     if (current == 0 && initial > 0) current = initial;
 
-    // First-weight baseline: no previous to compare. previousWeight = currentWeight, delta = 0.
-    // length >= 2: use existing comparison logic (initial = earliest ?? profile).
+    // FIRST-TIME SYNC FIX:
+    // When user logs first weight (history.length == 1), we need to ensure:
+    // - Cards display immediately with the single data point
+    // - No comparison needed (initial == current for first entry)
+    // For length == 1: treat first log as both start and current
+    // For length >= 2: normal comparison (initial = earliest, current = latest)
     final double effectiveInitial = history.length == 1 ? current : initial;
 
     // Construct display history for graph
     List<WeightEntry> displayHistory = [...history];
 
-    // FIX 2: First Weight Log ECG Graph
-    // - length == 1: baseline only. Single data point, no synthetic entry.
-    // - length >= 2: use existing comparison logic (unchanged).
-    // - length == 0: new user, no logs yet — keep synthetic init+curr for empty state.
+    // For empty state (no logs yet), keep synthetic baseline
+    // This helps show UI structure even before first log
     if (displayHistory.isEmpty && initial > 0) {
       final date = created ?? DateTime.now();
       displayHistory.add(WeightEntry(id: 'init', weightKg: initial, date: date, loggedAt: date));
       displayHistory.add(WeightEntry(id: 'curr', weightKg: current, date: DateTime.now(), loggedAt: DateTime.now()));
     }
-    // When length == 1: do NOT add synthetic init. Single point = baseline.
+    // When length >= 1: use real data only (no synthetic entries)
 
     displayHistory.sort((a, b) => a.date.compareTo(b.date));
 

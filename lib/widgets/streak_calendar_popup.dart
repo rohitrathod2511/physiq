@@ -77,7 +77,7 @@ class _StreakCalendarPopupState extends State<StreakCalendarPopup> {
       headerStyle: HeaderStyle(
         titleCentered: true,
         formatButtonVisible: false,
-        titleTextStyle: AppTextStyles.bodyBold!.copyWith(fontSize: 16),
+        titleTextStyle: AppTextStyles.bodyBold.copyWith(fontSize: 16),
         leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.accent),
         rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.accent),
       ),

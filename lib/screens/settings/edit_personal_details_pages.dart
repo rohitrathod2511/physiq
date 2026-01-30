@@ -3,8 +3,7 @@ import 'package:physiq/widgets/slider_weight.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:physiq/utils/conversions.dart'; 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:physiq/utils/conversions.dart';
 
 // Reusing widgets internally to avoid dependency on onboarding screen classes directly
 // but using same visual style.
@@ -213,7 +212,7 @@ class _EditGoalWeightPageState extends State<EditGoalWeightPage> {
   }
 }
 
-// --- Edit Height & Weight ---
+// --- Edit Height Only ---
 class EditHeightWeightPage extends StatefulWidget {
   final double initialHeight;
   final double initialWeight;
@@ -225,61 +224,30 @@ class EditHeightWeightPage extends StatefulWidget {
 
 class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
   late double _heightCm;
-  late double _weightKg;
   final _firestoreService = FirestoreService();
-  final String _unitSystem = 'Metric';
 
   late FixedExtentScrollController _heightController;
-  late FixedExtentScrollController _weightController;
 
   @override
   void initState() {
     super.initState();
     _heightCm = widget.initialHeight;
-    _weightKg = widget.initialWeight;
     _heightController = FixedExtentScrollController(initialItem: (_heightCm - 100).round().clamp(0, 120));
-    _weightController = FixedExtentScrollController(initialItem: (_weightKg - 30).round().clamp(0, 170));
   }
   
   @override
   void dispose() {
     _heightController.dispose();
-    _weightController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      // Save both to profile
-       await _firestoreService.updateUserProfile(uid, {
+      // Save only height to profile
+      await _firestoreService.updateUserProfile(uid, {
         'heightCm': _heightCm,
-        'weightKg': _weightKg,
       });
-
-      // SYNC Fix: Add to weight history so graph works
-      // Assuming context has a Ref or similar, but this is a straightforward StatefulWidget.
-      // We can use a service or just write to firestore directly for now to be safe and quick
-      // following the constraint "without touching unrelated logic" but we need to fix the sync.
-      // Easiest is to replicate what ProgressRepo does or assume we can access it?
-      // Actually, we don't have Ref here easily unless we convert to ConsumerStatefulWidget, 
-      // OR we just write to subcollection.
-      // Let's write to subcollection directly to ensure it works.
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('weight_history')
-            .add({
-              'id': DateTime.now().millisecondsSinceEpoch.toString(),
-              'weightKg': _weightKg,
-              'date': FieldValue.serverTimestamp(), // or DateTime.now()
-              'loggedAt': FieldValue.serverTimestamp(),
-            });
-      } catch (e) {
-        // fail silently or log
-        debugPrint('Failed to add weight history from settings: $e');
-      }
 
       if (mounted) Navigator.pop(context);
     }
@@ -290,7 +258,7 @@ class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Height & Weight', style: AppTextStyles.heading2),
+        title: Text('Height', style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: BackButton(color: AppColors.primaryText),
@@ -300,11 +268,11 @@ class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-             Expanded(
+            Expanded(
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                   // Selection Highlight Overlay
+                  // Selection Highlight Overlay
                   Container(
                     height: 60,
                     width: double.infinity,
@@ -316,69 +284,35 @@ class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
                     ),
                   ),
                   Positioned.fill(
-                    child: Row(
-                      children: [
-                        // Height Slider
-                        Expanded(
-                          child: ListWheelScrollView.useDelegate(
-                            controller: _heightController,
-                            itemExtent: 50,
-                            perspective: 0.005, diameterRatio: 1.5,
-                            physics: const FixedExtentScrollPhysics(),
-                            onSelectedItemChanged: (index) {
-                                setState(() {
-                                   _heightCm = (100 + index).toDouble();
-                                });
-                            },
-                             childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 121,
-                              builder: (context, index) {
-                                final selectedIndex = (_heightCm - 100).round();
-                                final isSelected = index == selectedIndex;
-                                return Center(
-                                  child: AnimatedDefaultTextStyle(
-                                    duration: const Duration(milliseconds: 200),
-                                    style: isSelected
-                                        ? const TextStyle(fontFamily: 'Inter', fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)
-                                        : TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.grey.withOpacity(0.4)),
-                                    child: Text("${100 + index} cm"),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                    child: Center(
+                      child: ListWheelScrollView.useDelegate(
+                        controller: _heightController,
+                        itemExtent: 50,
+                        perspective: 0.005,
+                        diameterRatio: 1.5,
+                        physics: const FixedExtentScrollPhysics(),
+                        onSelectedItemChanged: (index) {
+                          setState(() {
+                            _heightCm = (100 + index).toDouble();
+                          });
+                        },
+                        childDelegate: ListWheelChildBuilderDelegate(
+                          childCount: 121,
+                          builder: (context, index) {
+                            final selectedIndex = (_heightCm - 100).round();
+                            final isSelected = index == selectedIndex;
+                            return Center(
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: isSelected
+                                    ? const TextStyle(fontFamily: 'Inter', fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)
+                                    : TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.grey.withOpacity(0.4)),
+                                child: Text("${100 + index} cm"),
+                              ),
+                            );
+                          },
                         ),
-                        // Weight Slider
-                         Expanded(
-                          child: ListWheelScrollView.useDelegate(
-                            controller: _weightController,
-                            itemExtent: 50,
-                            perspective: 0.005, diameterRatio: 1.5,
-                            physics: const FixedExtentScrollPhysics(),
-                            onSelectedItemChanged: (index) {
-                                setState(() {
-                                   _weightKg = (30 + index).toDouble();
-                                });
-                            },
-                             childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 171,
-                              builder: (context, index) {
-                                final selectedIndex = (_weightKg - 30).round();
-                                final isSelected = index == selectedIndex;
-                                return Center(
-                                  child: AnimatedDefaultTextStyle(
-                                    duration: const Duration(milliseconds: 200),
-                                    style: isSelected
-                                        ? const TextStyle(fontFamily: 'Inter', fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)
-                                        : TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.grey.withOpacity(0.4)),
-                                    child: Text("${30 + index} kg"),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],

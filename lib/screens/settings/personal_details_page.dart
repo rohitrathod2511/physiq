@@ -92,13 +92,6 @@ class PersonalDetailsPage extends ConsumerWidget {
                       _buildDivider(),
                       _buildRow(
                         context,
-                        title: 'Current Weight',
-                        value: '${(user.weightKg ?? 0).toInt()} kg',
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditHeightWeightPage(initialHeight: (user.heightCm ?? 170.0).toDouble(), initialWeight: (user.weightKg ?? 70.0).toDouble()))),
-                      ),
-                      _buildDivider(),
-                      _buildRow(
-                        context,
                         title: 'Height',
                         value: '${(user.heightCm ?? 0).round()} cm',
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditHeightWeightPage(initialHeight: (user.heightCm ?? 170.0).toDouble(), initialWeight: (user.weightKg ?? 70.0).toDouble()))),

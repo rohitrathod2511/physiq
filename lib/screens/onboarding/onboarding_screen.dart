@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/local_storage.dart';
-import 'package:physiq/utils/design_system.dart'; // Using the correct, more complete design system.
+import 'package:physiq/theme/design_system.dart'; // Using the correct, more complete design system.
 
 // Step imports
 import 'gender_step.dart';

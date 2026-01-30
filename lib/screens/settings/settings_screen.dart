@@ -9,6 +9,7 @@ import 'package:physiq/screens/settings/invite_friends_page.dart';
 import 'package:physiq/screens/settings/leaderboard_page.dart';
 import 'package:physiq/screens/settings/personal_details_page.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
+import 'package:physiq/screens/settings/weight_history_screen.dart';
 import 'package:physiq/screens/settings/legal_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:physiq/providers/preferences_provider.dart';
@@ -103,6 +104,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) => const MacroAdjustmentScreen(),
+                            ),
+                          ),
+                        ),
+                        SettingsRow(
+                          icon: Icons.history,
+                          title: 'Weight History',
+                          showChevron: false,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const WeightHistoryScreen(),
                             ),
                           ),
                         ),

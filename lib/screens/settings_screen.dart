@@ -6,6 +6,7 @@ import 'package:physiq/utils/design_system.dart';
 import 'package:physiq/widgets/settings/leaderboard_sheet.dart';
 import 'package:physiq/widgets/settings/personal_details_sheet.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
+import 'package:physiq/screens/settings/weight_history_screen.dart';
 import 'package:physiq/widgets/settings/preferences_sheet.dart';
 
 import 'package:physiq/widgets/header_widget.dart';
@@ -95,7 +96,22 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 32),
 
-                    // 5. Preferences
+                    // 5. Weight History
+                    _buildSectionItem(
+                      icon: Icons.history,
+                      title: 'Weight History',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const WeightHistoryScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 32),
+
+                    // 6. Preferences
                     _buildSectionItem(
                       icon: Icons.settings_outlined,
                       title: l10n.preferences,
@@ -103,7 +119,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 48),
 
-                    // 6. Legal & Support
+                    // 7. Legal & Support
                     Text(l10n.legalSupport, style: AppTextStyles.heading2),
                     const SizedBox(height: 24),
                     _buildSectionItem(
