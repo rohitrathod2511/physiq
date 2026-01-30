@@ -66,6 +66,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get language => 'भाषा';
 
   @override
+  String get english => 'अंग्रेज़ी';
+
+  @override
+  String get hindi => 'हिंदी';
+
+  @override
   String get darkMode => 'डार्क मोड';
 
   @override
@@ -106,4 +112,39 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get progress => 'प्रगति';
+
+  @override
+  String get logoutConfirmTitle => 'लॉग आउट';
+
+  @override
+  String get logoutConfirmMessage => 'क्या आप वाकई लॉग आउट करना चाहते हैं?';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      'क्या आप वाकई अपना सारा डेटा स्थायी रूप से हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।';
+
+  @override
+  String get deleteButton => 'हटाएं';
+
+  @override
+  String get accountDeletedSuccess => 'खाता सफलतापूर्वक हटा दिया गया';
+
+  @override
+  String get error => 'त्रुटि';
+
+  @override
+  String get ok => 'ठीक है';
+
+  @override
+  String get pleaseEnterEmailPassword =>
+      'कृपया ईमेल और पासवर्ड दोनों दर्ज करें।';
+
+  @override
+  String get forgotPasswordComingSoon =>
+      'पासवर्ड भूल गए सुविधा जल्द ही आ रही है।';
+
+  @override
+  String versionLabel(String version) {
+    return 'संस्करण $version';
+  }
 }

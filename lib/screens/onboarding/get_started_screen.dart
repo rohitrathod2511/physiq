@@ -46,7 +46,7 @@ class GetStartedScreen extends ConsumerWidget {
                         const Icon(Icons.language, size: 18, color: Colors.black),
                         const SizedBox(width: 8),
                         Text(
-                          Localizations.localeOf(context).languageCode == 'en' ? 'English' : 'Hindi',
+                          Localizations.localeOf(context).languageCode == 'en' ? l10n.english : l10n.hindi,
                           style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -56,13 +56,13 @@ class GetStartedScreen extends ConsumerWidget {
                     ref.read(preferencesProvider.notifier).setLocale(locale);
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
-                    const PopupMenuItem<Locale>(
-                      value: Locale('en'),
-                      child: Text('English'),
+                    PopupMenuItem<Locale>(
+                      value: const Locale('en'),
+                      child: Text(l10n.english),
                     ),
-                    const PopupMenuItem<Locale>(
-                      value: Locale('hi'),
-                      child: Text('Hindi'),
+                    PopupMenuItem<Locale>(
+                      value: const Locale('hi'),
+                      child: Text(l10n.hindi),
                     ),
                   ],
                 ),
@@ -266,8 +266,9 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both email and password.')),
+        SnackBar(content: Text(l10n.pleaseEnterEmailPassword)),
       );
       return;
     }
@@ -300,8 +301,9 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
   }
 
   void _forgotPassword() {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Forgot Password functionality coming soon.')),
+      SnackBar(content: Text(l10n.forgotPasswordComingSoon)),
     );
   }
 

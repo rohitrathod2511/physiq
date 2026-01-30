@@ -212,6 +212,18 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get language;
 
+  /// No description provided for @english.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get english;
+
+  /// No description provided for @hindi.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi'**
+  String get hindi;
+
   /// No description provided for @darkMode.
   ///
   /// In en, this message translates to:
@@ -295,6 +307,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Progress'**
   String get progress;
+
+  /// No description provided for @logoutConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get logoutConfirmTitle;
+
+  /// No description provided for @logoutConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out?'**
+  String get logoutConfirmMessage;
+
+  /// No description provided for @deleteAccountConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently delete all your data? This cannot be undone.'**
+  String get deleteAccountConfirmMessage;
+
+  /// No description provided for @deleteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteButton;
+
+  /// No description provided for @accountDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deleted successfully'**
+  String get accountDeletedSuccess;
+
+  /// No description provided for @error.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get error;
+
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// No description provided for @pleaseEnterEmailPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter both email and password.'**
+  String get pleaseEnterEmailPassword;
+
+  /// No description provided for @forgotPasswordComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password functionality coming soon.'**
+  String get forgotPasswordComingSoon;
+
+  /// No description provided for @versionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String versionLabel(String version);
 }
 
 class _AppLocalizationsDelegate

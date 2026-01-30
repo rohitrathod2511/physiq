@@ -43,14 +43,20 @@ class SettingsScreen extends ConsumerWidget {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 16.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Title
                     Padding(
                       padding: const EdgeInsets.only(bottom: 24.0),
-                      child: Text(l10n.settingsTitle, style: AppTextStyles.heading2.copyWith(fontSize: 24)),
+                      child: Text(
+                        l10n.settingsTitle,
+                        style: AppTextStyles.heading2.copyWith(fontSize: 24),
+                      ),
                     ),
 
                     // 1. Invite Friend (Top-most tile)
@@ -61,7 +67,7 @@ class SettingsScreen extends ConsumerWidget {
                       icon: Icons.person_outline,
                       title: l10n.personalDetails,
                       subtitle:
-                      'Goal: ${currentUser?.goalWeightKg ?? "--"}kg • Age: ${currentUser?.birthYear != null ? DateTime.now().year - currentUser!.birthYear! : "--"}',
+                          'Goal: ${currentUser?.goalWeightKg ?? "--"}kg • Age: ${currentUser?.birthYear != null ? DateTime.now().year - currentUser!.birthYear! : "--"}',
                       onTap: () => _showPersonalDetails(context),
                     ),
                     const SizedBox(height: 32),
@@ -144,7 +150,9 @@ class SettingsScreen extends ConsumerWidget {
                         onPressed: () => _confirmLogout(context),
                         child: Text(
                           l10n.logout,
-                          style: AppTextStyles.button.copyWith(color: Colors.red),
+                          style: AppTextStyles.button.copyWith(
+                            color: Colors.red,
+                          ),
                         ),
                       ),
                     ),
@@ -153,7 +161,9 @@ class SettingsScreen extends ConsumerWidget {
                         onPressed: () => _confirmDeleteAccount(context, ref),
                         child: Text(
                           l10n.deleteAccount,
-                          style: AppTextStyles.smallLabel.copyWith(color: Colors.red),
+                          style: AppTextStyles.smallLabel.copyWith(
+                            color: Colors.red,
+                          ),
                         ),
                       ),
                     ),

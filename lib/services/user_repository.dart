@@ -220,4 +220,6 @@ class UserRepository {
     
     return snapshot.docs.map((doc) => LeaderboardEntry.fromMap(doc.data())).toList();
   }
+
+  Future<void> deleteAccount() async {}
 }

@@ -35,12 +35,13 @@ class _CalorieMainCardState extends State<CalorieMainCard>
   }
 
   void updateAnimation() {
-    final double caloriesEaten =
-        (widget.dailySummary['caloriesEaten'] ?? 0).toDouble();
+    final double caloriesEaten = (widget.dailySummary['caloriesEaten'] ?? 0)
+        .toDouble();
     final double calorieTarget =
         (widget.dailySummary['macroTarget']?['calories'] ?? 2800).toDouble();
-    final double endProgress =
-        calorieTarget > 0 ? (caloriesEaten / calorieTarget) : 0;
+    final double endProgress = calorieTarget > 0
+        ? (caloriesEaten / calorieTarget)
+        : 0;
 
     _progressAnimation = Tween<double>(begin: 0, end: endProgress).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
@@ -57,10 +58,10 @@ class _CalorieMainCardState extends State<CalorieMainCard>
 
   @override
   Widget build(BuildContext context) {
-    final double caloriesEaten =
-        (widget.dailySummary['caloriesEaten'] ?? 0).toDouble();
-    final double caloriesBurned =
-        (widget.dailySummary['caloriesBurned'] ?? 0).toDouble();
+    final double caloriesEaten = (widget.dailySummary['caloriesEaten'] ?? 0)
+        .toDouble();
+    final double caloriesBurned = (widget.dailySummary['caloriesBurned'] ?? 0)
+        .toDouble();
     final double calorieTarget =
         (widget.dailySummary['macroTarget']?['calories'] ?? 2800).toDouble();
     final double caloriesLeft = calorieTarget - caloriesEaten + caloriesBurned;
@@ -83,23 +84,27 @@ class _CalorieMainCardState extends State<CalorieMainCard>
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(caloriesLeft.round().toString(),
-                  style: AppTextStyles.largeNumber),
-              
+              Text(
+                caloriesLeft.round().toString(),
+                style: AppTextStyles.largeNumber,
+              ),
+
               // NEW: KCAL + Left text
               Row(
                 children: [
-                  Text('KCAL', 
+                  Text(
+                    'KCAL',
                     style: AppTextStyles.label.copyWith(
                       fontStyle: FontStyle.italic,
                       fontWeight: FontWeight.w900,
-                    )
+                    ),
                   ),
                   const SizedBox(width: 4),
-                  Text('Left', 
+                  Text(
+                    'Left',
                     style: AppTextStyles.label.copyWith(
-                      fontStyle: FontStyle.italic
-                    )
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ],
               ),
@@ -107,11 +112,15 @@ class _CalorieMainCardState extends State<CalorieMainCard>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Text('${caloriesEaten.round()} eaten',
-                      style: AppTextStyles.label),
+                  Text(
+                    '${caloriesEaten.round()} eaten',
+                    style: AppTextStyles.label,
+                  ),
                   const SizedBox(width: 16),
-                  Text('${caloriesBurned.round()} burned',
-                      style: AppTextStyles.label),
+                  Text(
+                    '${caloriesBurned.round()} burned',
+                    style: AppTextStyles.label,
+                  ),
                 ],
               ),
             ],
@@ -140,8 +149,9 @@ class _CalorieMainCardState extends State<CalorieMainCard>
                           Text(
                             caloriesLeft.round().toString(),
                             style: AppTextStyles.h3.copyWith(
-                                color: AppColors.primaryText,
-                                fontWeight: FontWeight.w700),
+                              color: AppColors.primaryText,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           Text(
                             'KCAL',

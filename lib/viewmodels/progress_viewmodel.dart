@@ -191,47 +191,44 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
     final normalizedType = _normalizeGoalType(rawType);
 
     // FIX: Determine current weight logic
-    // initialWeight must ALWAYS be onboarding weight.
-    // currentWeight = latest weight_history OR initialWeight.
-    
+    // initialWeight = onboarding/first-baseline. currentWeight = latest weight_history OR initialWeight.
     double current = 0;
-    
+
     if (history.isNotEmpty) {
       current = history.last.weightKg;
     } else {
       current = initial;
     }
-    
+
     // Safety check
     if (current == 0 && initial > 0) current = initial;
-    
+
+    // First-weight baseline: no previous to compare. previousWeight = currentWeight, delta = 0.
+    // length >= 2: use existing comparison logic (initial = earliest ?? profile).
+    final double effectiveInitial = history.length == 1 ? current : initial;
+
     // Construct display history for graph
     List<WeightEntry> displayHistory = [...history];
-    
+
     // FIX 2: First Weight Log ECG Graph
-    // If history has exactly 1 entry, graph is a dot. We need 2 points for a line.
-    // We inject the 'initial' weight at 'created' date as the baseline.
-    // Also covers the "New User" completely empty case.
+    // - length == 1: baseline only. Single data point, no synthetic entry.
+    // - length >= 2: use existing comparison logic (unchanged).
+    // - length == 0: new user, no logs yet — keep synthetic init+curr for empty state.
     if (displayHistory.isEmpty && initial > 0) {
-       final date = created ?? DateTime.now();
-       displayHistory.add(WeightEntry(id: 'init', weightKg: initial, date: date, loggedAt: date));
-       displayHistory.add(WeightEntry(id: 'curr', weightKg: current, date: DateTime.now(), loggedAt: DateTime.now()));
-    } else if (displayHistory.length == 1 && initial > 0) {
-       // If single point, add start point
-       final date = created ?? DateTime.now().subtract(const Duration(days: 1)); // Ensure it's before
-       // Only add if the single point isn't practically the same as initial (time-wise? probably fine to show progress from start)
-       displayHistory.insert(0, WeightEntry(id: 'init', weightKg: initial, date: date, loggedAt: date));
+      final date = created ?? DateTime.now();
+      displayHistory.add(WeightEntry(id: 'init', weightKg: initial, date: date, loggedAt: date));
+      displayHistory.add(WeightEntry(id: 'curr', weightKg: current, date: DateTime.now(), loggedAt: DateTime.now()));
     }
-    
-    // Sort logic
-    displayHistory.sort((a,b) => a.date.compareTo(b.date));
+    // When length == 1: do NOT add synthetic init. Single point = baseline.
+
+    displayHistory.sort((a, b) => a.date.compareTo(b.date));
 
     // Update State
     if (mounted) {
       state = state.copyWith(
         isLoading: false,
         goalWeight: goal,
-        initialWeight: initial,
+        initialWeight: effectiveInitial,
         currentWeight: current,
         height: height,
         goalType: normalizedType,

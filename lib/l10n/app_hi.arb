@@ -18,6 +18,8 @@
   "adjustMacros": "मैक्रोन्यूट्रिएंट्स समायोजित करें",
   "preferences": "पसंद",
   "language": "भाषा",
+  "english": "अंग्रेज़ी",
+  "hindi": "हिंदी",
   "darkMode": "डार्क मोड",
   "legalSupport": "कानूनी और सहायता",
   "termsOfService": "सेवा की शर्तें",
@@ -31,5 +33,15 @@
   "send": "भेजें",
   "home": "होम",
   "exercise": "व्यायाम",
-  "progress": "प्रगति"
+  "progress": "प्रगति",
+  "logoutConfirmTitle": "लॉग आउट",
+  "logoutConfirmMessage": "क्या आप वाकई लॉग आउट करना चाहते हैं?",
+  "deleteAccountConfirmMessage": "क्या आप वाकई अपना सारा डेटा स्थायी रूप से हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।",
+  "deleteButton": "हटाएं",
+  "accountDeletedSuccess": "खाता सफलतापूर्वक हटा दिया गया",
+  "error": "त्रुटि",
+  "ok": "ठीक है",
+  "pleaseEnterEmailPassword": "कृपया ईमेल और पासवर्ड दोनों दर्ज करें।",
+  "forgotPasswordComingSoon": "पासवर्ड भूल गए सुविधा जल्द ही आ रही है।",
+  "versionLabel": "संस्करण {version}"
 }

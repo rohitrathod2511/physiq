@@ -81,6 +81,8 @@ class ExerciseViewModel extends StateNotifier<AsyncValue<void>> {
       met: met,
       weightKg: weightKg,
       durationMinutes: durationMinutes,
+      intensity: intensity,
+      exerciseType: exerciseType,
     );
   }
   

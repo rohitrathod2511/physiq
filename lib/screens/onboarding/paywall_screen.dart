@@ -147,7 +147,7 @@ class PaywallScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          const Icon(Icons.check, color: AppColors.primary),
+          Icon(Icons.check, color: AppColors.primary),
           const SizedBox(width: 12),
           Text(text, style: AppTextStyles.body),
         ],

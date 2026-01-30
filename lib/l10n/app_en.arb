@@ -18,6 +18,8 @@
   "adjustMacros": "Adjust macronutrients",
   "preferences": "Preferences",
   "language": "Language",
+  "english": "English",
+  "hindi": "Hindi",
   "darkMode": "Dark Mode",
   "legalSupport": "Legal & Support",
   "termsOfService": "Terms of Service",
@@ -31,5 +33,22 @@
   "send": "Send",
   "home": "Home",
   "exercise": "Exercise",
-  "progress": "Progress"
+  "progress": "Progress",
+  "logoutConfirmTitle": "Log out",
+  "logoutConfirmMessage": "Are you sure you want to log out?",
+  "deleteAccountConfirmMessage": "Are you sure you want to permanently delete all your data? This cannot be undone.",
+  "deleteButton": "Delete",
+  "accountDeletedSuccess": "Account deleted successfully",
+  "error": "Error",
+  "ok": "OK",
+  "pleaseEnterEmailPassword": "Please enter both email and password.",
+  "forgotPasswordComingSoon": "Forgot Password functionality coming soon.",
+  "versionLabel": "Version {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -66,6 +66,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get language => 'Language';
 
   @override
+  String get english => 'English';
+
+  @override
+  String get hindi => 'Hindi';
+
+  @override
   String get darkMode => 'Dark Mode';
 
   @override
@@ -106,4 +112,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progress => 'Progress';
+
+  @override
+  String get logoutConfirmTitle => 'Log out';
+
+  @override
+  String get logoutConfirmMessage => 'Are you sure you want to log out?';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      'Are you sure you want to permanently delete all your data? This cannot be undone.';
+
+  @override
+  String get deleteButton => 'Delete';
+
+  @override
+  String get accountDeletedSuccess => 'Account deleted successfully';
+
+  @override
+  String get error => 'Error';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get pleaseEnterEmailPassword =>
+      'Please enter both email and password.';
+
+  @override
+  String get forgotPasswordComingSoon =>
+      'Forgot Password functionality coming soon.';
+
+  @override
+  String versionLabel(String version) {
+    return 'Version $version';
+  }
 }

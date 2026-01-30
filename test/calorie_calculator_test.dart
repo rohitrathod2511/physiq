@@ -9,7 +9,7 @@ void main() {
         exerciseType: 'run',
         intensity: 'low',
         durationMinutes: 30,
-        weightKg: 70,
+        weightKg: 70, met: null,
       );
       expect(cals, 220.5);
     });
@@ -20,7 +20,7 @@ void main() {
         exerciseType: 'weightlifting',
         intensity: 'medium',
         durationMinutes: 45,
-        weightKg: 80,
+        weightKg: 80, met: null,
       );
       expect(cals, 315.0);
     });

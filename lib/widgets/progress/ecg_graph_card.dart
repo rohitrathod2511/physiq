@@ -84,24 +84,27 @@ class EcgGraphCard extends StatelessWidget {
     final minY = history.map((e) => e.weightKg).reduce((a, b) => a < b ? a : b) - 2;
     final maxY = history.map((e) => e.weightKg).reduce((a, b) => a > b ? a : b) + 2;
 
+    final isSinglePoint = history.length == 1;
+    final maxX = isSinglePoint ? 1.0 : (history.length - 1).toDouble();
+
     return LineChartData(
       gridData: FlGridData(show: false),
       titlesData: FlTitlesData(show: false),
       borderData: FlBorderData(show: false),
       minX: 0,
-      maxX: (history.length - 1).toDouble(),
+      maxX: maxX,
       minY: minY,
       maxY: maxY,
       lineBarsData: [
         LineChartBarData(
           spots: spots,
-          isCurved: true,
+          isCurved: !isSinglePoint,
           color: AppColors.accent,
           barWidth: 3,
           isStrokeCapRound: true,
-          dotData: FlDotData(show: false),
+          dotData: FlDotData(show: isSinglePoint),
           belowBarData: BarAreaData(
-            show: true,
+            show: !isSinglePoint,
             color: AppColors.accent.withOpacity(0.1),
           ),
         ),
