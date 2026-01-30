@@ -26,24 +26,22 @@ class ComparePhotosScreen extends StatefulWidget {
 class _ComparePhotosScreenState extends State<ComparePhotosScreen> {
   late ProgressPhoto _beforePhoto;
   late ProgressPhoto _afterPhoto;
+  bool _selectingBefore = false; // false = selecting After (default)
   final GlobalKey _globalKey = GlobalKey(); // For RepaintBoundary
 
   @override
   void initState() {
     super.initState();
-    // Sort logic? Assuming allPhotos is sorted desc or asc.
-    // If not, we should sort them by date.
     final sorted = List<ProgressPhoto>.from(widget.allPhotos)
       ..sort((a, b) => a.date.compareTo(b.date));
-    
-    // Default "Before" is the first photo (Day 1)
-    if (sorted.isNotEmpty) {
-      _beforePhoto = sorted.first;
-    } else {
+
+    if (sorted.isEmpty) {
       _beforePhoto = widget.initialPhoto;
+      _afterPhoto = widget.initialPhoto;
+      return;
     }
 
-    // Default "After" is the passed photo
+    _beforePhoto = sorted.first;
     _afterPhoto = widget.initialPhoto;
   }
 
@@ -106,46 +104,88 @@ class _ComparePhotosScreenState extends State<ComparePhotosScreen> {
       body: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView( // Allow scrolling if screen is short, but try to fit
-              child: Center(
-                child: RepaintBoundary(
-                  key: _globalKey,
-                  child: Container(
-                    color: isDark ? Colors.black : AppColors.background, // Background for the shared image
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(child: _buildPhotoColumn(_beforePhoto, "Before", isDark, context)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildPhotoColumn(_afterPhoto, "After", isDark, context)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          
-          // Slider Area "A little above"
-          // We add some padding bottom to lift it up slightly above the FAB/Navbar area
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Select "After" photo:',
-                style: AppTextStyles.body.copyWith(
-                  color: isDark ? Colors.white70 : AppColors.secondaryText
+            child: RepaintBoundary(
+              key: _globalKey,
+              child: Container(
+                color: isDark ? Colors.black : AppColors.background,
+                padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: _buildPhotoColumn(_beforePhoto, "Before", isDark, context)),
+                    const SizedBox(width: 4),
+                    Expanded(child: _buildPhotoColumn(_afterPhoto, "After", isDark, context)),
+                  ],
                 ),
               ),
             ),
           ),
           const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Select: ',
+                  style: AppTextStyles.body.copyWith(
+                    color: isDark ? Colors.white70 : AppColors.secondaryText,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => setState(() => _selectingBefore = true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _selectingBefore
+                          ? AppColors.primary.withOpacity(0.2)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _selectingBefore ? AppColors.primary : (isDark ? Colors.grey : AppColors.secondaryText.withOpacity(0.5)),
+                        width: _selectingBefore ? 2 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      'Before',
+                      style: AppTextStyles.bodyBold.copyWith(
+                        color: _selectingBefore ? AppColors.primary : (isDark ? Colors.white70 : AppColors.secondaryText),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => setState(() => _selectingBefore = false),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: !_selectingBefore
+                          ? AppColors.primary.withOpacity(0.2)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: !_selectingBefore ? AppColors.primary : (isDark ? Colors.grey : AppColors.secondaryText.withOpacity(0.5)),
+                        width: !_selectingBefore ? 2 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      'After',
+                      style: AppTextStyles.bodyBold.copyWith(
+                        color: !_selectingBefore ? AppColors.primary : (isDark ? Colors.white70 : AppColors.secondaryText),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Container(
-            height: 90, // Slightly taller
-            margin: const EdgeInsets.only(bottom: 80), // "Above the plus icon" (FAB space)
+            height: 90,
+            margin: const EdgeInsets.only(bottom: 24, top: 12),
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
@@ -153,21 +193,27 @@ class _ComparePhotosScreenState extends State<ComparePhotosScreen> {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final photo = sliderPhotos[index];
-                final isSelected = photo.id == _afterPhoto.id;
+                final isAfter = photo.id == _afterPhoto.id;
                 final isBefore = photo.id == _beforePhoto.id;
-                
+
                 return GestureDetector(
                   onTap: () {
                     setState(() {
-                      _afterPhoto = photo;
+                      if (_selectingBefore) {
+                        _beforePhoto = photo;
+                      } else {
+                        _afterPhoto = photo;
+                      }
                     });
                   },
                   child: Container(
                     width: 60,
                     decoration: BoxDecoration(
-                      border: isSelected 
+                      border: isAfter
                           ? Border.all(color: AppColors.primary, width: 2)
-                          : (isBefore ? Border.all(color: isDark ? Colors.grey : AppColors.secondaryText, width: 2) : null),
+                          : isBefore
+                              ? Border.all(color: isDark ? Colors.grey : AppColors.secondaryText, width: 2)
+                              : null,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Stack(
@@ -176,9 +222,9 @@ class _ComparePhotosScreenState extends State<ComparePhotosScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: Image.network(
-                            photo.imageUrl, 
+                            photo.imageUrl,
                             fit: BoxFit.cover,
-                            height: 60, 
+                            height: 60,
                             width: 60,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
@@ -186,8 +232,11 @@ class _ComparePhotosScreenState extends State<ComparePhotosScreen> {
                             },
                           ),
                         ),
-                         if (isSelected)
-                          Container(color: Colors.white.withOpacity(0.3)),
+                        if (isAfter) Container(color: Colors.white.withOpacity(0.3)),
+                        if (isBefore && !isAfter)
+                          Container(
+                            color: (isDark ? Colors.grey : AppColors.secondaryText).withOpacity(0.2),
+                          ),
                       ],
                     ),
                   ),
@@ -201,26 +250,29 @@ class _ComparePhotosScreenState extends State<ComparePhotosScreen> {
   }
 
   Widget _buildPhotoColumn(ProgressPhoto photo, String label, bool isDark, BuildContext context) {
-    // Calculate 55% of screen height provided by context
-    final screenHeight = MediaQuery.of(context).size.height;
-    final targetHeight = screenHeight * 0.55;
-
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        // Info ABOVE photos
         Text(
           label.toUpperCase(),
           style: AppTextStyles.bodyBold.copyWith(
-            color: isDark ? Colors.grey : AppColors.secondaryText, 
+            color: isDark ? Colors.grey : AppColors.secondaryText,
             letterSpacing: 1.2,
-            fontWeight: FontWeight.w800, // Extra bold
+            fontWeight: FontWeight.w800,
+            fontSize: 12,
           ),
         ),
-        const SizedBox(height: 8),
-
+        const SizedBox(height: 2),
         Text(
-          DateFormat('MMM d, yyyy').format(photo.date), 
+          DateFormat('MMM d, yyyy').format(photo.date),
+          style: AppTextStyles.bodyBold.copyWith(
+            color: isDark ? Colors.white : AppColors.primaryText,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${photo.weightKg} kg',
           style: AppTextStyles.bodyBold.copyWith(
             color: isDark ? Colors.white : AppColors.primaryText,
             fontSize: 14,
@@ -228,25 +280,18 @@ class _ComparePhotosScreenState extends State<ComparePhotosScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          '${photo.weightKg} kg',
-          style: AppTextStyles.bodyBold.copyWith(
-            color: isDark ? Colors.white : AppColors.primaryText, // Make weight same color as Date (Title like)
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 12),
-        
-        // Photo BELOW info
-        Container(
-          height: targetHeight,
-          constraints: BoxConstraints(maxHeight: targetHeight),
+        Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              photo.imageUrl,
-              fit: BoxFit.contain,
+            child: Container(
+              width: double.infinity,
+              color: Colors.black12,
+              child: Image.network(
+                photo.imageUrl,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              ),
             ),
           ),
         ),

@@ -60,7 +60,7 @@ class _PhotoViewerScreenState extends ConsumerState<PhotoViewerScreen> {
 
     if (confirmed == true) {
       await ref.read(progressViewModelProvider.notifier).deletePhoto(photo);
-      if (mounted) Navigator.pop(context); // Pop viewer after delete
+      if (mounted) Navigator.pop(context);
     }
   }
 
@@ -68,157 +68,161 @@ class _PhotoViewerScreenState extends ConsumerState<PhotoViewerScreen> {
   Widget build(BuildContext context) {
     if (widget.allPhotos.isEmpty) return const SizedBox.shrink();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentPhoto = widget.allPhotos[_currentIndex];
+    final dateStr = DateFormat('MMM d, yyyy').format(currentPhoto.date);
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : AppColors.background,
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: BackButton(color: isDark ? Colors.white : AppColors.primaryText),
-        title: Column(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
           children: [
-            Text(
-              DateFormat('MMM d, yyyy').format(currentPhoto.date),
-              style: AppTextStyles.heading3.copyWith(
-                color: isDark ? Colors.white : AppColors.primaryText,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${currentPhoto.weightKg} kg',
-              style: AppTextStyles.heading3.copyWith( // Using same style base
-                color: isDark ? Colors.white : AppColors.primaryText, // Same color as well for uniformity? User said "Same font style & size" 
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-        actions: const [], // Actions moved to bottom
-      ),
-      body: Column(
-        children: [
-          // Main Image
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: widget.allPhotos.length,
-              onPageChanged: (index) {
-                setState(() => _currentIndex = index);
-              },
-              itemBuilder: (context, index) {
-                return InteractiveViewer(
-                  child: Center(
-                    child: Image.network(
-                      widget.allPhotos[index].imageUrl,
-                      fit: BoxFit.contain,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            color: isDark ? Colors.white : AppColors.primary
-                          )
-                        );
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          
-          // Slider Indicator (Dots) - "Horizontal slider"
-          if (widget.allPhotos.length > 1)
+            // Header (same as photo_preview)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  widget.allPhotos.length > 10 ? 0 : widget.allPhotos.length, // Hide if too many
-                  (index) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _currentIndex == index 
-                          ? (isDark ? Colors.white : AppColors.primary)
-                          : (isDark ? Colors.white24 : Colors.grey.shade300),
-                    ),
-                  )
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.close, color: AppColors.primaryText),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+
+            // Metadata Card (same as photo_preview: weight | date)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _infoBadge(currentPhoto.weightKg.toStringAsFixed(1), 'kg'),
+                  Container(width: 1, height: 24, color: AppColors.secondaryText.withOpacity(0.3)),
+                  _infoBadge(dateStr, ''),
+                ],
+              ),
+            ),
+
+            // Image (same as photo_preview: Expanded, padding 16, ClipRRect 20)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: widget.allPhotos.length,
+                    onPageChanged: (index) => setState(() => _currentIndex = index),
+                    itemBuilder: (context, index) {
+                      return InteractiveViewer(
+                        child: Center(
+                          child: Image.network(
+                            widget.allPhotos[index].imageUrl,
+                            fit: BoxFit.contain,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(color: AppColors.primary),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
 
-          // Bottom Actions
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            // Dots when multiple photos
+            if (widget.allPhotos.length > 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    widget.allPhotos.length > 10 ? 0 : widget.allPhotos.length,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _currentIndex == index
+                            ? AppColors.primary
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Compare + Delete (same position as Upload in preview)
+            Padding(
+              padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 40.0, top: 16.0),
               child: Row(
                 children: [
-                  // Compare Button
                   Expanded(
-                    flex: 1, // Same flex as delete button
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ComparePhotosScreen(
-                              initialPhoto: widget.allPhotos[_currentIndex],
-                              allPhotos: widget.allPhotos,
+                    child: SizedBox(
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ComparePhotosScreen(
+                                initialPhoto: widget.allPhotos[_currentIndex],
+                                allPhotos: widget.allPhotos,
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+                        ),
+                        child: Text('Compare', style: AppTextStyles.button.copyWith(fontSize: 16, color: Colors.white)),
                       ),
-                      child: const Text('Compare', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 16),
-                  
-                  // Delete Button
                   Expanded(
-                    flex: 1,
-                    child: OutlinedButton(
-                      onPressed: () => _deletePhoto(widget.allPhotos[_currentIndex]),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12), // Match Compare vertical padding
-                        side: const BorderSide(color: Colors.red),
-                        foregroundColor: Colors.red,
-                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    child: SizedBox(
+                      height: 56,
+                      child: OutlinedButton(
+                        onPressed: () => _deletePhoto(widget.allPhotos[_currentIndex]),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          foregroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+                        ),
+                        child: const Icon(Icons.delete_outline, size: 24),
                       ),
-                      child: const Icon(Icons.delete_outline),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTopInfo(ProgressPhoto photo) {
+  Widget _infoBadge(String value, String unit) {
     return Column(
       children: [
-        Text(
-          '${photo.weightKg} kg',
-          style: AppTextStyles.heading2.copyWith(color: Colors.white),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          DateFormat('MMMM d, yyyy').format(photo.date),
-          style: AppTextStyles.body.copyWith(color: Colors.white70),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(value, style: AppTextStyles.heading2),
+            if (unit.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              Text(unit, style: AppTextStyles.body.copyWith(color: AppColors.secondaryText)),
+            ],
+          ],
         ),
       ],
     );
