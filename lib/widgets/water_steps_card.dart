@@ -102,7 +102,8 @@ class _WaterStepsCardState extends ConsumerState<WaterStepsCard> {
     // I'll assume standardizing on ML:
     // int currentWaterMl = (widget.dailySummary['waterConsumed'] ?? 0).toInt();
     
-    int currentWaterMl = (widget.dailySummary['waterConsumed'] ?? 0).toInt();
+    // Prefer waterMl (new standard) over waterConsumed (legacy)
+    int currentWaterMl = (widget.dailySummary['waterMl'] ?? widget.dailySummary['waterConsumed'] ?? 0).toInt();
     // If value is small (<200) and user logged >250, it might be oz.
     // But I'm pushing ML. I'll display as is.
     int goalWaterMl = (widget.dailySummary['waterGoal'] ?? 4000).toInt();

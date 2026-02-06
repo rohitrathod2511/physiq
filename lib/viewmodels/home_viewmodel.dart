@@ -74,8 +74,8 @@ class HomeViewModel extends StateNotifier<HomeState> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       await _firestoreService.logWater(uid, amountMl, state.selectedDate);
-      fetchDailySummary(state.selectedDate, uid); // Refresh summary for water
-      fetchStreak(uid); // Always refresh streak
+      // No need to fetchDailySummary here, the stream from _init/selectDate handles updates
+      fetchStreak(uid); 
     }
   }
 

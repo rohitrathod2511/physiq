@@ -485,6 +485,7 @@ class _DayDetailSheetState extends State<_DayDetailSheet> {
     int caloriesConsumed = (summaryData['calories'] ?? 0).toInt();
     int proteinConsumed = (summaryData['protein'] ?? 0).toInt();
     int steps = (summaryData['steps'] ?? 0).toInt();
+    int waterMl = (summaryData['waterMl'] ?? summaryData['waterConsumed'] ?? 0).toInt();
 
     // If summary missing but meals exist, re-calc (fallback)
     if (!summaryDoc.exists && meals.isNotEmpty) {
@@ -524,6 +525,7 @@ class _DayDetailSheetState extends State<_DayDetailSheet> {
       'protein': proteinConsumed,
       'protein_target': proteinTarget,
       'steps': steps,
+      'water': waterMl,
       'meals': meals,
       'exercises': exercises,
     };
@@ -557,6 +559,7 @@ class _DayDetailSheetState extends State<_DayDetailSheet> {
                 final protein = data['protein'] ?? 0;
                 final targetProtein = data['protein_target'] ?? 0;
                 final stepCount = data['steps'] ?? 0;
+                final waterMl = data['water'] ?? 0;
                 final meals = (data['meals'] as List?) ?? [];
                 final exercises = (data['exercises'] as List?) ?? [];
 
@@ -632,6 +635,16 @@ class _DayDetailSheetState extends State<_DayDetailSheet> {
                             Text("Movement", style: AppTextStyles.h3),
                             const SizedBox(height: 12),
                             _buildInfoCard("Steps", "$stepCount steps", Icons.directions_walk, Colors.green),
+                            
+                            const SizedBox(height: 24),
+                            Text("Water", style: AppTextStyles.h3),
+                            const SizedBox(height: 12),
+                            _buildInfoCard(
+                              "Water Intake", 
+                              waterMl >= 1000 ? "${(waterMl/1000).toStringAsFixed(1)} L" : "$waterMl ml", 
+                              Icons.water_drop, 
+                              AppColors.water
+                            ),
                             
                             const SizedBox(height: 40),
                         ]

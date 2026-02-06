@@ -239,7 +239,9 @@ class FirestoreService {
      final dateId = _formatDateId(date);
      // Use set with merge to create/update
      await _firestore.collection('users').doc(uid).collection('daily_summaries').doc(dateId).set({
-       'waterConsumed': FieldValue.increment(amountMl),
+       'waterMl': FieldValue.increment(amountMl),
+       'waterConsumed': FieldValue.increment(amountMl), // Legacy field kept for safety
+       'updatedAt': FieldValue.serverTimestamp(),
        'date': dateId,
      }, SetOptions(merge: true));
   }

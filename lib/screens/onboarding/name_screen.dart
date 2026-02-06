@@ -109,23 +109,14 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                   onPressed: _isValid ? _continue : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.secondaryText.withOpacity(0.2),
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.primary.withOpacity(0.3),
-                    disabledForegroundColor: Colors.white.withOpacity(0.5),
-                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    elevation: _isValid ? 4 : 0,
-                    shadowColor: AppColors.shadow.withOpacity(0.3),
                   ),
-                  child: Text(
-                    'Continue',
-                    style: AppTextStyles.button.copyWith(
-                      color: Colors.white,
-                      fontSize: 18,
-                    ),
-                  ),
+                  child: const Text('Continue'),
                 ),
               ),
               const SizedBox(height: 20),

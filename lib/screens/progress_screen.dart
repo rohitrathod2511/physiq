@@ -13,13 +13,24 @@ import 'package:image_picker/image_picker.dart';
 import 'package:physiq/screens/progress_photos/photo_preview_screen.dart';
 import 'package:physiq/screens/progress_photos/progress_photos_grid_screen.dart';
 import 'package:physiq/screens/progress_photos/photo_viewer_screen.dart';
+import 'package:physiq/widgets/leaderboard/join_card.dart';
+import 'package:physiq/widgets/leaderboard/rank_card.dart';
+import 'package:physiq/screens/leaderboard_screen.dart';
 
 
-class ProgressScreen extends ConsumerWidget {
+class ProgressScreen extends ConsumerStatefulWidget {
   const ProgressScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProgressScreen> createState() => _ProgressScreenState();
+}
+
+class _ProgressScreenState extends ConsumerState<ProgressScreen> {
+  // Local state for UI only, as per requirements (No backend/firebase logic)
+  bool _hasJoined = false;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(progressViewModelProvider);
     final viewModel = ref.read(progressViewModelProvider.notifier);
 
@@ -56,6 +67,26 @@ class ProgressScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // JOIN / RANK CARD (New Feature)
+                    _hasJoined
+                        ? RankCard(
+                            onViewLeaderboardTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const LeaderboardScreen()),
+                              );
+                            },
+                          )
+                        : JoinCard(
+                            onJoinTap: () {
+                              setState(() {
+                                _hasJoined = true;
+                              });
+                            },
+                          ),
+                    const SizedBox(height: 16),
+
                     // Top Cards
                     Row(
                       children: [
