@@ -153,13 +153,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                             Text("₹99.00/mo", style: AppTextStyles.h3),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text("12mo • ₹1,118.00", style: AppTextStyles.body.copyWith(color: AppColors.secondaryText)),
-                          ],
-                        ),
+        
                       ],
                     ),
                   ),

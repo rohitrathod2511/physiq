@@ -53,9 +53,10 @@ class FloatingAddButton extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               // FIX: Passing 'context' (parent) instead of 'sheetContext' so it remains mounted after pop
+              // NEW OPTIONS per Prompt
               _buildOptionTile(sheetContext, 'Snap Meal', Icons.camera_alt_outlined, () => showSnapMealFlow(context, ref)),
-              _buildOptionTile(sheetContext, 'Describe Meal', Icons.edit_outlined, () => showManualEntryFlow(context, ref)),
-              _buildOptionTile(sheetContext, 'Add Manually', Icons.tune_outlined, () => showManualNutritionFlow(context, ref)),
+              _buildOptionTile(sheetContext, 'Food Database', Icons.search, () => showFoodDatabaseFlow(context, ref)),
+              _buildOptionTile(sheetContext, 'Saved Foods', Icons.bookmark_border, () => showSavedFoodsFlow(context, ref)),
             ],
           ),
         );

@@ -1,0 +1,200 @@
+[
+  {
+    "name": "Roti (Chapati)",
+    "calories_per_100g": 297,
+    "protein_per_100g": 10,
+    "carbs_per_100g": 58,
+    "fat_per_100g": 7,
+    "servings": { "piece": 30, "medium": 40 },
+    "category": "Staple",
+    "isIndian": true,
+    "aliases": ["chapati", "phulka", "rotis"]
+  },
+  {
+    "name": "Dal (Generic)",
+    "calories_per_100g": 104,
+    "protein_per_100g": 5.5,
+    "carbs_per_100g": 12,
+    "fat_per_100g": 3.7,
+    "servings": { "katori": 150, "bowl": 250 },
+    "category": "Legume",
+    "isIndian": true,
+    "aliases": ["daal", "lentil curry", "tadka dal"]
+  },
+  {
+    "name": "Rice (White, Cooked)",
+    "calories_per_100g": 130,
+    "protein_per_100g": 2.7,
+    "carbs_per_100g": 28,
+    "fat_per_100g": 0.3,
+    "servings": { "plate": 200, "katori": 150, "cup": 158 },
+    "category": "Staple",
+    "isIndian": true,
+    "aliases": ["chawal", "white rice", "steam rice"]
+  },
+  {
+    "name": "Paneer Butter Masala",
+    "calories_per_100g": 240,
+    "protein_per_100g": 8,
+    "carbs_per_100g": 10,
+    "fat_per_100g": 18,
+    "servings": { "katori": 150, "bowl": 250 },
+    "category": "Curry",
+    "isIndian": true,
+    "aliases": ["butter paneer", "paneer makhani"]
+  },
+  {
+    "name": "Chicken Curry",
+    "calories_per_100g": 170,
+    "protein_per_100g": 14,
+    "carbs_per_100g": 6,
+    "fat_per_100g": 10,
+    "servings": { "piece": 100, "bowl": 250, "katori": 150 },
+    "category": "Curry",
+    "isIndian": true,
+    "aliases": ["chicken gravy", "murgh curry"]
+  },
+  {
+    "name": "Dosa (Plain)",
+    "calories_per_100g": 168,
+    "protein_per_100g": 3.9,
+    "carbs_per_100g": 29,
+    "fat_per_100g": 3.7,
+    "servings": { "medium": 80, "large": 120 },
+    "category": "Breakfast",
+    "isIndian": true,
+    "aliases": ["plain dosa", "dosai"]
+  },
+  {
+    "name": "Idli",
+    "calories_per_100g": 139,
+    "protein_per_100g": 4.5,
+    "carbs_per_100g": 28,
+    "fat_per_100g": 0.5,
+    "servings": { "piece": 40, "medium": 60 },
+    "category": "Breakfast",
+    "isIndian": true,
+    "aliases": ["steamed rice cake", "idly"]
+  },
+  {
+    "name": "Samosa",
+    "calories_per_100g": 262,
+    "protein_per_100g": 4,
+    "carbs_per_100g": 24,
+    "fat_per_100g": 17,
+    "servings": { "piece": 50, "large": 80 },
+    "category": "Snack",
+    "isIndian": true,
+    "aliases": ["aloo samosa", "singara"]
+  },
+  {
+     "name": "Rajma Masala",
+     "calories_per_100g": 140,
+     "protein_per_100g": 6,
+     "carbs_per_100g": 18,
+     "fat_per_100g": 5,
+     "servings": { "katori": 150, "bowl": 250 },
+     "category": "Curry",
+     "isIndian": true,
+     "aliases": ["rajma", "kidney beans curry"]
+  },
+  {
+     "name": "Chole (Chickpea Curry)",
+     "calories_per_100g": 130,
+     "protein_per_100g": 5,
+     "carbs_per_100g": 17,
+     "fat_per_100g": 4.5,
+     "servings": { "katori": 150, "bowl": 250 },
+     "category": "Curry",
+     "isIndian": true,
+     "aliases": ["chana masala", "chole bhature chole"]
+  },
+  {
+     "name": "Paratha (Plain)",
+     "calories_per_100g": 320,
+     "protein_per_100g": 8,
+     "carbs_per_100g": 45,
+     "fat_per_100g": 12,
+     "servings": { "medium": 60, "large": 80 },
+     "category": "Staple",
+     "isIndian": true,
+     "aliases": ["plain paratha", "tawa paratha"]
+  },
+  {
+     "name": "Aloo Paratha",
+     "calories_per_100g": 290,
+     "protein_per_100g": 6,
+     "carbs_per_100g": 40,
+     "fat_per_100g": 11,
+     "servings": { "medium": 120, "large": 150 },
+     "category": "Breakfast",
+     "isIndian": true,
+     "aliases": ["potato paratha", "stuffed paratha"]
+  },
+  {
+     "name": "Poha",
+     "calories_per_100g": 180,
+     "protein_per_100g": 2.5,
+     "carbs_per_100g": 30,
+     "fat_per_100g": 5,
+     "servings": { "katori": 100, "plate": 150 },
+     "category": "Breakfast",
+     "isIndian": true,
+     "aliases": ["flattened rice", "batata poha"]
+  },
+  {
+     "name": "Upma",
+     "calories_per_100g": 190,
+     "protein_per_100g": 3.5,
+     "carbs_per_100g": 28,
+     "fat_per_100g": 7,
+     "servings": { "katori": 120, "plate": 180 },
+     "category": "Breakfast",
+     "isIndian": true,
+     "aliases": ["rava upma", "sooji upma"]
+  },
+  {
+     "name": "Curd (Yogurt)",
+     "calories_per_100g": 60,
+     "protein_per_100g": 3.5,
+     "carbs_per_100g": 4.7,
+     "fat_per_100g": 3,
+     "servings": { "katori": 100, "cup": 150 },
+     "category": "Dairy",
+     "isIndian": true,
+     "aliases": ["dahi", "plain yogurt"]
+  },
+  {
+     "name": "Biryani (Chicken)",
+     "calories_per_100g": 200,
+     "protein_per_100g": 10,
+     "carbs_per_100g": 25,
+     "fat_per_100g": 6.5,
+     "servings": { "plate": 300, "bowl": 250 },
+     "category": "Main Course",
+     "isIndian": true,
+     "aliases": ["chicken biryani", "murgh biryani"]
+  },
+  {
+     "name": "Biryani (Veg)",
+     "calories_per_100g": 160,
+     "protein_per_100g": 3,
+     "carbs_per_100g": 30,
+     "fat_per_100g": 4,
+     "servings": { "plate": 300, "bowl": 250 },
+     "category": "Main Course",
+     "isIndian": true,
+     "aliases": ["veg biryani", "pulao"]
+  },
+  {
+     "name": "Egg Bhurji",
+     "calories_per_100g": 185,
+     "protein_per_100g": 13,
+     "carbs_per_100g": 3,
+     "fat_per_100g": 13,
+     "servings": { "plate": 150, "katori": 100 },
+     "category": "Main Course",
+     "isIndian": true,
+     "aliases": ["scrambled eggs indian", "anda bhurji"]
+  }
+]

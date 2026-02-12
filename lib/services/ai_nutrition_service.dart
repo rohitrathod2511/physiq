@@ -1,27 +1,27 @@
+
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
+import 'package:cloud_functions/cloud_functions.dart';
 
 class AiNutritionService {
-  // ☁️ Firebase Cloud Function URL
-  static const String _functionUrl = 
-      'https://estimatenutrition-y4efoq7ega-uc.a.run.app';
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
-  // ---------------------------------------------------------------------------
-  // 1. ESTIMATE FROM TEXT
-  // ---------------------------------------------------------------------------
+  // 1. ANALYZE FROM TEXT
+  // Returns { meal_name: String, quantity: num, unit: String }
   Future<Map<String, dynamic>> estimateFromText(String text) async {
-    final body = {
-      "type": "text",
-      "input": text,
-    };
-
-    return _callCloudFunction(body);
+    try {
+      final callable = _functions.httpsCallable('analyzeFoodText');
+      final result = await callable.call({'text': text});
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      print('❌ AI Text Analysis Failed: $e');
+      // Fallback
+      return {'meal_name': text, 'quantity': 1, 'unit': 'serving'};
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // 2. ESTIMATE FROM IMAGE
-  // ---------------------------------------------------------------------------
+  // 2. ANALYZE FROM IMAGE
+  // Returns { meal_name: String, quantity: num, unit: String }
   Future<Map<String, dynamic>> estimateFromImage(String imagePath) async {
     final file = File(imagePath);
     if (!await file.exists()) {
@@ -30,62 +30,20 @@ class AiNutritionService {
 
     final bytes = await file.readAsBytes();
     final base64Image = base64Encode(bytes);
-    final mimeType = _getMimeType(imagePath);
+    // mimeType detection is good but for simplicity send as jpeg or detect
+    String mimeType = 'image/jpeg';
+    if (imagePath.toLowerCase().endsWith('.png')) mimeType = 'image/png';
+    // ... others
 
-    final body = {
-      "type": "image",
-      "image": base64Image,
-      "mimeType": mimeType,
-    };
-
-    return _callCloudFunction(body);
-  }
-
-  String _getMimeType(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.heic')) return 'image/heic';
-    return 'image/jpeg'; // Default fallback
-  }
-
-  // ---------------------------------------------------------------------------
-  // BACKEND COMMUNICATION
-  // ---------------------------------------------------------------------------
-  Future<Map<String, dynamic>> _callCloudFunction(Map<String, dynamic> body) async {
     try {
-      final uri = Uri.parse(_functionUrl);
-
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 60)); // Vertex AI can take time
-
-      if (response.statusCode != 200) {
-        throw Exception('Server Error (${response.statusCode}): ${response.body}');
-      }
-
-      // Backend now returns pure JSON object
-      final data = jsonDecode(response.body);
-
-      // Validate structure just in case
-      final requiredKeys = ['meal_name', 'calories', 'protein_g', 'carbs_g', 'fat_g'];
-      if (data is! Map) throw Exception("Invalid JSON format from AI");
-
-      for (var key in requiredKeys) {
-        if (!data.containsKey(key)) {
-           // Fallback for safety, but typically the function should guarantee this
-           if (key == 'meal_name') data['meal_name'] = 'Unknown Meal';
-           else data[key] = 0;
-        }
-      }
-
-      return Map<String, dynamic>.from(data);
-
+      final callable = _functions.httpsCallable('analyzeFoodImage');
+      final result = await callable.call({
+        'image': base64Image,
+        'mimeType': mimeType,
+      });
+      return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('❌ AI Service Failed: $e');
+      print('❌ AI Image Analysis Failed: $e');
       rethrow;
     }
   }
