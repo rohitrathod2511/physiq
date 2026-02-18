@@ -14,11 +14,15 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const admin = require("firebase-admin");
+// Initialize Firebase Admin globally
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 // Re-export user management functions
 __exportStar(require("./user"), exports);
 __exportStar(require("./plan"), exports);
 __exportStar(require("./invite"), exports);
 __exportStar(require("./leaderboard"), exports);
-__exportStar(require("./exercise"), exports);
-__exportStar(require("./nutrition"), exports); // Added nutrition
+__exportStar(require("./nutrition"), exports);
 //# sourceMappingURL=index.js.map

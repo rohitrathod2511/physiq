@@ -51,9 +51,9 @@ export const recomputeLeaderboard = functions.https.onCall(async (data, context)
     return { score };
 });
 
-// Scheduled function stub
-export const awardContestPrizes = functions.pubsub.schedule('0 0 1 * *').onRun(async (context) => {
+import { onSchedule } from "firebase-functions/v2/scheduler";
+
+export const awardContestPrizes = onSchedule("0 0 1 * *", async (event) => {
     console.log('Awarding contest prizes...');
     // Logic to query top users and award prizes
-    return null;
 });

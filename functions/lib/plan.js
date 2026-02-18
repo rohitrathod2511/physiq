@@ -46,7 +46,7 @@ exports.generateCanonicalPlan = functions.https.onCall(async (data, context) => 
         protein: Math.round((targetCalories * 0.3) / 4),
         carbs: Math.round((targetCalories * 0.4) / 4),
         fats: Math.round((targetCalories * 0.3) / 9),
-        waterMl: 3000, // Default
+        waterMl: 3000,
         generatedAt: admin.firestore.Timestamp.now()
     };
     await userRef.update({
