@@ -11,14 +11,14 @@ import 'package:physiq/widgets/settings/preferences_sheet.dart';
 
 import 'package:physiq/widgets/header_widget.dart';
 
-import 'package:physiq/l10n/app_localizations.dart';
+
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+
     final userRepo = ref.watch(userRepositoryProvider);
     // In a real app, we'd watch a user provider. For now, fetching stream.
     final authService = AuthService();
@@ -39,7 +39,7 @@ class SettingsScreen extends ConsumerWidget {
               titleSpacing: 0,
               title: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: HeaderWidget(title: l10n.settingsTitle),
+                child: HeaderWidget(title: 'Settings'),
               ),
             ),
             SliverToBoxAdapter(
@@ -55,7 +55,7 @@ class SettingsScreen extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 24.0),
                       child: Text(
-                        l10n.settingsTitle,
+                        'Settings',
                         style: AppTextStyles.heading2.copyWith(fontSize: 24),
                       ),
                     ),
@@ -66,7 +66,7 @@ class SettingsScreen extends ConsumerWidget {
                     // 2. Personal Details
                     _buildSectionItem(
                       icon: Icons.person_outline,
-                      title: l10n.personalDetails,
+                      title: 'Personal Details',
                       subtitle:
                           'Goal: ${currentUser?.goalWeightKg ?? "--"}kg • Age: ${currentUser?.birthYear != null ? DateTime.now().year - currentUser!.birthYear! : "--"}',
                       onTap: () => _showPersonalDetails(context),
@@ -76,7 +76,7 @@ class SettingsScreen extends ConsumerWidget {
                     // 3. Leaderboard
                     _buildSectionItem(
                       icon: Icons.leaderboard_outlined,
-                      title: l10n.leaderboard,
+                      title: 'Leaderboard',
                       onTap: () => _showLeaderboard(context),
                     ),
                     const SizedBox(height: 32),
@@ -84,7 +84,7 @@ class SettingsScreen extends ConsumerWidget {
                     // 4. Adjust Macronutrients
                     _buildSectionItem(
                       icon: Icons.pie_chart_outline, // Changed icon
-                      title: l10n.adjustMacros,
+                      title: 'Adjust Macronutrients',
                       onTap: () {
                         Navigator.push(
                           context,
@@ -114,17 +114,17 @@ class SettingsScreen extends ConsumerWidget {
                     // 6. Preferences
                     _buildSectionItem(
                       icon: Icons.settings_outlined,
-                      title: l10n.preferences,
+                      title: 'Preferences',
                       onTap: () => _showPreferences(context),
                     ),
                     const SizedBox(height: 48),
 
                     // 7. Legal & Support
-                    Text(l10n.legalSupport, style: AppTextStyles.heading2),
+                    Text('Legal & Support', style: AppTextStyles.heading2),
                     const SizedBox(height: 24),
                     _buildSectionItem(
                       icon: Icons.description_outlined,
-                      title: l10n.termsOfService,
+                      title: 'Terms of Service',
                       onTap: () => _showLegalDialog(
                         context,
                         'Terms of Service',
@@ -134,7 +134,7 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     _buildSectionItem(
                       icon: Icons.privacy_tip_outlined,
-                      title: l10n.privacyPolicy,
+                      title: 'Privacy Policy',
                       onTap: () => _showLegalDialog(
                         context,
                         'Privacy Policy',
@@ -144,7 +144,7 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     _buildSectionItem(
                       icon: Icons.help_outline,
-                      title: l10n.support,
+                      title: 'Support',
                       onTap: () => _showLegalDialog(
                         context,
                         'Support',
@@ -154,7 +154,7 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     _buildSectionItem(
                       icon: Icons.feedback_outlined,
-                      title: l10n.featureRequest,
+                      title: 'Feature Request',
                       onTap: () => _showFeatureRequestDialog(context),
                     ),
 
@@ -165,7 +165,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: TextButton(
                         onPressed: () => _confirmLogout(context),
                         child: Text(
-                          l10n.logout,
+                          'Log out',
                           style: AppTextStyles.button.copyWith(
                             color: Colors.red,
                           ),
@@ -176,7 +176,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: TextButton(
                         onPressed: () => _confirmDeleteAccount(context, ref),
                         child: Text(
-                          l10n.deleteAccount,
+                          'Delete account',
                           style: AppTextStyles.smallLabel.copyWith(
                             color: Colors.red,
                           ),

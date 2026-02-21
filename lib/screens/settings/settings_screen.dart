@@ -19,7 +19,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:physiq/widgets/header_widget.dart';
 import 'package:physiq/main.dart';
-import 'package:physiq/l10n/app_localizations.dart';
+// Localizations import removed
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -35,12 +35,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final prefsState = ref.watch(preferencesProvider);
     final isDarkMode = prefsState.themeMode == ThemeMode.dark;
-    final languageLabel = prefsState.locale.languageCode == 'hi'
-        ? l10n.hindi
-        : l10n.english;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -58,7 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),
                 child: HeaderWidget(
-                  title: l10n.settingsTitle,
+                  title: 'Settings',
                   showActions: false,
                 ),
               ),
@@ -87,7 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: _buildSettingsList([
                         SettingsRow(
                           icon: Icons.person,
-                          title: l10n.personalDetails,
+                          title: 'Personal Details',
                           showChevron: false,
                           onTap: () => Navigator.push(
                             context,
@@ -98,7 +94,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         SettingsRow(
                           icon: Icons.tune,
-                          title: l10n.adjustMacros,
+                          title: 'Adjust Macronutrients',
                           showChevron: false,
                           onTap: () => Navigator.push(
                             context,
@@ -118,13 +114,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ),
                         ),
-                        SettingsRow(
-                          icon: Icons.public,
-                          title: l10n.language,
-                          subtitle: languageLabel,
-                          showChevron: false,
-                          onTap: () => _showLanguageDialog(prefsState.locale),
-                        ),
+
                         ValueListenableBuilder<ThemeMode>(
                           valueListenable: themeNotifier,
                           builder: (context, mode, child) {
@@ -133,7 +123,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               icon: isDark
                                   ? Icons.brightness_2
                                   : Icons.wb_sunny,
-                              title: l10n.darkMode,
+                              title: 'Dark Mode',
                               showChevron: false,
                               trailing: Switch(
                                 value: isDark,
@@ -160,7 +150,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: _buildSettingsList([
                         SettingsRow(
                           icon: Icons.description_outlined,
-                          title: l10n.termsOfService,
+                          title: 'Terms of Service',
                           showChevron: false,
                           onTap: () => Navigator.push(
                             context,
@@ -171,7 +161,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         SettingsRow(
                           icon: Icons.privacy_tip_outlined,
-                          title: l10n.privacyPolicy,
+                          title: 'Privacy Policy',
                           showChevron: false,
                           onTap: () => Navigator.push(
                             context,
@@ -182,14 +172,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         SettingsRow(
                           icon: Icons.mail_outline,
-                          title: l10n.support,
+                          title: 'Support',
                           showChevron: false,
                           onTap: _sendSupportEmail,
                         ),
 
                         SettingsRow(
                           icon: Icons.delete_outline,
-                          title: l10n.deleteAccount,
+                          title: 'Delete account',
                           titleColor: Colors.red,
                           showChevron: false,
                           onTap: _confirmDeleteAccount,
@@ -202,7 +192,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       padding: EdgeInsets.zero,
                       child: SettingsRow(
                         icon: Icons.logout,
-                        title: l10n.logout,
+                        title: 'Log out',
                         showChevron: false,
                         onTap: _confirmLogout,
                       ),
@@ -214,7 +204,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       builder: (context, snapshot) {
                         final version = snapshot.data?.version ?? '1.0.0';
                         return Text(
-                          l10n.versionLabel(version),
+                          'Version $version',
                           style: AppTextStyles.smallLabel,
                         );
                       },
@@ -248,76 +238,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Column(children: children);
   }
 
-  void _showLanguageDialog(Locale currentLocale) {
-    final l10nDialog = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: AppColors.background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.bigCard),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                l10nDialog.language,
-                style: AppTextStyles.heading2,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildLanguageCard(ctx, currentLocale, const Locale('en'), l10nDialog.english),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildLanguageCard(ctx, currentLocale, const Locale('hi'), l10nDialog.hindi),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildLanguageCard(BuildContext ctx, Locale currentLocale, Locale locale, String label) {
-    final isSelected = currentLocale.languageCode == locale.languageCode;
-    return GestureDetector(
-      onTap: () async {
-        await ref.read(preferencesProvider.notifier).setLocale(locale);
-        if (ctx.mounted) Navigator.pop(ctx);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.card,
-          borderRadius: BorderRadius.circular(AppRadii.card),
-          boxShadow: [AppShadows.card],
-          border: isSelected ? null : Border.all(color: Colors.transparent),
-        ),
-        child: Column(
-          children: [
-            Text(
-              locale.languageCode == 'hi' ? '🇮🇳' : '🇬🇧',
-              style: const TextStyle(fontSize: 32),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: AppTextStyles.bodyBold.copyWith(
-                color: isSelected ? Colors.white : AppColors.primaryText,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _sendSupportEmail() async {
     try {
@@ -391,7 +312,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _confirmDeleteAccount() {
-    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -418,12 +338,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                l10n.deleteAccount,
+                'Delete account',
                 style: AppTextStyles.heading2,
               ),
               const SizedBox(height: 8),
               Text(
-                l10n.deleteAccountConfirmMessage,
+                'Are you sure you want to permanently delete all your data? This cannot be undone.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.body.copyWith(
                   color: AppColors.secondaryText,
@@ -436,7 +356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
                       child: Text(
-                        l10n.cancel,
+                        'Cancel',
                         style: AppTextStyles.button.copyWith(
                           color: AppColors.secondaryText,
                         ),
@@ -472,7 +392,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               context.go('/get-started');
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(l10n.accountDeletedSuccess),
+                                  content: Text('Account deleted successfully'),
                                 ),
                               );
                             }
@@ -492,7 +412,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
-                        l10n.deleteButton,
+                        'Delete',
                         style: AppTextStyles.button.copyWith(
                           color: Colors.white,
                         ),
@@ -509,7 +429,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _confirmLogout() {
-    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -531,10 +450,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Icon(Icons.logout, color: AppColors.primary, size: 32),
               ),
               const SizedBox(height: 16),
-              Text(l10n.logoutConfirmTitle, style: AppTextStyles.heading2),
+              Text('Log out', style: AppTextStyles.heading2),
               const SizedBox(height: 8),
               Text(
-                l10n.logoutConfirmMessage,
+                'Are you sure you want to log out?',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.body.copyWith(
                   color: AppColors.secondaryText,
@@ -547,7 +466,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
                       child: Text(
-                        l10n.cancel,
+                        'Cancel',
                         style: AppTextStyles.button.copyWith(
                           color: AppColors.secondaryText,
                         ),
@@ -573,7 +492,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
-                        l10n.logout,
+                        'Log out',
                         style: AppTextStyles.button.copyWith(
                           color: Colors.white,
                         ),
@@ -590,16 +509,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showErrorDialog(String message) {
-    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.error),
+        title: Text('Error'),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.ok),
+            child: Text('OK'),
           ),
         ],
       ),

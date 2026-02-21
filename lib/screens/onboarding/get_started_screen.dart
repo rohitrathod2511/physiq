@@ -6,7 +6,7 @@ import 'package:physiq/services/auth_service.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/providers/preferences_provider.dart';
-import 'package:physiq/l10n/app_localizations.dart';
+
 
 class GetStartedScreen extends ConsumerWidget {
   const GetStartedScreen({super.key});
@@ -22,7 +22,7 @@ class GetStartedScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -30,47 +30,11 @@ class GetStartedScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
             children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: PopupMenuButton<Locale>(
-                  icon: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.language, size: 18, color: Colors.black),
-                        const SizedBox(width: 8),
-                        Text(
-                          Localizations.localeOf(context).languageCode == 'en' ? l10n.english : l10n.hindi,
-                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                  onSelected: (Locale locale) {
-                    ref.read(preferencesProvider.notifier).setLocale(locale);
-                  },
-                  itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
-                    PopupMenuItem<Locale>(
-                      value: const Locale('en'),
-                      child: Text(l10n.english),
-                    ),
-                    PopupMenuItem<Locale>(
-                      value: const Locale('hi'),
-                      child: Text(l10n.hindi),
-                    ),
-                  ],
-                ),
-              ),
+              const SizedBox(height: 48),
               const Spacer(),
               // Headline
               Text(
-                l10n.getStartedTitle,
+                'Build Your Dream Body',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.h1.copyWith(fontSize: 32),
               ),
@@ -80,7 +44,7 @@ class GetStartedScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.push('/onboarding/name'),
+                  onPressed: () => context.push('/onboarding/gender'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -91,7 +55,7 @@ class GetStartedScreen extends ConsumerWidget {
                     elevation: 0,
                   ),
                   child: Text(
-                    l10n.getStartedButton,
+                    'Get Started',
                     style: AppTextStyles.button.copyWith(color: Colors.white, fontSize: 16),
                   ),
                 ),
@@ -104,13 +68,13 @@ class GetStartedScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    l10n.alreadyHaveAccount,
+                    'Already have an account?',
                     style: AppTextStyles.body.copyWith(color: AppColors.secondaryText, fontSize: 14),
                   ),
                   TextButton(
                     onPressed: () => _showSignInSheet(context),
                     child: Text(
-                      l10n.signIn,
+                      'Sign in',
                       style: AppTextStyles.button.copyWith(color: Colors.blue, fontSize: 14),
                     ),
                   ),
@@ -177,7 +141,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -203,7 +167,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             ),
           ),
           Text(
-            l10n.welcomeBack,
+            'Welcome Back',
             style: AppTextStyles.h2,
             textAlign: TextAlign.center,
           ),
@@ -215,7 +179,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             ElevatedButton.icon(
               onPressed: _handleGoogleSignIn,
               icon: const Icon(Icons.g_mobiledata, size: 28), 
-              label: Text(l10n.continueWithGoogle),
+              label: Text('Continue with Google'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
@@ -238,7 +202,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(l10n.continueWithEmail),
+              child: Text('Continue with Email'),
             ),
             const SizedBox(height: 24),
           ],
@@ -266,9 +230,8 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pleaseEnterEmailPassword)),
+        SnackBar(content: Text('Please enter both email and password.')),
       );
       return;
     }
@@ -301,15 +264,14 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
   }
 
   void _forgotPassword() {
-    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.forgotPasswordComingSoon)),
+      SnackBar(content: Text('Forgot Password functionality coming soon.')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+
     // Handling keyboard overlap
     return Padding(
       padding: EdgeInsets.only(
@@ -340,7 +302,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
               ),
             ),
             Text(
-              l10n.signInTitle,
+              'Sign In',
               style: AppTextStyles.h2,
               textAlign: TextAlign.center,
             ),
@@ -349,7 +311,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
-                labelText: l10n.emailLabel, 
+                labelText: 'Email', 
                 border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
               ),
               keyboardType: TextInputType.emailAddress,
@@ -358,7 +320,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
             TextField(
               controller: _passwordController,
               decoration: InputDecoration(
-                labelText: l10n.passwordLabel, 
+                labelText: 'Password', 
                 border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
               ),
               obscureText: true,
@@ -378,7 +340,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(l10n.signIn, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text('Sign in', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
 
              const SizedBox(height: 16),
@@ -386,7 +348,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
              TextButton(
                onPressed: _forgotPassword,
                child: Text(
-                 l10n.forgotPassword,
+                 'Forgot password?',
                  style: AppTextStyles.body.copyWith(color: Colors.grey),
                ),
              ),

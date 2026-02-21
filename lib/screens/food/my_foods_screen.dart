@@ -6,56 +6,114 @@ import 'package:physiq/services/custom_food_service.dart';
 import 'package:physiq/screens/food/create_food_screen.dart';
 import 'package:physiq/screens/food/custom_food_detail_screen.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
+import 'package:physiq/theme/design_system.dart'; // Ensure correct import for generic styles if needed
 
-class MyFoodsScreen extends ConsumerWidget {
+class MyFoodsScreen extends ConsumerStatefulWidget {
   const MyFoodsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Determine user ID (from service or auth directly to build query)
-    final service = CustomFoodService();
+  ConsumerState<MyFoodsScreen> createState() => _MyFoodsScreenState();
+}
 
-    return StreamBuilder<List<CustomFood>>(
-      stream: service.getUserCustomFoods(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+class _MyFoodsScreenState extends ConsumerState<MyFoodsScreen> {
+  final CustomFoodService _service = CustomFoodService();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
-        if (snapshot.hasError) {
-          return Center(child: Text("Error: ${snapshot.error}"));
-        }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
-        final foods = snapshot.data ?? [];
-
-        if (foods.isEmpty) {
-          return _buildEmptyState(context);
-        }
-
-        // Show list
-        return Scaffold(
-          backgroundColor: Colors.white,
-          body: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: foods.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final food = foods[index];
-              return _buildFoodCard(context, ref, food, service);
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value.trim().toLowerCase();
+              });
             },
+            decoration: InputDecoration(
+              hintText: 'Search my foods',
+               prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              filled: true,
+              fillColor: Colors.white, // Match SavedScans style
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.black, width: 2), // Match recent changes
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            ),
           ),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.black,
-            child: const Icon(Icons.add, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CreateFoodScreen()),
+        ),
+
+        Expanded(
+          child: StreamBuilder<List<CustomFood>>(
+            stream: _service.getUserCustomFoods(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(child: Text("Error: ${snapshot.error}"));
+              }
+
+              final allFoods = snapshot.data ?? [];
+              
+              // Filter
+              final foods = _searchQuery.isEmpty 
+                  ? allFoods 
+                  : allFoods.where((f) => f.description.toLowerCase().contains(_searchQuery)).toList();
+
+              if (foods.isEmpty) {
+                if (_searchQuery.isNotEmpty) {
+                    return Center(child: Text('No results for "$_searchQuery"'));
+                }
+                return _buildEmptyState(context);
+              }
+
+              // Show list
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: foods.length + 1,
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  if (index == foods.length) {
+                     return Padding(
+                       padding: const EdgeInsets.only(bottom: 30, top: 10),
+                       child: OutlinedButton.icon(
+                         onPressed: () {
+                           Navigator.push(
+                             context,
+                             MaterialPageRoute(builder: (_) => const CreateFoodScreen()),
+                           );
+                         },
+                         icon: const Icon(Icons.add, color: Colors.black),
+                         label: const Text("Create New Food", style: TextStyle(color: Colors.black)),
+                         style: OutlinedButton.styleFrom(
+                           padding: const EdgeInsets.symmetric(vertical: 16),
+                           side: const BorderSide(color: Colors.grey),
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                         ),
+                       ),
+                     );
+                  }
+                  final food = foods[index];
+                  return _buildFoodCard(context, ref, food, _service);
+                },
               );
             },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -64,12 +122,8 @@ class MyFoodsScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset(
-            'assets/images/diet.png', // Fallback or placeholder
-            height: 100,
-            errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey),
-          ),
+          // Use icon if asset fails or just icon for consistency with My Meals
+          const Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey),
           const SizedBox(height: 16),
           const Text(
             "My Foods",

@@ -376,20 +376,25 @@ async function getAccessToken(scope: string): Promise<string> {
         );
     }
 
-    const body = new URLSearchParams();
-    body.set('grant_type', 'client_credentials');
-    body.set('scope', scope);
-
-    const authHeader = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-
     try {
+        // Use URLSearchParams for correct encoding of the body
+        // Includes client_id and client_secret in the body as recommended for robustness
+        const body = new URLSearchParams({
+            grant_type: 'client_credentials',
+            scope: scope,
+            client_id: clientId,
+            client_secret: clientSecret
+        });
+
         const response = await axios.post(FATSECRET_TOKEN_URL, body.toString(), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': authHeader,
             },
             timeout: 15000,
         });
+
+        // Log full successful response for verification
+        console.log("FatSecret token success:", JSON.stringify(response.data, null, 2));
 
         const accessToken = response.data?.access_token as string | undefined;
         const expiresInSeconds = toNumber(response.data?.expires_in) || 3600;
@@ -409,14 +414,25 @@ async function getAccessToken(scope: string): Promise<string> {
         logger.info('FatSecret token refreshed', { expiresInSeconds, scope });
         return accessToken;
     } catch (error) {
+        // Enhanced error logging to capture status and full response body/data
+        if (axios.isAxiosError(error)) {
+            const errorDetails = {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                headers: error.response?.headers,
+                scope
+            };
+            logger.error('FatSecret token request failed', errorDetails);
+            console.error("FatSecret token error details:", JSON.stringify(errorDetails, null, 2));
+        } else {
+            logger.error('FatSecret token request failed with unknown error', { scope, error });
+        }
+
         if (error instanceof HttpsError) {
             throw error;
         }
 
-        logger.error('FatSecret token request failed', {
-            scope,
-            ...getAxiosErrorDetails(error),
-        });
         throw new HttpsError('internal', 'Failed to authenticate with FatSecret.');
     }
 }

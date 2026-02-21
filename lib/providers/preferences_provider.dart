@@ -6,14 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class PreferencesState {
   final ThemeMode themeMode;
-  final Locale locale;
 
-  PreferencesState({required this.themeMode, required this.locale});
+  PreferencesState({required this.themeMode});
 
-  PreferencesState copyWith({ThemeMode? themeMode, Locale? locale}) {
+  PreferencesState copyWith({ThemeMode? themeMode}) {
     return PreferencesState(
       themeMode: themeMode ?? this.themeMode,
-      locale: locale ?? this.locale,
     );
   }
 }
@@ -26,7 +24,6 @@ class PreferencesNotifier extends StateNotifier<PreferencesState> {
   PreferencesNotifier(this._prefs)
       : super(PreferencesState(
           themeMode: _parseThemeMode(_prefs.getString('app_theme')),
-          locale: Locale(_prefs.getString('app_language') ?? 'en'),
         ));
 
   static ThemeMode _parseThemeMode(String? value) {
@@ -43,12 +40,6 @@ class PreferencesNotifier extends StateNotifier<PreferencesState> {
     
     await _prefs.setString('app_theme', modeStr);
     await _syncToFirestore({'theme': modeStr});
-  }
-
-  Future<void> setLocale(Locale locale) async {
-    state = state.copyWith(locale: locale);
-    await _prefs.setString('app_language', locale.languageCode);
-    await _syncToFirestore({'language': locale.languageCode});
   }
 
   Future<void> _syncToFirestore(Map<String, dynamic> prefs) async {
@@ -68,7 +59,7 @@ class PreferencesNotifier extends StateNotifier<PreferencesState> {
     await _prefs.remove('app_theme');
     await _prefs.remove('app_language');
     // Reset state to defaults
-    state = PreferencesState(themeMode: ThemeMode.light, locale: const Locale('en'));
+    state = PreferencesState(themeMode: ThemeMode.light);
   }
 }
 

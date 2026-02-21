@@ -10,7 +10,7 @@ import 'package:physiq/widgets/recent_meals_list.dart';
 import 'package:physiq/widgets/home/recent_workouts_list.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:physiq/models/exercise_log_model.dart';
-import 'package:physiq/l10n/app_localizations.dart';
+
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -84,7 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               titleSpacing: 0,
               title: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: HeaderWidget(title: AppLocalizations.of(context)!.appTitle, streak: homeState.streak),
+                child: HeaderWidget(title: 'Physiq AI', streak: homeState.streak),
               ),
             ),
             

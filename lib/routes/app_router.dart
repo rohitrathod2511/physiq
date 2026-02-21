@@ -28,7 +28,7 @@ import 'package:physiq/screens/onboarding/referral_screen.dart';
 import 'package:physiq/screens/onboarding/generate_plan_screen.dart';
 import 'package:physiq/screens/onboarding/loading_screen.dart';
 import 'package:physiq/screens/onboarding/review_screen.dart';
-import 'package:physiq/screens/onboarding/motivational_quote_screen.dart';
+
 import 'package:physiq/screens/onboarding/paywall_free_screen.dart';
 import 'package:physiq/screens/onboarding/paywall_notification_screen.dart';
 import 'package:physiq/screens/onboarding/paywall_main_screen.dart';
@@ -138,7 +138,6 @@ final GoRouter router = GoRouter(
     if (!isOnboardingComplete) {
       // Allowed routes for new users (The Onboarding Flow)
       final allowedOnboardingRoutes = [
-        '/onboarding/motivational-quote',
         '/onboarding/paywall-free',
         '/onboarding/paywall-notification',
         '/onboarding/paywall-main',
@@ -146,15 +145,22 @@ final GoRouter router = GoRouter(
         '/onboarding/paywall-offer',
         '/review',
         '/onboarding/loading',  // Allow loading screen
-        if(location.startsWith('/onboarding') && !location.contains('/motivational-quote')) location // Allow other onboarding steps if they are backtracking/in-flow?
+        if(location.startsWith('/onboarding')) location // Allow other onboarding steps if they are backtracking/in-flow?
                                                                                              // Actually, it's safer to only allow specific post-signup flow.
       ];
 
       // Checking if strictly within the ALLOWED set or strictly blocked from Home
       // Strategy: If trying to go Home, force them to start of Post-Signup flow.
-      if (location == '/home' || location == '/' || location == '/sign-in' || location == '/get-started') {
-        return '/onboarding/motivational-quote';
-      }
+      // BUT, if the user is already signed in and restarting, we don't want to force them to the paywall.
+      // We rely on the user to finish the flow if they are in it.
+      // If we are strictly "new user" (onboardingComplete == false), usually we should be in the flow.
+      // However, the user request says: "The Paywall screen must NOT appear automatically on app startup."
+      // "If the user is already signed in -> Go directly to the Home screen".
+      // This implies we should NOT redirect to paywall here if they are going to home.
+      
+      // if (location == '/home' || location == '/' || location == '/sign-in' || location == '/get-started') {
+      //   return '/onboarding/paywall-free';
+      // }
       
       // Otherwise, let them navigate within the onboarding screens they are in.
       return null; 
@@ -217,7 +223,8 @@ final GoRouter router = GoRouter(
     ),
     
     // Onboarding Flow
-    GoRoute(path: '/onboarding/name', builder: (context, state) => const NameScreen()),
+    // Name Screen removed from flow per user request (still available in settings if implemented there, but removed from router)
+    // GoRoute(path: '/onboarding/name', builder: (context, state) => const NameScreen()),
     GoRoute(path: '/onboarding/gender', builder: (context, state) => const GenderScreen()),
     GoRoute(path: '/onboarding/birthyear', builder: (context, state) => const BirthYearScreen()),
     GoRoute(path: '/onboarding/height-weight', builder: (context, state) => const HeightWeightScreen()),
@@ -235,7 +242,7 @@ final GoRouter router = GoRouter(
     
     // Review & Paywall
     GoRoute(path: '/review', builder: (context, state) => const ReviewScreen()),
-    GoRoute(path: '/onboarding/motivational-quote', builder: (context, state) => const MotivationalQuoteScreen()),
+
     GoRoute(path: '/onboarding/paywall-free', builder: (context, state) => const PaywallFreeScreen()),
     GoRoute(path: '/onboarding/paywall-notification', builder: (context, state) => const PaywallNotificationScreen()),
     GoRoute(path: '/onboarding/paywall-main', builder: (context, state) => const PaywallMainScreen()),

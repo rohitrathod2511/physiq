@@ -23,7 +23,14 @@ class MealModel {
     required this.timestamp,
     this.imageUrl,
     required this.source,
+    this.servingDescription,
+    this.servingAmount,
+    this.fullNutritionMap,
   });
+
+  final String? servingDescription;
+  final double? servingAmount;
+  final Map<String, dynamic>? fullNutritionMap;
 
   Map<String, dynamic> toMap() {
     return {
@@ -37,6 +44,9 @@ class MealModel {
       'timestamp': Timestamp.fromDate(timestamp),
       'imageUrl': imageUrl,
       'source': source,
+      'servingDescription': servingDescription,
+      'servingAmount': servingAmount,
+      'fullNutritionMap': fullNutritionMap,
     };
   }
 
@@ -52,6 +62,9 @@ class MealModel {
       timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       imageUrl: map['imageUrl'],
       source: map['source'] ?? 'manual',
+      servingDescription: map['servingDescription'],
+      servingAmount: (map['servingAmount'] as num?)?.toDouble(),
+      fullNutritionMap: map['fullNutritionMap'],
     );
   }
 }

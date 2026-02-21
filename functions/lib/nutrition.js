@@ -320,12 +320,12 @@ async function getAccessToken(scope) {
     const body = new URLSearchParams();
     body.set('grant_type', 'client_credentials');
     body.set('scope', scope);
-    body.set('client_id', clientId);
-    body.set('client_secret', clientSecret);
+    const authHeader = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     try {
         const response = await axios_1.default.post(FATSECRET_TOKEN_URL, body.toString(), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': authHeader,
             },
             timeout: 15000,
         });
@@ -348,7 +348,7 @@ async function getAccessToken(scope) {
         if (error instanceof https_1.HttpsError) {
             throw error;
         }
-        logger.error('FatSecret token request failed', getAxiosErrorDetails(error));
+        logger.error('FatSecret token request failed', Object.assign({ scope }, getAxiosErrorDetails(error)));
         throw new https_1.HttpsError('internal', 'Failed to authenticate with FatSecret.');
     }
 }

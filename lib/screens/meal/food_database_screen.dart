@@ -1,15 +1,18 @@
+import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:physiq/theme/design_system.dart';
-import 'package:physiq/services/food_service.dart';
 import 'package:physiq/models/food_model.dart';
-import 'dart:async';
-import 'package:physiq/screens/meal/meal_preview_screen.dart';
-import 'package:physiq/screens/meal/meal_logging_flows.dart';
-import 'package:physiq/screens/meal/my_meals_screen.dart';
 import 'package:physiq/screens/food/my_foods_screen.dart';
 import 'package:physiq/screens/food/saved_scans_screen.dart';
+import 'package:physiq/screens/meal/add_manual_screen.dart';
+import 'package:physiq/screens/meal/meal_logging_flows.dart';
+import 'package:physiq/screens/meal/meal_preview_screen.dart';
+import 'package:physiq/screens/meal/my_meals_screen.dart';
+import 'package:physiq/services/food_service.dart';
+import 'package:physiq/theme/design_system.dart';
 
 class FoodDatabaseScreen extends ConsumerStatefulWidget {
   final String? initialQuery;
@@ -17,8 +20,8 @@ class FoodDatabaseScreen extends ConsumerStatefulWidget {
   final int initialTabIndex;
 
   const FoodDatabaseScreen({
-    super.key, 
-    this.initialQuery, 
+    super.key,
+    this.initialQuery,
     this.isSelectionMode = false,
     this.initialTabIndex = 0,
   });
@@ -27,34 +30,37 @@ class FoodDatabaseScreen extends ConsumerStatefulWidget {
   ConsumerState<FoodDatabaseScreen> createState() => _FoodDatabaseScreenState();
 }
 
-class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen> with SingleTickerProviderStateMixin {
+class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
+    with SingleTickerProviderStateMixin {
   late TextEditingController _searchController;
   late TabController _tabController;
   final FoodService _foodService = FoodService();
-  
+
   List<Food> _searchResults = [];
   bool _isLoading = false;
   Timer? _debounce;
-  
-  // Tabs
-  final List<String> _tabs = ["All", "My meals", "My foods", "Saved scans"];
+
+  final List<String> _tabs = ['All', 'My meals', 'My foods', 'Saved scans'];
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.initialQuery);
-    _tabController = TabController(length: _tabs.length, vsync: this, initialIndex: widget.initialTabIndex);
-    
-    // Initial load
+    _tabController = TabController(
+      length: _tabs.length,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
+
     if (widget.initialQuery?.isNotEmpty == true) {
-        _onSearchChanged(widget.initialQuery!);
+      _onSearchChanged(widget.initialQuery!);
     } else {
-        _loadCommonFoods();
+      _searchResults = [];
+      _isLoading = false;
     }
-    
-    // Listen to text changes for icon update
+
     _searchController.addListener(() {
-        setState(() {}); // specific rebuild for icon inside build
+      if (mounted) setState(() {});
     });
   }
 
@@ -68,57 +74,68 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen> with Si
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    
+
     if (query.trim().isEmpty) {
-        _loadCommonFoods();
-        return;
+      setState(() {
+        _searchResults = [];
+        _isLoading = false;
+      });
+      return;
     }
 
     setState(() => _isLoading = true);
+
     _debounce = Timer(const Duration(milliseconds: 500), () async {
-        try {
-            final results = await _foodService.searchFoods(query);
-            if (mounted) {
-                setState(() {
-                    _searchResults = results;
-                    _isLoading = false;
-                });
-            }
-        } catch(e) {
-            if (mounted) setState(() => _isLoading = false);
+      try {
+        if (FirebaseAuth.instance.currentUser == null) {
+          await FirebaseAuth.instance.signInAnonymously();
         }
+
+        final results = await _foodService.searchFoods(query);
+        if (!mounted) return;
+        setState(() {
+          _searchResults = results;
+          _isLoading = false;
+        });
+      } catch (error) {
+        debugPrint('Search error: $error');
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        String message = 'Search failed. Please try again.';
+        if (error is FirebaseFunctionsException) {
+          if (error.code == 'unauthenticated' || error.code == 'permission-denied') {
+            message = 'Session issue detected. Please try searching again.';
+          } else {
+            message = 'Function Error [${error.code}]: ${error.message ?? 'Unknown error'}';
+          }
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     });
   }
 
-  void _loadCommonFoods() async {
-      setState(() => _isLoading = true);
-      try {
-          final foods = await _foodService.getCommonFoods();
-          if (mounted) {
-              setState(() {
-                  _searchResults = foods;
-                  _isLoading = false;
-              });
-          }
-      } catch (e) {
-          if (mounted) setState(() => _isLoading = false);
-      }
-  }
+  Future<void> _onFoodTap(Food food) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MealPreviewScreen(
+          initialFood: food,
+          isSelectionMode: widget.isSelectionMode,
+        ),
+      ),
+    );
 
-  void _onFoodTap(Food food) async {
-      final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => MealPreviewScreen(
-                  initialFood: food,
-                  isSelectionMode: widget.isSelectionMode,
-              ),
-          ),
-      );
-
-      if (result != null && widget.isSelectionMode && mounted) {
-          Navigator.pop(context, result);
-      }
+    if (result != null && widget.isSelectionMode && mounted) {
+      Navigator.pop(context, result);
+    }
   }
 
   @override
@@ -126,7 +143,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen> with Si
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text("Log food", style: AppTextStyles.h2),
+        title: Text('Log food', style: AppTextStyles.h2),
         centerTitle: true,
         backgroundColor: AppColors.background,
         elevation: 0,
@@ -137,157 +154,190 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen> with Si
       ),
       body: Column(
         children: [
-          // Tab Bar
           TabBar(
             controller: _tabController,
             isScrollable: true,
+            physics: const BouncingScrollPhysics(),
             labelColor: AppColors.primaryText,
             unselectedLabelColor: Colors.grey,
-            labelStyle: AppTextStyles.h3.copyWith(fontSize: 16),
-            unselectedLabelStyle: AppTextStyles.body.copyWith(color: Colors.grey),
+            labelStyle: AppTextStyles.h3.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+            unselectedLabelStyle:
+                AppTextStyles.body.copyWith(color: Colors.grey, fontWeight: FontWeight.normal),
             indicatorColor: AppColors.primary,
             indicatorSize: TabBarIndicatorSize.label,
             dividerColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.zero,
             tabs: _tabs.map((t) => Tab(text: t)).toList(),
           ),
-          
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Tab 1: Food Search
                 Column(
                   children: [
                     const SizedBox(height: 16),
-                    // Search Bar
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Container(
-                          decoration: BoxDecoration(
-                              color: AppColors.card,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.black.withOpacity(0.1)),
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          style: AppTextStyles.body,
+                          onChanged: _onSearchChanged,
+                          decoration: InputDecoration(
+                            hintText: 'Describe what you ate',
+                            hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                            prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                            suffixIcon: _searchController.text.isEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.mic, color: Colors.black),
+                                    onPressed: () async {
+                                      final text = await showVoiceSearchDialog(context);
+                                      if (text != null && text.isNotEmpty) {
+                                        _searchController.text = text;
+                                        _onSearchChanged(text);
+                                      }
+                                    },
+                                  )
+                                : IconButton(
+                                    icon: const Icon(Icons.clear, color: Colors.grey),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      _onSearchChanged('');
+                                    },
+                                  ),
                           ),
-                          child: TextField(
-                              controller: _searchController,
-                              style: AppTextStyles.body,
-                              onChanged: _onSearchChanged,
-                              decoration: InputDecoration(
-                                  hintText: "Describe what you ate",
-                                  hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.all(16),
-                                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                                  suffixIcon: _searchController.text.isEmpty
-                                      ? IconButton(
-                                          icon: const Icon(Icons.mic, color: Colors.black),
-                                          onPressed: () async {
-                                              final text = await showVoiceSearchDialog(context);
-                                              if (text != null && text.isNotEmpty) {
-                                                  _searchController.text = text;
-                                                  _onSearchChanged(text);
-                                              }
-                                          },
-                                      )
-                                      : IconButton(
-                                          icon: const Icon(Icons.clear, color: Colors.grey),
-                                          onPressed: () {
-                                              _searchController.clear();
-                                              _onSearchChanged('');
-                                          },
-                                      ),
-                              ),
-                          ),
+                        ),
                       ),
                     ),
-
                     const SizedBox(height: 24),
-                    
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text("Suggestions", style: AppTextStyles.h2),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // List
                     Expanded(
-                      child: _isLoading 
+                      child: _isLoading
                           ? const Center(child: CircularProgressIndicator())
+                          : _searchResults.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.search, size: 64, color: Colors.grey[400]),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Search for food',
+                                      style: AppTextStyles.h3.copyWith(color: Colors.grey[600]),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'e.g. Peanut Butter, Chicken, Rice',
+                                      style: AppTextStyles.body.copyWith(color: Colors.grey),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
                           : ListView.builder(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               itemCount: _searchResults.length,
                               itemBuilder: (context, index) {
-                                  final food = _searchResults[index];
-                                  return Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: InkWell(
-                                          onTap: () => _onFoodTap(food),
-                                          borderRadius: BorderRadius.circular(16),
-                                          child: Container(
-                                              padding: const EdgeInsets.all(16),
-                                              decoration: BoxDecoration(
-                                                  color: AppColors.card,
-                                                  borderRadius: BorderRadius.circular(16),
-                                                  boxShadow: [
-                                                      BoxShadow(
-                                                          color: Colors.black.withOpacity(0.02),
-                                                          blurRadius: 10,
-                                                          offset: const Offset(0, 2)
-                                                      )
-                                                  ]
-                                              ),
-                                              child: Row(
-                                                  children: [
-                                                      Expanded(
-                                                          child: Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                  Text(food.name, style: AppTextStyles.h3.copyWith(fontSize: 16)),
-                                                                  const SizedBox(height: 4),
-                                                                  Row(
-                                                                    children: [
-                                                                      const Icon(Icons.local_fire_department, size: 14, color: Colors.grey),
-                                                                      const SizedBox(width: 4),
-                                                                      Text(
-                                                                          "${food.calories.toInt()} cal • ${food.unit}", 
-                                                                          style: AppTextStyles.label
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                              ],
-                                                          ),
-                                                      ),
-                                                      Container(
-                                                          padding: const EdgeInsets.all(8),
-                                                          decoration: BoxDecoration(
-                                                              color: AppColors.background, // Slight contrast
-                                                              shape: BoxShape.circle,
-                                                          ),
-                                                          child: Icon(Icons.add, color: AppColors.primary),
-                                                      )
-                                                  ],
-                                              ),
+                                final food = _searchResults[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: InkWell(
+                                    onTap: () => _onFoodTap(food),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.card,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.02),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 2),
                                           ),
+                                        ],
                                       ),
-                                  );
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  food.name,
+                                                  style: AppTextStyles.h3.copyWith(fontSize: 16),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.local_fire_department,
+                                                      size: 14,
+                                                      color: Colors.grey,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      '${food.calories.toInt()} cal - ${food.unit}',
+                                                      style: AppTextStyles.label,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.background,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(Icons.add, color: AppColors.primary),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
                               },
+                            ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AddManualScreen()),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
+                          child: const Text(
+                            'Add Manual',
+                            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-
-                // Tab 2: My Meals
                 const MyMealsScreen(),
-
-
-                // Tab 3: My Foods
                 const MyFoodsScreen(),
-
-                // Tab 4: Saved Scans
                 const SavedScansScreen(),
               ],
             ),
@@ -297,3 +347,4 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen> with Si
     );
   }
 }
+

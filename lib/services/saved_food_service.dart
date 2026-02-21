@@ -13,8 +13,12 @@ class SavedFoodService {
   Future<void> saveFood(SavedFood food) async {
     if (uid == null) return;
     try {
-      // Create a new document in the saved_foods collection
-      await _firestore.collection('saved_foods').add({
+      // Create a new document in the saved_scans/{userId}/items collection
+      await _firestore
+          .collection('saved_scans')
+          .doc(uid)
+          .collection('items')
+          .add({
         ...food.toJson(),
         'userId': uid, // Ensure user ID is set correctly
         'createdAt': FieldValue.serverTimestamp(),
@@ -28,16 +32,14 @@ class SavedFoodService {
   Stream<List<SavedFood>> getUserSavedFoods() {
     if (uid == null) return const Stream.empty();
     return _firestore
-        .collection('saved_foods')
-        .where('userId', isEqualTo: uid)
+        .collection('saved_scans')
+        .doc(uid)
+        .collection('items')
+        // Using orderBy requires an index, sticking to request to keep logic simple/untouched where possible
+        // but sorting client side is fine for small lists.
         .snapshots()
         .map((snapshot) {
-          final foods = snapshot.docs.map((doc) {
-            final data = doc.data();
-            // Handle null createdAt gracefully
-            data['createdAt'] ??= Timestamp.now();
-            return SavedFood.fromJson(data, doc.id);
-          }).toList();
+          final foods = snapshot.docs.map((doc) => SavedFood.fromJson(doc.data(), doc.id)).toList();
           
           // Client-side sort by createdAt descending
           foods.sort((a, b) => b.createdAt.compareTo(a.createdAt));

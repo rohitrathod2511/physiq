@@ -17,18 +17,6 @@ class MyMealsScreen extends ConsumerStatefulWidget {
 
 class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
   final MyMealsService _service = MyMealsService();
-  final TextEditingController _searchController = TextEditingController();
-  String _query = "";
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String val) {
-    setState(() => _query = val.trim().toLowerCase());
-  }
 
   void _navToCreate() {
     Navigator.push(
@@ -72,11 +60,6 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
 
         final allMeals = snapshot.data ?? [];
         
-        // Filter based on query
-        final meals = _query.isEmpty 
-            ? allMeals 
-            : allMeals.where((m) => m.name.toLowerCase().contains(_query)).toList();
-
         // 1. Empty State
         if (allMeals.isEmpty) {
           return Center(
@@ -111,31 +94,11 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
         // 2. List State
         return Column(
           children: [
-            // Search Bar (Only if meals exist)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: "Search my meals",
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: AppColors.card,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                ),
-              ),
-            ),
-
             // List
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: meals.length + 1, // +1 for Create Button at bottom or top?
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                itemCount: allMeals.length + 1, // +1 for Create Button at bottom or top?
                                              // User req: "Button: Create a Meal" in empty state.
                                              // Does existing state have a create button?
                                              // Reference image usually implies a FAB or a list item.
@@ -143,7 +106,7 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
                                              // I'll add a CTA row at top if not empty.
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  if (index == meals.length) {
+                  if (index == allMeals.length) {
                      return Padding(
                        padding: const EdgeInsets.only(bottom: 30, top: 10),
                        child: OutlinedButton.icon(
@@ -159,7 +122,7 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
                      );
                   }
 
-                  final meal = meals[index];
+                  final meal = allMeals[index];
                   return _buildMealCard(meal);
                 },
               ),

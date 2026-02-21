@@ -9,6 +9,7 @@ class SavedFood {
   final double servingAmount; // user's selected quantity, e.g., 1.5
   final SavedFoodNutrition nutrition;
   final DateTime createdAt;
+  final String originalId; // ID from external source (FatSecret, etc.)
 
   SavedFood({
     required this.id,
@@ -19,6 +20,7 @@ class SavedFood {
     required this.servingAmount,
     required this.nutrition,
     required this.createdAt,
+    this.originalId = '',
   });
 
   factory SavedFood.fromJson(Map<String, dynamic> json, String id) {
@@ -31,6 +33,7 @@ class SavedFood {
       servingAmount: (json['servingAmount'] ?? 1).toDouble(),
       nutrition: SavedFoodNutrition.fromJson(json['nutrition'] ?? {}),
       createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      originalId: json['originalId'] ?? '',
     );
   }
 
@@ -43,6 +46,7 @@ class SavedFood {
       'servingAmount': servingAmount,
       'nutrition': nutrition.toJson(),
       'createdAt': FieldValue.serverTimestamp(),
+      'originalId': originalId,
     };
   }
 }

@@ -1,37 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/models/custom_food_model.dart';
 import 'package:physiq/services/custom_food_service.dart';
 import 'package:physiq/screens/food/create_food_screen.dart';
 import 'package:physiq/screens/food/custom_food_detail_screen.dart';
 
-class MyFoodsScreen extends StatelessWidget {
+class MyFoodsScreen extends StatefulWidget {
   const MyFoodsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final service = CustomFoodService();
+  State<MyFoodsScreen> createState() => _MyFoodsScreenState();
+}
 
+class _MyFoodsScreenState extends State<MyFoodsScreen> {
+  final CustomFoodService _service = CustomFoodService();
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<List<CustomFood>>(
-      stream: service.getUserCustomFoods(),
+      stream: _service.getUserCustomFoods(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final foods = snapshot.data ?? [];
+        final allFoods = snapshot.data ?? [];
 
-        if (foods.isEmpty) {
+        if (allFoods.isEmpty) {
           return _buildEmptyState(context);
         }
 
         return Scaffold(
-          body: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: foods.length,
-            itemBuilder: (context, index) {
-              final food = foods[index];
-              return _buildFoodCard(context, food, service);
-            },
+          body: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  itemCount: allFoods.length,
+                  itemBuilder: (context, index) {
+                    final food = allFoods[index];
+                    return _buildFoodCard(context, food, _service);
+                  },
+                ),
+              ),
+            ],
           ),
           floatingActionButton: FloatingActionButton(
             backgroundColor: Colors.black,
@@ -51,12 +63,11 @@ class MyFoodsScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Placeholder for the illustration - using an Icon for now
           const Icon(Icons.lunch_dining, size: 80, color: Colors.grey),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             "My Foods",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h2,
           ),
           const SizedBox(height: 8),
           const Text(

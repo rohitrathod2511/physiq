@@ -14,6 +14,20 @@ class Food {
   final bool isIndian;
   final String source;
 
+  final double? saturatedFat;
+  final double? polyunsaturatedFat;
+  final double? monounsaturatedFat;
+  final double? cholesterol;
+  final double? sodium;
+  final double? fiber;
+  final double? sugar;
+  final double? vitaminD;
+  final double? calcium;
+  final double? iron;
+  final double? potassium;
+  final double? vitaminA;
+  final double? vitaminC;
+
   Food({
     required this.id,
     required this.name,
@@ -27,6 +41,19 @@ class Food {
     this.aliases = const [],
     this.isIndian = false,
     this.source = 'internal',
+    this.saturatedFat,
+    this.polyunsaturatedFat,
+    this.monounsaturatedFat,
+    this.cholesterol,
+    this.sodium,
+    this.fiber,
+    this.sugar,
+    this.vitaminD,
+    this.calcium,
+    this.iron,
+    this.potassium,
+    this.vitaminA,
+    this.vitaminC,
   });
 
   factory Food.fromSnapshot(DocumentSnapshot doc) {
@@ -50,6 +77,19 @@ class Food {
       aliases: List<String>.from(data['aliases'] ?? []),
       isIndian: data['isIndian'] ?? false,
       source: data['source'] ?? 'internal',
+      saturatedFat: (nutrition['saturatedFat'] ?? nutrition['saturated_fat'])?.toDouble(),
+      polyunsaturatedFat: (nutrition['polyunsaturatedFat'] ?? nutrition['polyunsaturated_fat'])?.toDouble(),
+      monounsaturatedFat: (nutrition['monounsaturatedFat'] ?? nutrition['monounsaturated_fat'])?.toDouble(),
+      cholesterol: (nutrition['cholesterol'])?.toDouble(),
+      sodium: (nutrition['sodium'])?.toDouble(),
+      fiber: (nutrition['fiber'] ?? nutrition['dietary_fiber'])?.toDouble(),
+      sugar: (nutrition['sugar'] ?? nutrition['sugars'])?.toDouble(),
+      vitaminD: (nutrition['vitaminD'] ?? nutrition['vitamin_d'])?.toDouble(),
+      calcium: (nutrition['calcium'])?.toDouble(),
+      iron: (nutrition['iron'])?.toDouble(),
+      potassium: (nutrition['potassium'])?.toDouble(),
+      vitaminA: (nutrition['vitaminA'] ?? nutrition['vitamin_a'])?.toDouble(),
+      vitaminC: (nutrition['vitaminC'] ?? nutrition['vitamin_c'])?.toDouble(),
     );
   }
 
@@ -65,6 +105,19 @@ class Food {
         'protein': protein,
         'carbs': carbs,
         'fat': fat,
+        if (saturatedFat != null) 'saturatedFat': saturatedFat,
+        if (polyunsaturatedFat != null) 'polyunsaturatedFat': polyunsaturatedFat,
+        if (monounsaturatedFat != null) 'monounsaturatedFat': monounsaturatedFat,
+        if (cholesterol != null) 'cholesterol': cholesterol,
+        if (sodium != null) 'sodium': sodium,
+        if (fiber != null) 'fiber': fiber,
+        if (sugar != null) 'sugar': sugar,
+        if (vitaminD != null) 'vitaminD': vitaminD,
+        if (calcium != null) 'calcium': calcium,
+        if (iron != null) 'iron': iron,
+        if (potassium != null) 'potassium': potassium,
+        if (vitaminA != null) 'vitaminA': vitaminA,
+        if (vitaminC != null) 'vitaminC': vitaminC,
       },
       'aliases': aliases,
       'isIndian': isIndian,

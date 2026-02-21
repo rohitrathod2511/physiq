@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:physiq/l10n/app_localizations.dart';
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:physiq/routes/app_router.dart';
@@ -18,6 +18,14 @@ void main() async {
   
   // Initialize Firebase Messaging
   await MessagingService().initialize();
+
+  // 🔹 FIX: Sign in anonymously to authenticate with Cloud Functions
+  try {
+    final userCredential = await FirebaseAuth.instance.signInAnonymously();
+    print("✅ Signed in anonymously. Current user: ${userCredential.user?.uid}");
+  } catch (e) {
+    print("❌ Failed to sign in anonymously: $e");
+  }
 
   final sharedPrefs = await SharedPreferences.getInstance();
   
@@ -40,25 +48,14 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Keep watching preferencesProvider for Locale
-    final prefs = ref.watch(preferencesProvider); 
+ 
 
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (_, mode, __) {
         return MaterialApp.router(
           title: 'Physiq AI',
-          localizationsDelegates: [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('en'),
-            Locale('hi'),
-          ],
-          locale: prefs.locale,
+
           debugShowCheckedModeBanner: false,
           themeMode: mode,
           theme: ThemeData(

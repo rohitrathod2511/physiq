@@ -6,7 +6,6 @@ import 'package:physiq/screens/meal/snap_meal_screen.dart';
 import 'package:physiq/screens/meal/food_database_screen.dart';
 import 'package:physiq/screens/meal/meal_preview_screen.dart'; 
 import 'package:physiq/screens/meal/describe_meal_screen.dart';
-import 'package:physiq/screens/meal/describe_meal_screen.dart';
 import 'package:physiq/screens/meal/my_meals_screen.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/theme/design_system.dart';
@@ -92,11 +91,7 @@ void showMealPreview(BuildContext context, WidgetRef ref, Map<String, dynamic> d
     // 1. Extract Quantity
     double quantity = (data['quantity'] as num?)?.toDouble() ?? 1.0;
     
-    // 2. Extract Nutrition from nested map if present (from AI output structure)
-    // Sometimes AI returns flat {calories: 100} or nested {nutrition: {calories: 100}}
-    // Let's assume flat for now based on AiNutritionService output format
-    
-    // Create Food object from AI data
+    // Create Food object from manual/fallback data (e.g. Add Manual screen)
     // Assuming data contains per-unit values if quantity is 1, or total values?
     // Usually AI returns total for the "quantity" described.
     // So if "2 slices bread", calories is for 2 slices.
