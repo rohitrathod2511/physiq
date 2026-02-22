@@ -263,11 +263,6 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
     }
   }
 
-  void _forgotPassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Forgot Password functionality coming soon.')),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -344,15 +339,6 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
               ),
 
              const SizedBox(height: 16),
-
-             TextButton(
-               onPressed: _forgotPassword,
-               child: Text(
-                 'Forgot password?',
-                 style: AppTextStyles.body.copyWith(color: Colors.grey),
-               ),
-             ),
-             const SizedBox(height: 8),
           ],
         ),
       ),

@@ -70,7 +70,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                 percent: caloriesPercent,
                 circularStrokeCap: CircularStrokeCap.round,
                 backgroundColor: const Color(0xFFF3F4F6),
-                progressColor: Colors.black, // or AppColors.primary
+                progressColor: const Color(0xFF374151), // Softer charcoal black
                 center: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -112,7 +112,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   consumed: proteinConsumed,
                   goal: proteinGoal,
                   color: const Color(0xFFFEE2E2), 
-                  iconColor: const Color(0xFFEF4444), 
+                  iconColor: const Color(0xFFF87171), // Softer red
                   centerWidget: FishIcon(color: const Color(0xFFEF4444), size: 28), 
                   percent: _getMacroPercent(proteinConsumed, proteinGoal.toDouble()),
                 ),
@@ -124,7 +124,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   consumed: carbsConsumed,
                   goal: carbsGoal,
                   color: const Color(0xFFFEF3C7), 
-                  iconColor: const Color(0xFFF59E0B), 
+                  iconColor: const Color(0xFFFBBF24), // Softer warm yellow
                   centerWidget: WheatIcon(color: const Color(0xFFF59E0B), size: 28),
                   percent: _getMacroPercent(carbsConsumed, carbsGoal.toDouble()),
                 ),
@@ -136,7 +136,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   consumed: fatConsumed,
                   goal: fatGoal,
                   color: const Color(0xFFDBEAFE), 
-                  iconColor: const Color(0xFF3B82F6), 
+                  iconColor: const Color(0xFF60A5FA), // Softer calm blue
                   centerWidget: AvocadoIcon(color: const Color(0xFF3B82F6), size: 28),
                   percent: _getMacroPercent(fatConsumed, fatGoal.toDouble()),
                 ),
@@ -238,4 +238,3 @@ class CalorieAndMacrosPage extends StatelessWidget {
     );
   }
 }
-

@@ -136,33 +136,11 @@ final GoRouter router = GoRouter(
     // 3. Authenticated AND Onboarding INCOMPLETE (New User)
     // ----------------------------------------------------
     if (!isOnboardingComplete) {
-      // Allowed routes for new users (The Onboarding Flow)
-      final allowedOnboardingRoutes = [
-        '/onboarding/paywall-free',
-        '/onboarding/paywall-notification',
-        '/onboarding/paywall-main',
-        '/onboarding/paywall-spinner',
-        '/onboarding/paywall-offer',
-        '/review',
-        '/onboarding/loading',  // Allow loading screen
-        if(location.startsWith('/onboarding')) location // Allow other onboarding steps if they are backtracking/in-flow?
-                                                                                             // Actually, it's safer to only allow specific post-signup flow.
-      ];
-
-      // Checking if strictly within the ALLOWED set or strictly blocked from Home
-      // Strategy: If trying to go Home, force them to start of Post-Signup flow.
-      // BUT, if the user is already signed in and restarting, we don't want to force them to the paywall.
-      // We rely on the user to finish the flow if they are in it.
-      // If we are strictly "new user" (onboardingComplete == false), usually we should be in the flow.
-      // However, the user request says: "The Paywall screen must NOT appear automatically on app startup."
-      // "If the user is already signed in -> Go directly to the Home screen".
-      // This implies we should NOT redirect to paywall here if they are going to home.
-      
-      // if (location == '/home' || location == '/' || location == '/sign-in' || location == '/get-started') {
-      //   return '/onboarding/paywall-free';
-      // }
-      
-      // Otherwise, let them navigate within the onboarding screens they are in.
+      // If signed in but onboarding not marked complete, still go to Home 
+      // if they are on an entry screen (per user requirement to go to Home on startup).
+      if (location == '/' || location == '/get-started' || location == '/sign-in') {
+        return '/home';
+      }
       return null; 
     }
 

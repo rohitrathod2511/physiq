@@ -32,6 +32,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       
       if (mounted) {
         setState(() => _isLoading = false);
+        context.go('/onboarding/referral');
       }
     } catch (e) {
       if (mounted) {
@@ -68,6 +69,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     // 3. Navigate Immediately
     if (mounted) {
       setState(() => _isLoading = false);
+      context.go('/onboarding/referral');
     }
   }
 
@@ -123,7 +125,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 setState(() => _isLoading = false);
                 
                 if (user != null && mounted) {
-                  // Navigation is handled by auth state listener
+                  context.go('/onboarding/referral');
                 }
               } catch (e) {
                  if (mounted) {
