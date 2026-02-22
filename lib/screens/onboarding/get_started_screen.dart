@@ -107,7 +107,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
       await _authService.disconnectGoogle();
 
       // No name, no onboardingData passed. Just pure sign-in.
-      final user = await _authService.signInWithGoogle();
+      final user = await _authService.signInWithGoogle(allowCreate: false);
       
       if (mounted) {
         setState(() => _isLoading = false);

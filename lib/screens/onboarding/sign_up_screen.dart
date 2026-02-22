@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,14 +5,14 @@ import 'package:physiq/providers/onboarding_provider.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/theme/design_system.dart';
 
-class SignUpScreen extends ConsumerStatefulWidget { 
+class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  ConsumerState<SignUpScreen> createState() => _SignUpScreenState(); 
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends ConsumerState<SignUpScreen> { 
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
@@ -24,21 +23,25 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       await _authService.disconnectGoogle();
 
       final store = ref.read(onboardingProvider);
-      final name = store.name; 
+      final name = store.name;
       final user = await _authService.signInWithGoogle(
         name: name,
         onboardingData: store.data,
       );
-      
+
       if (mounted) {
         setState(() => _isLoading = false);
-        context.go('/onboarding/referral');
+        if (user != null) {
+          context.go('/onboarding/paywall-free');
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))), // clean up error slightly
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+          ), // clean up error slightly
         );
       }
     }
@@ -46,7 +49,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   Future<void> _handleAnonymousSignIn() async {
     setState(() => _isLoading = true);
-    
+
     // 1. Set Local Guest Flag
     final store = ref.read(onboardingProvider);
     store.saveStepData('isGuest', true);
@@ -60,9 +63,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       );
     } catch (e) {
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text("Anonymous sign-in error (continuing anyway): $e")),
-         );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Anonymous sign-in error (continuing anyway): $e"),
+          ),
+        );
       }
     }
 
@@ -76,24 +81,33 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   void _handleEmailSignIn() {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text('Sign Up with Email', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text(
+          'Sign Up with Email',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(),
+              ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: passwordController,
-              decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                border: OutlineInputBorder(),
+              ),
               obscureText: true,
             ),
           ],
@@ -108,32 +122,32 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               final email = emailController.text.trim();
               final password = passwordController.text.trim();
               if (email.isEmpty || password.isEmpty) return;
-              
+
               Navigator.pop(context); // Close dialog
               setState(() => _isLoading = true);
-              
+
               try {
                 final store = ref.read(onboardingProvider);
                 final name = store.name ?? 'User';
                 final user = await _authService.signUpWithEmail(
-                  email, 
-                  password, 
+                  email,
+                  password,
                   name: name,
-                  onboardingData: store.data, 
+                  onboardingData: store.data,
                 );
-                
+
                 setState(() => _isLoading = false);
-                
+
                 if (user != null && mounted) {
-                  context.go('/onboarding/referral');
+                  context.go('/onboarding/paywall-free');
                 }
               } catch (e) {
-                 if (mounted) {
-                   setState(() => _isLoading = false);
-                   ScaffoldMessenger.of(context).showSnackBar(
-                     SnackBar(content: Text(e.toString())), 
-                   );
-                 }
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -175,7 +189,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 // Google Button
                 ElevatedButton.icon(
                   onPressed: _handleGoogleSignIn,
-                  icon: const Icon(Icons.g_mobiledata, size: 28), 
+                  icon: const Icon(Icons.g_mobiledata, size: 28),
                   label: const Text('Continue with Google'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -187,7 +201,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Email Button
                 OutlinedButton(
                   onPressed: _handleEmailSignIn,
@@ -202,7 +216,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   child: const Text('Continue with Email'),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Skip Button (Styled to match)
                 OutlinedButton(
                   onPressed: _handleAnonymousSignIn,

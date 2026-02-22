@@ -136,10 +136,18 @@ final GoRouter router = GoRouter(
     // 3. Authenticated AND Onboarding INCOMPLETE (New User)
     // ----------------------------------------------------
     if (!isOnboardingComplete) {
-      // If signed in but onboarding not marked complete, still go to Home 
-      // if they are on an entry screen (per user requirement to go to Home on startup).
-      if (location == '/' || location == '/get-started' || location == '/sign-in') {
-        return '/home';
+      final isProtected = location.startsWith('/home') ||
+                          location.startsWith('/settings') ||
+                          location.startsWith('/progress') ||
+                          location.startsWith('/exercise') ||
+                          location.startsWith('/meal-history');
+
+      // Enforce paywall/onboarding completion before app shell access.
+      if (isProtected ||
+          location == '/' ||
+          location == '/get-started' ||
+          location == '/sign-in') {
+        return '/onboarding/paywall-free';
       }
       return null; 
     }

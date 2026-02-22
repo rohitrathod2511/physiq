@@ -1,7 +1,10 @@
 
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 
 /// A simple configuration class to toggle between mock and real backends.
 class AppConfig {
@@ -101,6 +104,14 @@ class AuthService {
 
   Future<UserCredential?> signInWithEmail(String email, String password) async {
     try {
+      final methods = await _lookupSignInMethodsForEmail(email);
+      if (methods.isEmpty) {
+        throw 'No account found. Please sign up first.';
+      }
+      if (!methods.contains(EmailAuthProvider.EMAIL_PASSWORD_SIGN_IN_METHOD)) {
+        throw 'This email is registered with a different sign-in method.';
+      }
+
       final credential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -117,11 +128,13 @@ class AuthService {
       return credential;
     } on FirebaseAuthException catch (e) {
       // Throw meaningful error messages for UI to catch
-      if (e.code == 'user-not-found') throw 'No user found for that email.';
+      if (e.code == 'user-not-found') throw 'No account found. Please sign up first.';
       if (e.code == 'wrong-password') throw 'Wrong password provided.';
+      if (e.code == 'invalid-credential') throw 'Invalid email or password.';
       if (e.code == 'invalid-email') throw 'The email address is invalid.';
       throw e.message ?? 'Sign in failed.';
     } catch (e) {
+      if (e is String) rethrow;
       throw 'An unexpected error occurred: $e';
     }
   }
@@ -170,6 +183,7 @@ class AuthService {
   // 4️⃣ GOOGLE SIGN-IN
 
   Future<UserCredential?> signInWithGoogle({
+    bool allowCreate = true,
     String? name, 
     Map<String, dynamic>? onboardingData
   }) async {
@@ -178,6 +192,20 @@ class AuthService {
       if (googleUser == null) {
          // User cancelled
          return null;
+      }
+
+      final methods = await _lookupSignInMethodsForEmail(
+        googleUser.email,
+      );
+      if (!allowCreate && methods.isEmpty) {
+        await _googleSignIn.signOut();
+        throw 'No account found. Please sign up first.';
+      }
+      if (!allowCreate &&
+          methods.isNotEmpty &&
+          !methods.contains(GoogleAuthProvider.PROVIDER_ID)) {
+        await _googleSignIn.signOut();
+        throw 'This email is registered with a different sign-in method.';
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -200,7 +228,13 @@ class AuthService {
       }
 
       return userCredential;
+    } on FirebaseAuthException catch (e) {
+      if (!allowCreate && e.code == 'account-exists-with-different-credential') {
+        throw 'This email is registered with a different sign-in method.';
+      }
+      throw e.message ?? 'Google Sign-In failed.';
     } catch (e) {
+      if (e is String) rethrow;
       throw 'Google Sign-In failed: $e';
     }
   }
@@ -235,6 +269,33 @@ class AuthService {
 
   
   // UTILITIES & HELPERS
+
+  Future<List<String>> _lookupSignInMethodsForEmail(String email) async {
+    final apiKey = _firebaseAuth.app.options.apiKey;
+    final uri = Uri.parse(
+      'https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=$apiKey',
+    );
+
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'identifier': email.trim(),
+        'continueUri': 'http://localhost',
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw 'Unable to verify account. Please try again.';
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final rawMethods = body['signinMethods'] ?? body['allProviders'] ?? <dynamic>[];
+    if (rawMethods is! List) {
+      return <String>[];
+    }
+    return rawMethods.map((method) => method.toString()).toList();
+  }
 
   Future<void> _ensureUserDocumentExists(
     User user, {
