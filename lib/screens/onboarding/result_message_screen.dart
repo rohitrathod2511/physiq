@@ -14,15 +14,15 @@ class ResultMessageScreen extends ConsumerWidget {
     final store = ref.watch(onboardingProvider);
     final current = store.weightKg ?? 0;
     final target = store.targetWeightKg ?? 0;
-    final diff = target - current;
-    final isGain = diff >= 0;
-    final absDiff = diff.abs();
+    final goal = (store.goal ?? '').toString().toLowerCase();
     
-    // Convert to lbs for display to match reference style if needed, 
-    // or keep kg depending on app setting. Using kg for consistency with inputs, 
-    // but reference says "lbs". Let's stick to "kg" as the app seems kg-based 
-    // (inputs were kg). Or display both? "5.0 kg"
-    final diffString = "${absDiff.toStringAsFixed(1)} kg";
+    final bool isMaintain = goal.contains('maintain');
+    final double diff = target - current;
+    final bool isGain = diff >= 0;
+    final double absDiff = diff.abs();
+    
+    final String diffString = "${absDiff.toStringAsFixed(1)} kg";
+    final String targetString = "${target.toStringAsFixed(1)} kg";
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -46,12 +46,21 @@ class ResultMessageScreen extends ConsumerWidget {
                       text: TextSpan(
                         style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1.3),
                         children: [
-                          TextSpan(text: isGain ? "Gaining " : "Losing "),
-                          TextSpan(
-                            text: diffString,
-                            style: const TextStyle(color: Color(0xFFD4A373)), // Light brown/orange
-                          ),
-                          const TextSpan(text: " is a\nrealistic target. it's\nnot hard at all!"),
+                          if (isMaintain) ...[
+                            const TextSpan(text: "Maintaining "),
+                            TextSpan(
+                              text: targetString,
+                              style: const TextStyle(color: Color(0xFFD4A373)),
+                            ),
+                            const TextSpan(text: " is a\nrealistic target. it's\nnot hard at all!"),
+                          ] else ...[
+                            TextSpan(text: isGain ? "Gaining " : "Losing "),
+                            TextSpan(
+                              text: diffString,
+                              style: const TextStyle(color: Color(0xFFD4A373)), // Light brown/orange
+                            ),
+                            const TextSpan(text: " is a\nrealistic target. it's\nnot hard at all!"),
+                          ],
                         ],
                       ),
                     ),

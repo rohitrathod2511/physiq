@@ -64,8 +64,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '523807139910',
     projectId: 'physiq-5811f',
     storageBucket: 'physiq-5811f.firebasestorage.app',
-    androidClientId: '523807139910-fu2uv508bdh7no32sqpuh00bq6ej2aq4.apps.googleusercontent.com',
-    iosClientId: '523807139910-ioohd84ujjdl01nqqntsmr9f4cnk8bth.apps.googleusercontent.com',
+    androidClientId:
+        '523807139910-fu2uv508bdh7no32sqpuh00bq6ej2aq4.apps.googleusercontent.com',
+    iosClientId:
+        '523807139910-ioohd84ujjdl01nqqntsmr9f4cnk8bth.apps.googleusercontent.com',
     iosBundleId: 'com.example.physiq',
   );
 
@@ -75,8 +77,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '523807139910',
     projectId: 'physiq-5811f',
     storageBucket: 'physiq-5811f.firebasestorage.app',
-    androidClientId: '523807139910-fu2uv508bdh7no32sqpuh00bq6ej2aq4.apps.googleusercontent.com',
-    iosClientId: '523807139910-ioohd84ujjdl01nqqntsmr9f4cnk8bth.apps.googleusercontent.com',
+    androidClientId:
+        '523807139910-fu2uv508bdh7no32sqpuh00bq6ej2aq4.apps.googleusercontent.com',
+    iosClientId:
+        '523807139910-ioohd84ujjdl01nqqntsmr9f4cnk8bth.apps.googleusercontent.com',
     iosBundleId: 'com.example.physiq',
   );
 
@@ -89,5 +93,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'physiq-5811f.firebasestorage.app',
     measurementId: 'G-LY3DBY0WMW',
   );
-
 }

@@ -25,14 +25,22 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_initialized) {
-       final store = ref.read(onboardingProvider);
-       final plan = store.data['currentPlan'] as Map<String, dynamic>?;
-       
-       _proteinController = TextEditingController(text: (plan?['proteinG'] ?? 0).toString());
-       _fatController = TextEditingController(text: (plan?['fatG'] ?? 0).toString());
-       _carbsController = TextEditingController(text: (plan?['carbsG'] ?? 0).toString());
-       _caloriesController = TextEditingController(text: (plan?['goalCalories'] ?? 0).toString());
-       _initialized = true;
+      final store = ref.read(onboardingProvider);
+      final plan = store.data['currentPlan'] as Map<String, dynamic>?;
+
+      _proteinController = TextEditingController(
+        text: (plan?['proteinG'] ?? 0).toString(),
+      );
+      _fatController = TextEditingController(
+        text: (plan?['fatG'] ?? 0).toString(),
+      );
+      _carbsController = TextEditingController(
+        text: (plan?['carbsG'] ?? 0).toString(),
+      );
+      _caloriesController = TextEditingController(
+        text: (plan?['goalCalories'] ?? 0).toString(),
+      );
+      _initialized = true;
     }
   }
 
@@ -42,25 +50,33 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
   Future<void> _onSave() async {
     final store = ref.read(onboardingProvider);
-    final initialPlan = store.data['currentPlan'] as Map<String, dynamic>? ?? {};
-    
+    final initialPlan =
+        store.data['currentPlan'] as Map<String, dynamic>? ?? {};
+
     // Parse current values
     final p = int.tryParse(_proteinController.text) ?? 0;
     final f = int.tryParse(_fatController.text) ?? 0;
     final c = int.tryParse(_carbsController.text) ?? 0;
     final cal = int.tryParse(_caloriesController.text) ?? 0;
-    
+
     // Determine if edited
     final initialP = initialPlan['protein'] ?? initialPlan['proteinG'] ?? 0;
     final initialF = initialPlan['fat'] ?? initialPlan['fatG'] ?? 0;
     final initialC = initialPlan['carbs'] ?? initialPlan['carbsG'] ?? 0;
-    final initialCal = initialPlan['calories'] ?? initialPlan['goalCalories'] ?? 0;
-    
+    final initialCal =
+        initialPlan['calories'] ?? initialPlan['goalCalories'] ?? 0;
+
     // Check if values changed significantly (allowing for string/int parsing diffs)
-    bool isEdited = (p != initialP) || (f != initialF) || (c != initialC) || (cal != initialCal);
-    
-    final String source = isEdited ? 'manual' : (initialPlan['source'] ?? 'calculated');
-    
+    bool isEdited =
+        (p != initialP) ||
+        (f != initialF) ||
+        (c != initialC) ||
+        (cal != initialCal);
+
+    final String source = isEdited
+        ? 'manual'
+        : (initialPlan['source'] ?? 'calculated');
+
     final currentPlan = {
       'calories': cal,
       'protein': p,
@@ -69,7 +85,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       'source': source,
       'updatedAt': FieldValue.serverTimestamp(),
     };
-    
+
     // Save to Firestore
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -89,7 +105,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
     // Update HomeViewModel state immediately (Shared Frontend State)
     ref.read(homeViewModelProvider.notifier).updateCurrentPlan(currentPlan);
-    
+
     if (mounted) {
       context.push('/onboarding/notification');
     }
@@ -106,21 +122,29 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     // Fetch target data
     final targetWeightVal = store.data['targetWeightKg'];
     final currentWeightVal = store.data['weightKg'];
-    final targetWeight = targetWeightVal != null ? targetWeightVal.toStringAsFixed(1) : '--';
-    
+    final targetWeight = targetWeightVal != null
+        ? targetWeightVal.toStringAsFixed(1)
+        : '--';
+
     // Calculate difference
     double diff = 0;
     if (targetWeightVal != null && currentWeightVal != null) {
       diff = (currentWeightVal - targetWeightVal).abs();
     }
     final diffString = "${diff.toStringAsFixed(1)} kg";
-    
+
     // Calculate date based on timeframeMonths (default to 6 if missing)
-    final months = store.data['timeframeMonths'] ?? 6; 
+    final months = store.data['timeframeMonths'] ?? 6;
     final targetDate = DateTime.now().add(Duration(days: months * 30));
     final dateString = _formatDate(targetDate);
-    
-    final isGain = (store.data['goal'] ?? '').toString().toLowerCase().contains('gain');
+
+    final isMaintain = (store.data['goal'] ?? '')
+        .toString()
+        .toLowerCase()
+        .contains('maintain');
+    final isGain = (store.data['goal'] ?? '').toString().toLowerCase().contains(
+      'gain',
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -134,53 +158,74 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 8.0,
+                ),
                 child: Column(
                   children: [
                     // 1. Success Icon (Checkmark)
-                     Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                         color: AppColors.primaryText,
-                         shape: BoxShape.circle,
-                       ),
-                       child: Icon(Icons.check, color: AppColors.background, size: 32),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryText,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.check,
+                        color: AppColors.background,
+                        size: 32,
+                      ),
                     ),
                     const SizedBox(height: 24),
-  
+
                     // 2. Title
                     Text(
                       "Congratulations\nyour custom plan is ready!",
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.h2.copyWith(fontSize: 24, height: 1.2),
+                      style: AppTextStyles.h2.copyWith(
+                        fontSize: 24,
+                        height: 1.2,
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // 3. Subtext (Goal)
                     Text(
-                      "You should ${isGain ? 'Gain' : 'Lose'}:",
-                      style: AppTextStyles.bodyBold.copyWith(fontSize: 16, color: AppColors.primaryText),
+                      isMaintain
+                          ? "You should maintain your weight"
+                          : "You should ${isGain ? 'Gain' : 'Lose'}:",
+                      style: AppTextStyles.bodyBold.copyWith(
+                        fontSize: 16,
+                        color: AppColors.primaryText,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.card,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        "$diffString by $dateString",
+                        isMaintain
+                            ? "Target weight: $targetWeight kg"
+                            : "$diffString by $dateString",
                         style: AppTextStyles.bodyBold.copyWith(fontSize: 14),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 18),
-  
+
                     // 4. Daily Recommendation Section
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.card, // Light background for the section
+                        color:
+                            AppColors.card, // Light background for the section
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Column(
@@ -193,10 +238,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                           const SizedBox(height: 4),
                           Text(
                             "You can edit this any time",
-                            style: AppTextStyles.h3.copyWith(color: AppColors.secondaryText, fontSize: 13),
+                            style: AppTextStyles.h3.copyWith(
+                              color: AppColors.secondaryText,
+                              fontSize: 13,
+                            ),
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // Macro Grid
                           GridView.count(
                             crossAxisCount: 2,
@@ -206,54 +254,54 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                             crossAxisSpacing: 12,
                             childAspectRatio: 0.95,
                             children: [
-                               // Calories Card
-                               _buildMacroCard(
-                                 title: "Calories",
-                                 icon: Icons.local_fire_department_rounded,
-                                 color: AppColors.primaryText,
-                                 controller: _caloriesController,
-                                 unit: "",
-                                 isEditable: true,
-                                 progress: 1.0,
-                               ),
-                               // Carbs
-                               _buildMacroCard(
-                                 title: "Carbs",
-                                 icon: Icons.grain_rounded,
-                                 color: const Color(0xFFE8AA42), // Wheat/Gold
-                                 controller: _carbsController,
-                                 unit: "g",
-                                 isEditable: true,
-                                 progress: totalCal > 0 ? (c * 4) / totalCal : 0,
-                               ),
-                               // Protein
-                               _buildMacroCard(
-                                 title: "Protein",
-                                 icon: Icons.lunch_dining_rounded,
-                                 color: const Color(0xFFE55B5B), // Red/Pink
-                                 controller: _proteinController,
-                                 unit: "g",
-                                 isEditable: true,
-                                 progress: totalCal > 0 ? (p * 4) / totalCal : 0,
-                               ),
-                               // Fats
-                               _buildMacroCard(
-                                 title: "Fats",
-                                 icon: Icons.water_drop_rounded,
-                                 color: const Color(0xFF5B8BE5), // Blue
-                                 controller: _fatController,
-                                 unit: "g",
-                                 isEditable: true,
-                                 progress: totalCal > 0 ? (f * 9) / totalCal : 0,
-                               ),
+                              // Calories Card
+                              _buildMacroCard(
+                                title: "Calories",
+                                icon: Icons.local_fire_department_rounded,
+                                color: AppColors.primaryText,
+                                controller: _caloriesController,
+                                unit: "",
+                                isEditable: true,
+                                progress: 1.0,
+                              ),
+                              // Carbs
+                              _buildMacroCard(
+                                title: "Carbs",
+                                icon: Icons.grain_rounded,
+                                color: const Color(0xFFE8AA42), // Wheat/Gold
+                                controller: _carbsController,
+                                unit: "g",
+                                isEditable: true,
+                                progress: totalCal > 0 ? (c * 4) / totalCal : 0,
+                              ),
+                              // Protein
+                              _buildMacroCard(
+                                title: "Protein",
+                                icon: Icons.lunch_dining_rounded,
+                                color: const Color(0xFFE55B5B), // Red/Pink
+                                controller: _proteinController,
+                                unit: "g",
+                                isEditable: true,
+                                progress: totalCal > 0 ? (p * 4) / totalCal : 0,
+                              ),
+                              // Fats
+                              _buildMacroCard(
+                                title: "Fats",
+                                icon: Icons.water_drop_rounded,
+                                color: const Color(0xFF5B8BE5), // Blue
+                                controller: _fatController,
+                                unit: "g",
+                                isEditable: true,
+                                progress: totalCal > 0 ? (f * 9) / totalCal : 0,
+                              ),
                             ],
                           ),
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Health Score Card (Separate)
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -276,7 +324,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                               color: Colors.pink.shade50,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.favorite, color: Colors.pink, size: 20),
+                            child: const Icon(
+                              Icons.favorite,
+                              color: Colors.pink,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -284,10 +336,19 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text("Health score", style: AppTextStyles.bodyBold),
-                                    Text("7/10", style: AppTextStyles.h3.copyWith(fontSize: 16)),
+                                    Text(
+                                      "Health score",
+                                      style: AppTextStyles.bodyBold,
+                                    ),
+                                    Text(
+                                      "7/10",
+                                      style: AppTextStyles.h3.copyWith(
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
@@ -311,13 +372,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ),
               ),
             ),
-            
+
             // Fixed Bottom Button
             Container(
               padding: const EdgeInsets.all(24.0),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-              ),
+              decoration: BoxDecoration(color: AppColors.background),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -331,7 +390,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     elevation: 0,
                   ),
                   onPressed: _onSave,
-                  child: const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
@@ -373,7 +435,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               children: [
                 Icon(icon, size: 18, color: color.withOpacity(0.8)),
                 const SizedBox(width: 8),
-                Text(title, style: AppTextStyles.bodyBold.copyWith(fontSize: 14)),
+                Text(
+                  title,
+                  style: AppTextStyles.bodyBold.copyWith(fontSize: 14),
+                ),
               ],
             ),
           ),
@@ -392,7 +457,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       controller: controller,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1.0),
+                      style: AppTextStyles.h1.copyWith(
+                        fontSize: 32,
+                        height: 1.0,
+                      ),
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         isDense: true,
@@ -407,15 +475,15 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     value ?? "0",
                     style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1.0),
                   ),
-                
+
                 if (unit.isNotEmpty) ...[
                   const SizedBox(width: 4),
                   Text(
-                    unit, 
+                    unit,
                     style: TextStyle(
-                      fontSize: 16, 
-                      color: Colors.grey[400], 
-                      fontWeight: FontWeight.bold
+                      fontSize: 16,
+                      color: Colors.grey[400],
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -437,8 +505,18 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
   String _formatDate(DateTime date) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return "${date.day} ${months[date.month - 1]}";
   }

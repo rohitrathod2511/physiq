@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
@@ -62,28 +61,41 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              _buildFeatureItem('Activate Leaderboard (Yearly)', 'Win ₹1,00,000 by following streak'),
-              _buildFeatureItem('Get your dream body', 'We keep it simple to make getting results easy'),
-              _buildFeatureItem('Track your progress', 'Stay on track with personalized insights and smart reminders'),
-             
-            
+              _buildFeatureItem(
+                'Activate Leaderboard (Yearly)',
+                'Earn ₹1,00,000 by maintaining discipline',
+              ),
+              _buildFeatureItem(
+                'Get your Dream Body',
+                'We keep it simple to make getting results easy',
+              ),
+              _buildFeatureItem(
+                'Track your Progress',
+                'Stay on track with personalized insights and smart reminders',
+              ),
+
               const Spacer(),
-              
+
               Row(
                 children: [
-                  Expanded(child: _buildPlanCard('Monthly', '₹499.00/mo', false)),
+                  Expanded(
+                    child: _buildPlanCard('Monthly', '₹499.00/mo', false),
+                  ),
                   const SizedBox(width: 16),
                   Expanded(child: _buildPlanCard('Yearly', '₹166.58/mo', true)),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.check, color: AppColors.primaryText, size: 20),
                   const SizedBox(width: 8),
-                  Text("No Commitment - Cancel Anytime", style: AppTextStyles.bodyBold),
+                  Text(
+                    "No Commitment - Cancel Anytime",
+                    style: AppTextStyles.bodyBold,
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -99,16 +111,16 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  child: _isLoading 
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Start My Journey'), 
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Start My Journey'),
                 ),
               ),
               const SizedBox(height: 16),
               Center(
                 child: Text(
-                  _selectedPlan == 'Yearly' 
-                      ? "Just ₹166.58 per month" 
+                  _selectedPlan == 'Yearly'
+                      ? "Just ₹166.58 per month"
                       : "Just ₹499.00 per month",
                   style: AppTextStyles.smallLabel,
                 ),
@@ -135,7 +147,12 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               children: [
                 Text(title, style: AppTextStyles.h3),
                 const SizedBox(height: 4),
-                Text(subtitle, style: AppTextStyles.body.copyWith(color: AppColors.secondaryText)),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.secondaryText,
+                  ),
+                ),
               ],
             ),
           ),
@@ -157,7 +174,9 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               color: isSelected ? AppColors.card : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? AppColors.primaryText : AppColors.secondaryText.withOpacity(0.3),
+                color: isSelected
+                    ? AppColors.primaryText
+                    : AppColors.secondaryText.withOpacity(0.3),
                 width: 2,
               ),
             ),
@@ -167,22 +186,16 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                 Text(title, style: AppTextStyles.body),
                 const SizedBox(height: 8),
                 Text(price, style: AppTextStyles.h3),
-                if (title == 'Yearly') ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    "Less than the cost of a pizza for dream body.",
-                    style: AppTextStyles.smallLabel.copyWith(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
                   child: Icon(
-                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: isSelected ? AppColors.primaryText : AppColors.secondaryText,
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: isSelected
+                        ? AppColors.primaryText
+                        : AppColors.secondaryText,
                   ),
                 ),
               ],
@@ -195,14 +208,21 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               right: 0,
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
                     '3 DAYS FREE',
-                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

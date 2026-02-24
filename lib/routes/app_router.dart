@@ -133,6 +133,7 @@ final GoRouter router = GoRouter(
     }
 
     // ----------------------------------------------------
+
     // 3. Authenticated AND Onboarding INCOMPLETE (New User)
     // ----------------------------------------------------
     if (!isOnboardingComplete) {
