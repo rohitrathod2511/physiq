@@ -1,18 +1,20 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:physiq/models/exercise_log_model.dart';
+import 'package:physiq/viewmodels/home_viewmodel.dart';
 
-class RecentMealsList extends StatelessWidget {
+class RecentMealsList extends ConsumerWidget {
   final List<dynamic>? logs;
   final Function(String)? onMealTap;
 
   const RecentMealsList({super.key, this.logs, this.onMealTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // If logs exist and list is not empty
     final hasLogs = logs != null && logs!.isNotEmpty;
 
@@ -76,15 +78,124 @@ class RecentMealsList extends StatelessWidget {
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final item = logs![index];
+
               if (item is ExerciseLog) {
-                return _buildWorkoutCard(item);
+                return _buildDismissible(
+                  context,
+                  ref,
+                  item.id,
+                  item.timestamp,
+                  false,
+                  _buildWorkoutCard(item),
+                );
               } else if (item is Map<String, dynamic>) {
-                return _buildMealCard(item);
+                final id = item['id'] as String? ?? '';
+                DateTime timestamp = DateTime.now();
+                if (item['timestamp'] is Timestamp) {
+                  timestamp = (item['timestamp'] as Timestamp).toDate();
+                }
+                return _buildDismissible(
+                  context,
+                  ref,
+                  id,
+                  timestamp,
+                  true,
+                  _buildMealCard(item),
+                );
               }
               return const SizedBox.shrink();
             },
           ),
       ],
+    );
+  }
+
+  Widget _buildDismissible(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+    DateTime date,
+    bool isMeal,
+    Widget child,
+  ) {
+    return Dismissible(
+      key: Key(id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.redAccent,
+          borderRadius: BorderRadius.circular(AppRadii.bigCard),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              'Delete',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(width: 8),
+            Icon(Icons.delete, color: Colors.white),
+          ],
+        ),
+      ),
+      onDismissed: (direction) {
+        // 1. Immediately notify ViewModel to remove locally
+        final viewModel = ref.read(homeViewModelProvider.notifier);
+
+        // We perform the local removal and total recalculation immediately
+        // to avoid "Dismissed widget still in tree" error and ensure reactive UI.
+        if (isMeal) {
+          viewModel.deleteMealLocally(id);
+          // 2. Call Firebase delete async
+          viewModel.deleteMealFirebase(id, date);
+        } else {
+          viewModel.deleteExerciseLocally(id);
+          // 2. Call Firebase delete async
+          viewModel.deleteExerciseFirebase(id, date);
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Entry deleted successfully'),
+              backgroundColor: Colors.black87,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+      confirmDismiss: (direction) async {
+        return await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("Confirm Delete"),
+              content: const Text(
+                "Are you sure you want to delete this entry?",
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text("CANCEL"),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text(
+                    "DELETE",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+      child: child,
     );
   }
 

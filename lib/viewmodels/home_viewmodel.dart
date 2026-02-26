@@ -8,8 +8,9 @@ import 'package:physiq/models/exercise_log_model.dart';
 
 final firestoreServiceProvider = Provider((ref) => FirestoreService());
 
-
-final homeViewModelProvider = StateNotifierProvider<HomeViewModel, HomeState>((ref) {
+final homeViewModelProvider = StateNotifierProvider<HomeViewModel, HomeState>((
+  ref,
+) {
   return HomeViewModel(
     ref.watch(firestoreServiceProvider),
     ref.watch(userRepositoryProvider),
@@ -22,8 +23,12 @@ class HomeViewModel extends StateNotifier<HomeState> {
   final UserRepository _userRepository;
   final ExerciseService _exerciseService;
 
-  HomeViewModel(this._firestoreService, this._userRepository, this._exerciseService)
-      : super(HomeState(
+  HomeViewModel(
+    this._firestoreService,
+    this._userRepository,
+    this._exerciseService,
+  ) : super(
+        HomeState(
           // Initialize with empty data to prevent infinite loading
           dailySummary: {
             'caloriesConsumed': 0,
@@ -32,14 +37,15 @@ class HomeViewModel extends StateNotifier<HomeState> {
             'carbsConsumed': 0,
             'caloriesGoal': 2000, // Default
           },
-        )) {
+        ),
+      ) {
     // Listen to Auth Changes to handle sign-in/out
     FirebaseAuth.instance.userChanges().listen((user) {
       if (user != null) {
         _init(user.uid);
       } else {
-         // Reset to guest defaults if logged out
-         // Or keep existing state. For now, doing nothing is safer than clearing.
+        // Reset to guest defaults if logged out
+        // Or keep existing state. For now, doing nothing is safer than clearing.
       }
     });
   }
@@ -47,7 +53,7 @@ class HomeViewModel extends StateNotifier<HomeState> {
   void _init(String uid) {
     fetchDailySummary(state.selectedDate, uid);
     fetchRecentMeals(uid);
-    
+
     // Listen to user profile for currentPlan
     _userRepository.streamUser(uid).listen((user) {
       if (user != null && user.currentPlan != null) {
@@ -60,7 +66,7 @@ class HomeViewModel extends StateNotifier<HomeState> {
       state = state.copyWith(recentWorkouts: logs);
       fetchStreak(uid);
     });
-    
+
     // Fetch Streak
     fetchStreak(uid);
   }
@@ -75,7 +81,7 @@ class HomeViewModel extends StateNotifier<HomeState> {
     if (uid != null) {
       await _firestoreService.logWater(uid, amountMl, state.selectedDate);
       // No need to fetchDailySummary here, the stream from _init/selectDate handles updates
-      fetchStreak(uid); 
+      fetchStreak(uid);
     }
   }
 
@@ -107,6 +113,93 @@ class HomeViewModel extends StateNotifier<HomeState> {
     });
   }
 
+  // --- DELETE METHODS ---
+
+  void deleteMealLocally(String mealId) {
+    if (state.recentMeals == null) return;
+
+    // 1. Remove from local list
+    final updatedMeals = state.recentMeals!
+        .where((m) => m['id'] != mealId)
+        .toList();
+
+    // 2. Recalculate summary from the NEW list to ensure UI updates instantly
+    _recalculateTotalsFromLocal(updatedMeals, state.recentWorkouts ?? []);
+
+    state = state.copyWith(recentMeals: updatedMeals);
+  }
+
+  Future<void> deleteMealFirebase(String mealId, DateTime date) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await _firestoreService.deleteMeal(uid, mealId, date);
+    // Stream listener in FirestoreService will handle the final "official" update
+  }
+
+  void deleteExerciseLocally(String logId) {
+    if (state.recentWorkouts == null) return;
+
+    // 1. Remove from local list
+    final updatedWorkouts = state.recentWorkouts!
+        .where((w) => w.id != logId)
+        .toList();
+
+    // 2. Recalculate summary
+    _recalculateTotalsFromLocal(state.recentMeals ?? [], updatedWorkouts);
+
+    state = state.copyWith(recentWorkouts: updatedWorkouts);
+  }
+
+  Future<void> deleteExerciseFirebase(String logId, DateTime date) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await _exerciseService.deleteExercise(uid, logId, date);
+  }
+
+  void _recalculateTotalsFromLocal(
+    List<Map<String, dynamic>> meals,
+    List<ExerciseLog> exercises,
+  ) {
+    // 1. Use FOLD for Meals (Macros)
+    final int totalCalories = meals.fold(
+      0,
+      (sum, m) => sum + _toIntSafe(m['calories']),
+    );
+    final int totalProtein = meals.fold(
+      0,
+      (sum, m) => sum + _toIntSafe(m['proteinG']),
+    );
+    final int totalCarbs = meals.fold(
+      0,
+      (sum, m) => sum + _toIntSafe(m['carbsG']),
+    );
+    final int totalFat = meals.fold(0, (sum, m) => sum + _toIntSafe(m['fatG']));
+
+    // 2. Use FOLD for Exercises (Burn)
+    final int totalBurn = exercises.fold(
+      0,
+      (sum, e) => sum + e.calories.toInt(),
+    );
+
+    final updatedSummary = Map<String, dynamic>.from(state.dailySummary ?? {});
+    updatedSummary['calories'] = totalCalories;
+    updatedSummary['protein'] = totalProtein;
+    updatedSummary['carbs'] = totalCarbs;
+    updatedSummary['fat'] = totalFat;
+    updatedSummary['caloriesBurned'] = totalBurn;
+    updatedSummary['exerciseCalories'] = totalBurn;
+
+    state = state.copyWith(dailySummary: updatedSummary);
+  }
+
+  int _toIntSafe(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
   void updateCurrentPlan(Map<String, dynamic> plan) {
     state = state.copyWith(currentPlan: plan);
   }
@@ -124,13 +217,23 @@ class HomeViewModel extends StateNotifier<HomeState> {
     if (uid == null) return;
 
     await _firestoreService.logMeal(uid, meal.toMap(), meal.timestamp);
-    
+
     // Refresh recent meals
     fetchRecentMeals(uid);
     // Refresh daily summary (will trigger stream listener or new fetch)
     fetchDailySummary(state.selectedDate, uid);
     // Refresh streak
     fetchStreak(uid);
+  }
+
+  Future<void> deleteMeal(String mealId, DateTime date) async {
+    deleteMealLocally(mealId);
+    await deleteMealFirebase(mealId, date);
+  }
+
+  Future<void> deleteExercise(String logId, DateTime date) async {
+    deleteExerciseLocally(logId);
+    await deleteExerciseFirebase(logId, date);
   }
 }
 

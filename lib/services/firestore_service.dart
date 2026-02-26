@@ -1,6 +1,6 @@
 // lib/services/firestore_service.dart
 import 'dart:async';
-
+import 'package:async/async.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:physiq/services/cloud_functions_client.dart';
 
@@ -13,13 +13,19 @@ class FirestoreService {
   // ----------------------------
   // Update User Profile (Personal Details)
   // ----------------------------
-  Future<void> updateUserProfile(String uid, Map<String, dynamic> updates) async {
+  Future<void> updateUserProfile(
+    String uid,
+    Map<String, dynamic> updates,
+  ) async {
     try {
       // 1. Log the change
       await _logSettingsChange(uid, updates);
 
       // 2. Update Firestore (merge)
-      await _firestore.collection('users').doc(uid).set(updates, SetOptions(merge: true));
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .set(updates, SetOptions(merge: true));
 
       // 3. Fetch the latest profile and trigger canonical plan generation
       final userDoc = await _firestore.collection('users').doc(uid).get();
@@ -46,10 +52,7 @@ class FirestoreService {
   // ----------------------------
   Future<void> updateMacros(String uid, Map<String, dynamic> macros) async {
     try {
-      final data = {
-        ...macros,
-        'lastUpdatedAt': FieldValue.serverTimestamp(),
-      };
+      final data = {...macros, 'lastUpdatedAt': FieldValue.serverTimestamp()};
 
       await _logSettingsChange(uid, {'macros': macros});
 
@@ -71,64 +74,117 @@ class FirestoreService {
   // - Tries to listen to users/{uid}/daily_summaries/{yyyy-MM-dd} (if you store summaries)
   // - If summary doc does not exist, computes summary from meals subcollection for that day
   // ----------------------------
-  Stream<Map<String, dynamic>> streamDailySummary(String uid, DateTime date) async* {
+  Stream<Map<String, dynamic>> streamDailySummary(
+    String uid,
+    DateTime date,
+  ) async* {
     final dateId = _formatDateId(date);
-    final summaryDocRef =
-        _firestore.collection('users').doc(uid).collection('daily_summaries').doc(dateId);
+    final summaryDocRef = _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('daily_summaries')
+        .doc(dateId);
 
-    // Listen to changes on the summary doc; if it exists yield it.
-    // If it doesn't exist, compute summary from meals and yield that.
-    await for (final snap in summaryDocRef.snapshots()) {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+
+    // Listen to both daily summary AND the raw meal/exercise logs for this day
+    // to ensure totals are ALWAYS recalculated from source of truth.
+    final mealsStream = _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('meals')
+        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('timestamp', isLessThan: Timestamp.fromDate(end))
+        .snapshots();
+
+    final exercisesStream = _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('exerciseLogs')
+        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('timestamp', isLessThan: Timestamp.fromDate(end))
+        .snapshots();
+
+    final summaryStream = summaryDocRef.snapshots();
+
+    // Use StreamZip or similar logic to combine and always recalculate
+    await for (final combined in StreamGroup.merge([
+      mealsStream.map((s) => {'type': 'meals', 'data': s}),
+      exercisesStream.map((s) => {'type': 'exercises', 'data': s}),
+      summaryStream.map((s) => {'type': 'summary', 'data': s}),
+    ])) {
       try {
-        if (snap.exists && snap.data() != null) {
-          yield Map<String, dynamic>.from(snap.data()!);
-        } else {
-          // compute summary from meals for the given day
-          final start = DateTime(date.year, date.month, date.day);
-          final end = start.add(const Duration(days: 1));
+        // Fetch all current logs for the day to ensure perfect consistency
+        final mealsSnap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('meals')
+            .where(
+              'timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(start),
+            )
+            .where('timestamp', isLessThan: Timestamp.fromDate(end))
+            .get();
 
-          final mealsSnap = await _firestore
-              .collection('users')
-              .doc(uid)
-              .collection('meals')
-              .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-              .where('timestamp', isLessThan: Timestamp.fromDate(end))
-              .get();
+        final exercisesSnap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('exerciseLogs')
+            .where(
+              'timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(start),
+            )
+            .where('timestamp', isLessThan: Timestamp.fromDate(end))
+            .get();
 
-          // aggregate fields (defensive: handle missing fields)
-          int calories = 0;
-          int protein = 0;
-          int carbs = 0;
-          int fat = 0;
+        final summarySnap = await summaryDocRef.get();
 
-          for (final doc in mealsSnap.docs) {
-            final data = doc.data();
-            calories += _toIntSafe(data['calories']);
-            protein += _toIntSafe(data['protein']);
-            carbs += _toIntSafe(data['carbs']);
-            fat += _toIntSafe(data['fat']);
-          }
+        // 1. Calculate Meal Totals via FOLD
+        final meals = mealsSnap.docs.map((d) => d.data()).toList();
+        final int totalCalories = meals.fold(
+          0,
+          (sum, m) => sum + _toIntSafe(m['calories']),
+        );
+        final int totalProtein = meals.fold(
+          0,
+          (sum, m) => sum + _toIntSafe(m['proteinG']),
+        );
+        final int totalCarbs = meals.fold(
+          0,
+          (sum, m) => sum + _toIntSafe(m['carbsG']),
+        );
+        final int totalFat = meals.fold(
+          0,
+          (sum, m) => sum + _toIntSafe(m['fatG']),
+        );
 
-          yield {
-            'date': dateId,
-            'calories': calories,
-            'protein': protein,
-            'carbs': carbs,
-            'fat': fat,
-            'computedFromMeals': true,
-          };
-        }
+        // 2. Calculate Burn Calories via FOLD
+        final exercises = exercisesSnap.docs.map((d) => d.data()).toList();
+        final int totalBurn = exercises.fold(
+          0,
+          (sum, e) => sum + _toIntSafe(e['calories']),
+        );
+
+        // 3. Get Water and other summary data
+        final summaryData = summarySnap.data() ?? {};
+
+        yield {
+          ...summaryData,
+          'date': dateId,
+          'calories': totalCalories, // Consumed
+          'protein': totalProtein,
+          'carbs': totalCarbs,
+          'fat': totalFat,
+          'caloriesBurned': totalBurn, // Consistent burn from logs
+          'exerciseCalories': totalBurn,
+          'waterMl': _toIntSafe(summaryData['waterMl']),
+          'waterGoal': _toIntSafe(summaryData['waterGoal']) == 0
+              ? 2000
+              : _toIntSafe(summaryData['waterGoal']),
+        };
       } catch (e) {
         print('streamDailySummary error: $e');
-        // yield a safe default so listeners won't crash
-        yield {
-          'date': dateId,
-          'calories': 0,
-          'protein': 0,
-          'carbs': 0,
-          'fat': 0,
-          'error': e.toString(),
-        };
       }
     }
   }
@@ -136,12 +192,20 @@ class FirestoreService {
   // ----------------------------
   // Log Meal
   // ----------------------------
-  Future<void> logMeal(String uid, Map<String, dynamic> mealData, DateTime date) async {
+  Future<void> logMeal(
+    String uid,
+    Map<String, dynamic> mealData,
+    DateTime date,
+  ) async {
     try {
       final batch = _firestore.batch();
-      
+
       // 1. Add meal to meals subcollection
-      final mealRef = _firestore.collection('users').doc(uid).collection('meals').doc();
+      final mealRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('meals')
+          .doc();
       batch.set(mealRef, {
         ...mealData,
         'id': mealRef.id, // Ensure ID is saved
@@ -158,13 +222,15 @@ class FirestoreService {
           .doc(dateId);
 
       // Use set with merge to create if not exists, but we want to increment
-      // If doc doesn't exist, we need to set initial values then increment, 
+      // If doc doesn't exist, we need to set initial values then increment,
       // or just set the values if we trust we are the source of truth.
       // Firestore set with merge and increment works fine if doc exists or not (counters start at 0).
       batch.set(summaryRef, {
         'date': dateId,
         'calories': FieldValue.increment(mealData['calories'] ?? 0),
-        'protein': FieldValue.increment(mealData['proteinG'] ?? 0), // Note: Mapping 'proteinG' to 'protein' to match usage
+        'protein': FieldValue.increment(
+          mealData['proteinG'] ?? 0,
+        ), // Note: Mapping 'proteinG' to 'protein' to match usage
         'carbs': FieldValue.increment(mealData['carbsG'] ?? 0),
         'fat': FieldValue.increment(mealData['fatG'] ?? 0),
         'lastUpdated': FieldValue.serverTimestamp(),
@@ -181,7 +247,10 @@ class FirestoreService {
   // Fetch Recent Meals
   // - Returns latest N meals from users/{uid}/meals ordered by timestamp desc
   // ----------------------------
-  Future<List<Map<String, dynamic>>> fetchRecentMeals(String uid, {int limit = 10}) async {
+  Future<List<Map<String, dynamic>>> fetchRecentMeals(
+    String uid, {
+    int limit = 10,
+  }) async {
     try {
       final snap = await _firestore
           .collection('users')
@@ -203,20 +272,69 @@ class FirestoreService {
   }
 
   // ----------------------------
+  // ----------------------------
+  // Delete Meal
+  // ----------------------------
+  Future<void> deleteMeal(String uid, String mealId, DateTime date) async {
+    try {
+      final mealDoc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('meals')
+          .doc(mealId)
+          .get();
+
+      if (!mealDoc.exists) return;
+      final mealData = mealDoc.data()!;
+
+      final batch = _firestore.batch();
+
+      // 1. Remove meal
+      batch.delete(
+        _firestore.collection('users').doc(uid).collection('meals').doc(mealId),
+      );
+
+      // 2. Update Daily Summary (decrement)
+      final dateId = _formatDateId(date);
+      final summaryRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('daily_summaries')
+          .doc(dateId);
+
+      batch.set(summaryRef, {
+        'calories': FieldValue.increment(-(mealData['calories'] ?? 0)),
+        'protein': FieldValue.increment(-(mealData['proteinG'] ?? 0)),
+        'carbs': FieldValue.increment(-(mealData['carbsG'] ?? 0)),
+        'fat': FieldValue.increment(-(mealData['fatG'] ?? 0)),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await batch.commit();
+    } catch (e) {
+      print('deleteMeal error: $e');
+      rethrow;
+    }
+  }
+
+  // ----------------------------
   // Audit Log helper
   // ----------------------------
-  Future<void> _logSettingsChange(String uid, Map<String, dynamic> changes) async {
+  Future<void> _logSettingsChange(
+    String uid,
+    Map<String, dynamic> changes,
+  ) async {
     try {
       await _firestore
           .collection('logs')
           .doc('settingsChanges')
           .collection(uid)
           .add({
-        'changes': changes,
-        'changedAt': FieldValue.serverTimestamp(),
-        'source': 'mobile',
-        'changedByUid': uid,
-      });
+            'changes': changes,
+            'changedAt': FieldValue.serverTimestamp(),
+            'source': 'mobile',
+            'changedByUid': uid,
+          });
     } catch (e) {
       print('Failed to log setting change: $e');
     }
@@ -236,21 +354,31 @@ class FirestoreService {
   // Water & Streak
   // ----------------------------
   Future<void> logWater(String uid, int amountMl, DateTime date) async {
-     final dateId = _formatDateId(date);
-     // Use set with merge to create/update
-     await _firestore.collection('users').doc(uid).collection('daily_summaries').doc(dateId).set({
-       'waterMl': FieldValue.increment(amountMl),
-       'waterConsumed': FieldValue.increment(amountMl), // Legacy field kept for safety
-       'updatedAt': FieldValue.serverTimestamp(),
-       'date': dateId,
-     }, SetOptions(merge: true));
+    final dateId = _formatDateId(date);
+    // Use set with merge to create/update
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('daily_summaries')
+        .doc(dateId)
+        .set({
+          'waterMl': FieldValue.increment(amountMl),
+          'waterConsumed': FieldValue.increment(
+            amountMl,
+          ), // Legacy field kept for safety
+          'updatedAt': FieldValue.serverTimestamp(),
+          'date': dateId,
+        }, SetOptions(merge: true));
   }
 
   Future<void> updateWaterGoal(String uid, int goalMl, DateTime date) async {
     final dateId = _formatDateId(date);
-    await _firestore.collection('users').doc(uid).collection('daily_summaries').doc(dateId).set({
-      'waterGoal': goalMl,
-    }, SetOptions(merge: true));
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('daily_summaries')
+        .doc(dateId)
+        .set({'waterGoal': goalMl}, SetOptions(merge: true));
   }
 
   Future<int> calculateStreak(String uid) async {
@@ -263,23 +391,23 @@ class FirestoreService {
           .orderBy('date', descending: true)
           .limit(60)
           .get();
-      
+
       final activeDates = <String>{};
       for (var doc in snap.docs) {
-         final d = doc.data();
-         // Check activity (Calories, Water, Steps)
-         if (_toIntSafe(d['calories']) > 0 || 
-             _toIntSafe(d['caloriesConsumed']) > 0 ||
-             _toIntSafe(d['waterConsumed']) > 0 || 
-             _toIntSafe(d['steps']) > 0) {
-           activeDates.add(doc.id);
-         }
+        final d = doc.data();
+        // Check activity (Calories, Water, Steps)
+        if (_toIntSafe(d['calories']) > 0 ||
+            _toIntSafe(d['caloriesConsumed']) > 0 ||
+            _toIntSafe(d['waterConsumed']) > 0 ||
+            _toIntSafe(d['steps']) > 0) {
+          activeDates.add(doc.id);
+        }
       }
-      
+
       int streak = 0;
       int misses = 0;
       DateTime check = DateTime.now();
-      
+
       // Iterate back strictly
       for (int i = 0; i < 60; i++) {
         final id = _formatDateId(check);
@@ -294,7 +422,7 @@ class FirestoreService {
         }
         check = check.subtract(const Duration(days: 1));
       }
-      
+
       return streak;
     } catch (e) {
       print('Streak calculation error: $e');

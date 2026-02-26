@@ -40,7 +40,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
   bool _isLoading = false;
   Timer? _debounce;
 
-  final List<String> _tabs = ['All', 'My meals', 'My foods', 'Saved scans'];
+  final List<String> _tabs = ['All', 'My Meals', 'My Foods', 'Saved Food'];
 
   @override
   void initState() {
@@ -104,10 +104,12 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
 
         String message = 'Search failed. Please try again.';
         if (error is FirebaseFunctionsException) {
-          if (error.code == 'unauthenticated' || error.code == 'permission-denied') {
+          if (error.code == 'unauthenticated' ||
+              error.code == 'permission-denied') {
             message = 'Session issue detected. Please try searching again.';
           } else {
-            message = 'Function Error [${error.code}]: ${error.message ?? 'Unknown error'}';
+            message =
+                'Function Error [${error.code}]: ${error.message ?? 'Unknown error'}';
           }
         }
 
@@ -154,21 +156,76 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
       ),
       body: Column(
         children: [
-          TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            physics: const BouncingScrollPhysics(),
-            labelColor: AppColors.primaryText,
-            unselectedLabelColor: Colors.grey,
-            labelStyle: AppTextStyles.h3.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
-            unselectedLabelStyle:
-                AppTextStyles.body.copyWith(color: Colors.grey, fontWeight: FontWeight.normal),
-            indicatorColor: AppColors.primary,
-            indicatorSize: TabBarIndicatorSize.label,
-            dividerColor: Colors.transparent,
-            labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-            padding: EdgeInsets.zero,
-            tabs: _tabs.map((t) => Tab(text: t)).toList(),
+          // Custom Tab Row with equal spacing and balanced margins
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Row(
+                  children: List.generate(_tabs.length, (index) {
+                    return Expanded(
+                      child: AnimatedBuilder(
+                        animation: _tabController,
+                        builder: (context, child) {
+                          final isSelected = _tabController.index == index;
+                          return GestureDetector(
+                            onTap: () => _tabController.animateTo(index),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : [],
+                              ),
+                              alignment: Alignment.center,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _tabs[index],
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.w600,
+                                      color: isSelected
+                                          ? Colors.black
+                                          : Colors.grey[600],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
           ),
           Expanded(
             child: TabBarView(
@@ -183,7 +240,9 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                         decoration: BoxDecoration(
                           color: AppColors.card,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                          border: Border.all(
+                            color: Colors.black.withValues(alpha: 0.1),
+                          ),
                         ),
                         child: TextField(
                           controller: _searchController,
@@ -191,15 +250,25 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                           onChanged: _onSearchChanged,
                           decoration: InputDecoration(
                             hintText: 'Describe what you ate',
-                            hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
+                            hintStyle: AppTextStyles.body.copyWith(
+                              color: Colors.grey,
+                            ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.all(16),
-                            prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: Colors.grey,
+                            ),
                             suffixIcon: _searchController.text.isEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.mic, color: Colors.black),
+                                    icon: const Icon(
+                                      Icons.mic,
+                                      color: Colors.black,
+                                    ),
                                     onPressed: () async {
-                                      final text = await showVoiceSearchDialog(context);
+                                      final text = await showVoiceSearchDialog(
+                                        context,
+                                      );
                                       if (text != null && text.isNotEmpty) {
                                         _searchController.text = text;
                                         _onSearchChanged(text);
@@ -207,7 +276,10 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                     },
                                   )
                                 : IconButton(
-                                    icon: const Icon(Icons.clear, color: Colors.grey),
+                                    icon: const Icon(
+                                      Icons.clear,
+                                      color: Colors.grey,
+                                    ),
                                     onPressed: () {
                                       _searchController.clear();
                                       _onSearchChanged('');
@@ -228,16 +300,24 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.search, size: 64, color: Colors.grey[400]),
+                                    Icon(
+                                      Icons.search,
+                                      size: 64,
+                                      color: Colors.grey[400],
+                                    ),
                                     const SizedBox(height: 16),
                                     Text(
                                       'Search for food',
-                                      style: AppTextStyles.h3.copyWith(color: Colors.grey[600]),
+                                      style: AppTextStyles.h3.copyWith(
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       'e.g. Peanut Butter, Chicken, Rice',
-                                      style: AppTextStyles.body.copyWith(color: Colors.grey),
+                                      style: AppTextStyles.body.copyWith(
+                                        color: Colors.grey,
+                                      ),
                                       textAlign: TextAlign.center,
                                     ),
                                   ],
@@ -245,7 +325,10 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               itemCount: _searchResults.length,
                               itemBuilder: (context, index) {
                                 final food = _searchResults[index];
@@ -261,7 +344,9 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                         borderRadius: BorderRadius.circular(16),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.02),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.02,
+                                            ),
                                             blurRadius: 10,
                                             offset: const Offset(0, 2),
                                           ),
@@ -271,24 +356,28 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                         children: [
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
                                                   food.name,
-                                                  style: AppTextStyles.h3.copyWith(fontSize: 16),
+                                                  style: AppTextStyles.h3
+                                                      .copyWith(fontSize: 16),
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Row(
                                                   children: [
                                                     const Icon(
-                                                      Icons.local_fire_department,
+                                                      Icons
+                                                          .local_fire_department,
                                                       size: 14,
                                                       color: Colors.grey,
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
                                                       '${food.calories.toInt()} cal - ${food.unit}',
-                                                      style: AppTextStyles.label,
+                                                      style:
+                                                          AppTextStyles.label,
                                                     ),
                                                   ],
                                                 ),
@@ -301,7 +390,10 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                               color: AppColors.background,
                                               shape: BoxShape.circle,
                                             ),
-                                            child: Icon(Icons.add, color: AppColors.primary),
+                                            child: Icon(
+                                              Icons.add,
+                                              color: AppColors.primary,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -319,17 +411,24 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const AddManualScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const AddManualScreen(),
+                              ),
                             );
                           },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             side: const BorderSide(color: Colors.grey),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: const Text(
                             'Add Manual',
-                            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -347,4 +446,3 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
     );
   }
 }
-

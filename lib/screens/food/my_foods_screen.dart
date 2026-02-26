@@ -17,43 +17,11 @@ class MyFoodsScreen extends ConsumerStatefulWidget {
 
 class _MyFoodsScreenState extends ConsumerState<MyFoodsScreen> {
   final CustomFoodService _service = CustomFoodService();
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Search Bar
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: TextField(
-            controller: _searchController,
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value.trim().toLowerCase();
-              });
-            },
-            decoration: InputDecoration(
-              hintText: 'Search my foods',
-               prefixIcon: const Icon(Icons.search, color: Colors.grey),
-              filled: true,
-              fillColor: Colors.white, // Match SavedScans style
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.black, width: 2), // Match recent changes
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-          ),
-        ),
-
         Expanded(
           child: StreamBuilder<List<CustomFood>>(
             stream: _service.getUserCustomFoods(),
@@ -66,17 +34,9 @@ class _MyFoodsScreenState extends ConsumerState<MyFoodsScreen> {
                 return Center(child: Text("Error: ${snapshot.error}"));
               }
 
-              final allFoods = snapshot.data ?? [];
-              
-              // Filter
-              final foods = _searchQuery.isEmpty 
-                  ? allFoods 
-                  : allFoods.where((f) => f.description.toLowerCase().contains(_searchQuery)).toList();
+              final foods = snapshot.data ?? [];
 
               if (foods.isEmpty) {
-                if (_searchQuery.isNotEmpty) {
-                    return Center(child: Text('No results for "$_searchQuery"'));
-                }
                 return _buildEmptyState(context);
               }
 

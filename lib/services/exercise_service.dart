@@ -131,4 +131,42 @@ class ExerciseService {
             .where((log) => log.type != ExerciseType.manual && log.name != 'Manual Entry')
             .toList());
   }
+
+  Future<void> deleteExercise(String uid, String logId, DateTime date) async {
+    try {
+      final logRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('exerciseLogs')
+          .doc(logId);
+
+      final logDoc = await logRef.get();
+      if (!logDoc.exists) return;
+      final logData = ExerciseLog.fromMap(logDoc.data()!);
+
+      final batch = _firestore.batch();
+
+      // 1. Remove log
+      batch.delete(logRef);
+
+      // 2. Update Daily Summary (decrement)
+      final dateId = date.toIso8601String().split('T')[0];
+      final summaryRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('daily_summaries')
+          .doc(dateId);
+
+      batch.set(summaryRef, {
+        'exerciseCalories': FieldValue.increment(-logData.calories),
+        'caloriesBurned': FieldValue.increment(-logData.calories),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await batch.commit();
+    } catch (e) {
+      print('deleteExercise error: $e');
+      rethrow;
+    }
+  }
 }

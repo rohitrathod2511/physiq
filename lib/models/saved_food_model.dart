@@ -4,7 +4,8 @@ class SavedFood {
   final String id;
   final String userId;
   final String name;
-  final String sourceType; // "database", "scan", "describe", "custom_meal", "custom_food"
+  final String
+  sourceType; // "database", "scan", "describe", "custom_meal", "custom_food"
   final String servingSize; // e.g., "1 cup", "100g", "1 slice"
   final double servingAmount; // user's selected quantity, e.g., 1.5
   final SavedFoodNutrition nutrition;
@@ -67,6 +68,7 @@ class SavedFoodNutrition {
   final double vitaminA;
   final double calcium;
   final double iron;
+  final double transFat;
 
   SavedFoodNutrition({
     required this.calories,
@@ -76,6 +78,7 @@ class SavedFoodNutrition {
     this.saturatedFat = 0,
     this.polyunsaturatedFat = 0,
     this.monounsaturatedFat = 0,
+    this.transFat = 0,
     this.cholesterol = 0,
     this.sodium = 0,
     this.potassium = 0,
@@ -95,6 +98,7 @@ class SavedFoodNutrition {
       saturatedFat: (json['saturatedFat'] ?? 0).toDouble(),
       polyunsaturatedFat: (json['polyunsaturatedFat'] ?? 0).toDouble(),
       monounsaturatedFat: (json['monounsaturatedFat'] ?? 0).toDouble(),
+      transFat: (json['transFat'] ?? 0).toDouble(),
       cholesterol: (json['cholesterol'] ?? 0).toDouble(),
       sodium: (json['sodium'] ?? 0).toDouble(),
       potassium: (json['potassium'] ?? 0).toDouble(),
@@ -115,6 +119,7 @@ class SavedFoodNutrition {
       'saturatedFat': saturatedFat,
       'polyunsaturatedFat': polyunsaturatedFat,
       'monounsaturatedFat': monounsaturatedFat,
+      'transFat': transFat,
       'cholesterol': cholesterol,
       'sodium': sodium,
       'potassium': potassium,
