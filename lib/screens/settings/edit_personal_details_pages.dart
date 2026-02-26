@@ -32,7 +32,7 @@ class _EditNamePageState extends State<EditNamePage> {
     if (uid != null) {
       await _firestoreService.updateUserProfile(uid, {
         'profile': {'name': _nameController.text.trim()},
-        'displayName': _nameController.text.trim()
+        'displayName': _nameController.text.trim(),
       });
       if (mounted) Navigator.pop(context);
     }
@@ -89,16 +89,11 @@ class _EditNamePageState extends State<EditNamePage> {
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade300,
-                      ),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide(
-                        color: Colors.black,
-                        width: 1.5,
-                      ),
+                      borderSide: BorderSide(color: Colors.black, width: 1.5),
                     ),
                   ),
                 ),
@@ -113,7 +108,9 @@ class _EditNamePageState extends State<EditNamePage> {
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
                 child: const Text('Save'),
               ),
@@ -149,7 +146,9 @@ class _EditGoalWeightPageState extends State<EditGoalWeightPage> {
   Future<void> _save() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      await _firestoreService.updateUserProfile(uid, {'targetWeightKg': _currentValue});
+      await _firestoreService.updateUserProfile(uid, {
+        'targetWeightKg': _currentValue,
+      });
       if (mounted) Navigator.pop(context);
     }
   }
@@ -186,16 +185,18 @@ class _EditGoalWeightPageState extends State<EditGoalWeightPage> {
                     ),
                     const Spacer(),
                     Padding(
-                      padding: const EdgeInsets.all(24.0),
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 104),
                       child: SizedBox(
-                         width: double.infinity,
+                        width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _save,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
                           ),
                           child: const Text('Save'),
                         ),
@@ -206,7 +207,7 @@ class _EditGoalWeightPageState extends State<EditGoalWeightPage> {
               ),
             ),
           );
-        }
+        },
       ),
     );
   }
@@ -216,7 +217,11 @@ class _EditGoalWeightPageState extends State<EditGoalWeightPage> {
 class EditHeightWeightPage extends StatefulWidget {
   final double initialHeight;
   final double initialWeight;
-  const EditHeightWeightPage({super.key, this.initialHeight = 175, this.initialWeight = 70});
+  const EditHeightWeightPage({
+    super.key,
+    this.initialHeight = 175,
+    this.initialWeight = 70,
+  });
 
   @override
   State<EditHeightWeightPage> createState() => _EditHeightWeightPageState();
@@ -232,9 +237,11 @@ class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
   void initState() {
     super.initState();
     _heightCm = widget.initialHeight;
-    _heightController = FixedExtentScrollController(initialItem: (_heightCm - 100).round().clamp(0, 120));
+    _heightController = FixedExtentScrollController(
+      initialItem: (_heightCm - 100).round().clamp(0, 120),
+    );
   }
-  
+
   @override
   void dispose() {
     _heightController.dispose();
@@ -245,9 +252,7 @@ class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       // Save only height to profile
-      await _firestoreService.updateUserProfile(uid, {
-        'heightCm': _heightCm,
-      });
+      await _firestoreService.updateUserProfile(uid, {'heightCm': _heightCm});
 
       if (mounted) Navigator.pop(context);
     }
@@ -305,8 +310,18 @@ class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
                               child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 200),
                                 style: isSelected
-                                    ? const TextStyle(fontFamily: 'Inter', fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)
-                                    : TextStyle(fontFamily: 'Inter', fontSize: 24, fontWeight: FontWeight.w500, color: Colors.grey.withOpacity(0.4)),
+                                    ? const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      )
+                                    : TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey.withOpacity(0.4),
+                                      ),
                                 child: Text("${100 + index} cm"),
                               ),
                             );
@@ -327,7 +342,9 @@ class _EditHeightWeightPageState extends State<EditHeightWeightPage> {
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
                 child: const Text('Save'),
               ),
@@ -345,7 +362,12 @@ class EditDOBPage extends StatefulWidget {
   final int initialYear;
   final int initialMonth;
   final int initialDay;
-  const EditDOBPage({super.key, this.initialYear = 2000, this.initialMonth = 1, this.initialDay = 1});
+  const EditDOBPage({
+    super.key,
+    this.initialYear = 2000,
+    this.initialMonth = 1,
+    this.initialDay = 1,
+  });
 
   @override
   State<EditDOBPage> createState() => _EditDOBPageState();
@@ -368,17 +390,23 @@ class _EditDOBPageState extends State<EditDOBPage> {
     _selectedYear = widget.initialYear;
     _selectedMonth = widget.initialMonth;
     _selectedDay = widget.initialDay;
-    
+
     // Bounds check
     if (_selectedYear < (_currentYear - 110)) _selectedYear = 2000;
-    
+
     final years = List.generate(101, (index) => (_currentYear - 110) + index);
-    
-    _yearController = FixedExtentScrollController(initialItem: years.indexOf(_selectedYear) != -1 ? years.indexOf(_selectedYear) : years.indexOf(2000));
-    _monthController = FixedExtentScrollController(initialItem: _selectedMonth - 1);
+
+    _yearController = FixedExtentScrollController(
+      initialItem: years.indexOf(_selectedYear) != -1
+          ? years.indexOf(_selectedYear)
+          : years.indexOf(2000),
+    );
+    _monthController = FixedExtentScrollController(
+      initialItem: _selectedMonth - 1,
+    );
     _dayController = FixedExtentScrollController(initialItem: _selectedDay - 1);
   }
-  
+
   @override
   void dispose() {
     _yearController.dispose();
@@ -402,9 +430,19 @@ class _EditDOBPageState extends State<EditDOBPage> {
   @override
   Widget build(BuildContext context) {
     final years = List.generate(101, (index) => (_currentYear - 110) + index);
-     final months = [
-      "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-      "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+    final months = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAY",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OCT",
+      "NOV",
+      "DEC",
     ];
 
     return Scaffold(
@@ -423,7 +461,7 @@ class _EditDOBPageState extends State<EditDOBPage> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                   Container(
+                  Container(
                     height: 60,
                     width: double.infinity,
                     margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -438,24 +476,31 @@ class _EditDOBPageState extends State<EditDOBPage> {
                       children: [
                         // Day
                         Expanded(
-                           child: ListWheelScrollView.useDelegate(
+                          child: ListWheelScrollView.useDelegate(
                             controller: _dayController,
                             itemExtent: 50,
-                            perspective: 0.005, diameterRatio: 1.5,
+                            perspective: 0.005,
+                            diameterRatio: 1.5,
                             physics: const FixedExtentScrollPhysics(),
                             onSelectedItemChanged: (index) {
-                               setState(() => _selectedDay = index + 1);
+                              setState(() => _selectedDay = index + 1);
                             },
-                             childDelegate: ListWheelChildBuilderDelegate(
+                            childDelegate: ListWheelChildBuilderDelegate(
                               childCount: 31,
                               builder: (context, index) {
                                 final isSelected = (index + 1) == _selectedDay;
                                 return Center(
                                   child: AnimatedDefaultTextStyle(
-                                     duration: const Duration(milliseconds: 200),
-                                     style: isSelected
-                                      ? AppTextStyles.h2.copyWith(fontSize: 24, color: Colors.black)
-                                      : AppTextStyles.h2.copyWith(fontSize: 24, color: Colors.grey.withOpacity(0.4)),
+                                    duration: const Duration(milliseconds: 200),
+                                    style: isSelected
+                                        ? AppTextStyles.h2.copyWith(
+                                            fontSize: 24,
+                                            color: Colors.black,
+                                          )
+                                        : AppTextStyles.h2.copyWith(
+                                            fontSize: 24,
+                                            color: Colors.grey.withOpacity(0.4),
+                                          ),
                                     child: Text("${index + 1}"),
                                   ),
                                 );
@@ -463,26 +508,34 @@ class _EditDOBPageState extends State<EditDOBPage> {
                             ),
                           ),
                         ),
-                         // Month
+                        // Month
                         Expanded(
-                           child: ListWheelScrollView.useDelegate(
+                          child: ListWheelScrollView.useDelegate(
                             controller: _monthController,
                             itemExtent: 50,
-                            perspective: 0.005, diameterRatio: 1.5,
+                            perspective: 0.005,
+                            diameterRatio: 1.5,
                             physics: const FixedExtentScrollPhysics(),
                             onSelectedItemChanged: (index) {
-                               setState(() => _selectedMonth = index + 1);
+                              setState(() => _selectedMonth = index + 1);
                             },
-                             childDelegate: ListWheelChildBuilderDelegate(
+                            childDelegate: ListWheelChildBuilderDelegate(
                               childCount: 12,
                               builder: (context, index) {
-                                final isSelected = (index + 1) == _selectedMonth;
+                                final isSelected =
+                                    (index + 1) == _selectedMonth;
                                 return Center(
                                   child: AnimatedDefaultTextStyle(
-                                     duration: const Duration(milliseconds: 200),
-                                     style: isSelected
-                                      ? AppTextStyles.h2.copyWith(fontSize: 24, color: Colors.black)
-                                      : AppTextStyles.h2.copyWith(fontSize: 24, color: Colors.grey.withOpacity(0.4)),
+                                    duration: const Duration(milliseconds: 200),
+                                    style: isSelected
+                                        ? AppTextStyles.h2.copyWith(
+                                            fontSize: 24,
+                                            color: Colors.black,
+                                          )
+                                        : AppTextStyles.h2.copyWith(
+                                            fontSize: 24,
+                                            color: Colors.grey.withOpacity(0.4),
+                                          ),
                                     child: Text(months[index]),
                                   ),
                                 );
@@ -492,27 +545,34 @@ class _EditDOBPageState extends State<EditDOBPage> {
                         ),
                         // Year
                         Expanded(
-                           child: ListWheelScrollView.useDelegate(
+                          child: ListWheelScrollView.useDelegate(
                             controller: _yearController,
                             itemExtent: 50,
-                            perspective: 0.005, diameterRatio: 1.5,
+                            perspective: 0.005,
+                            diameterRatio: 1.5,
                             physics: const FixedExtentScrollPhysics(),
                             onSelectedItemChanged: (index) {
-                               if (index >= 0 && index < years.length) {
+                              if (index >= 0 && index < years.length) {
                                 setState(() => _selectedYear = years[index]);
-                               }
+                              }
                             },
-                             childDelegate: ListWheelChildBuilderDelegate(
+                            childDelegate: ListWheelChildBuilderDelegate(
                               childCount: years.length,
                               builder: (context, index) {
                                 final year = years[index];
                                 final isSelected = year == _selectedYear;
                                 return Center(
                                   child: AnimatedDefaultTextStyle(
-                                     duration: const Duration(milliseconds: 200),
-                                     style: isSelected
-                                      ? AppTextStyles.h1.copyWith(fontSize: 28, color: Colors.black)
-                                      : AppTextStyles.h2.copyWith(fontSize: 24, color: Colors.grey.withOpacity(0.4)),
+                                    duration: const Duration(milliseconds: 200),
+                                    style: isSelected
+                                        ? AppTextStyles.h1.copyWith(
+                                            fontSize: 28,
+                                            color: Colors.black,
+                                          )
+                                        : AppTextStyles.h2.copyWith(
+                                            fontSize: 24,
+                                            color: Colors.grey.withOpacity(0.4),
+                                          ),
                                     child: Text("$year"),
                                   ),
                                 );
@@ -526,7 +586,7 @@ class _EditDOBPageState extends State<EditDOBPage> {
                 ],
               ),
             ),
-             SizedBox(
+            SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _save,
@@ -534,7 +594,9 @@ class _EditDOBPageState extends State<EditDOBPage> {
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
                 child: const Text('Save'),
               ),
@@ -589,48 +651,48 @@ class _EditGenderPageState extends State<EditGenderPage> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-             const SizedBox(height: 40),
-             // Custom selection logic mimicking CentralPillButtons/GenderScreen logic but simpler
-             Column(
-               children: options.map((option) {
-                 final isSelected = _selected == option;
-                 return Padding(
-                   padding: const EdgeInsets.only(bottom: 12.0),
-                   child: GestureDetector(
-                     onTap: () => setState(() => _selected = option),
-                     child: AnimatedContainer(
-                       duration: const Duration(milliseconds: 200),
-                       width: double.infinity,
-                       padding: const EdgeInsets.symmetric(vertical: 20),
-                       decoration: BoxDecoration(
-                         color: isSelected ? Colors.black : Colors.white,
-                         borderRadius: BorderRadius.circular(30),
-                         border: Border.all(color: Colors.grey.shade300),
-                         boxShadow: [
-                           if (!isSelected)
-                             BoxShadow(
-                               color: Colors.black.withOpacity(0.05),
-                               blurRadius: 10,
-                               offset: const Offset(0, 4),
-                             )
-                         ]
-                       ),
-                       child: Center(
-                         child: Text(
-                           option,
-                           style: TextStyle(
-                             fontFamily: 'Inter',
-                             fontSize: 18,
-                             fontWeight: FontWeight.w600,
-                             color: isSelected ? Colors.white : Colors.black,
-                           ),
-                         ),
-                       ),
-                     ),
-                   ),
-                 );
-               }).toList(),
-             ),
+            const SizedBox(height: 40),
+            // Custom selection logic mimicking CentralPillButtons/GenderScreen logic but simpler
+            Column(
+              children: options.map((option) {
+                final isSelected = _selected == option;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selected = option),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.black : Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: Colors.grey.shade300),
+                        boxShadow: [
+                          if (!isSelected)
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          option,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
             const Spacer(),
             SizedBox(
               width: double.infinity,
@@ -640,7 +702,9 @@ class _EditGenderPageState extends State<EditGenderPage> {
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
                 child: const Text('Save'),
               ),
@@ -675,7 +739,9 @@ class _EditStepGoalPageState extends State<EditStepGoalPage> {
   Future<void> _save() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      await _firestoreService.updateUserProfile(uid, {'dailyStepGoal': _currentValue.toInt()});
+      await _firestoreService.updateUserProfile(uid, {
+        'dailyStepGoal': _currentValue.toInt(),
+      });
       if (mounted) Navigator.pop(context);
     }
   }
@@ -693,18 +759,23 @@ class _EditStepGoalPageState extends State<EditStepGoalPage> {
       body: Column(
         children: [
           const SizedBox(height: 40),
-          Text('${_currentValue.toInt()} steps', style: AppTextStyles.largeNumber),
+          Text(
+            '${_currentValue.toInt()} steps',
+            style: AppTextStyles.largeNumber,
+          ),
           const SizedBox(height: 40),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: SliderTheme(
-               data: SliderTheme.of(context).copyWith(
+              data: SliderTheme.of(context).copyWith(
                 activeTrackColor: Colors.black,
                 inactiveTrackColor: Colors.grey.shade300,
                 thumbColor: Colors.black,
                 overlayColor: Colors.black.withOpacity(0.1),
                 trackHeight: 6.0,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12.0),
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 12.0,
+                ),
               ),
               child: Slider(
                 value: _currentValue,
@@ -726,7 +797,9 @@ class _EditStepGoalPageState extends State<EditStepGoalPage> {
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
                 child: const Text('Save'),
               ),

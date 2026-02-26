@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/models/food_model.dart';
-import 'package:physiq/theme/design_system.dart';
 
 class AddManualScreen extends ConsumerStatefulWidget {
   const AddManualScreen({super.key});
@@ -12,12 +11,15 @@ class AddManualScreen extends ConsumerStatefulWidget {
 
 class _AddManualScreenState extends ConsumerState<AddManualScreen> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _caloriesController =
-      TextEditingController(text: "");
-  final TextEditingController _proteinController =
-      TextEditingController(text: "");
-  final TextEditingController _carbsController =
-      TextEditingController(text: "");
+  final TextEditingController _caloriesController = TextEditingController(
+    text: "",
+  );
+  final TextEditingController _proteinController = TextEditingController(
+    text: "",
+  );
+  final TextEditingController _carbsController = TextEditingController(
+    text: "",
+  );
   final TextEditingController _fatsController = TextEditingController(text: "");
 
   int _quantity = 1;
@@ -82,24 +84,34 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.72);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Selected food",
           style: TextStyle(
-              color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+            color: textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark_border, color: Colors.black),
+            icon: Icon(Icons.bookmark_border, color: textPrimary),
             onPressed: () {
               // Placeholder for bookmark action
             },
@@ -123,14 +135,18 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                       Expanded(
                         child: TextField(
                           controller: _nameController,
-                          style: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold),
-                          decoration: const InputDecoration(
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
+                          decoration: InputDecoration(
                             hintText: "Tap to name",
                             border: InputBorder.none,
                             hintStyle: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold),
+                              color: textSecondary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -139,7 +155,10 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                       Container(
                         height: 44,
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 1),
+                          border: Border.all(
+                            color: theme.dividerColor,
+                            width: 1,
+                          ),
                           borderRadius: BorderRadius.circular(30),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -155,8 +174,11 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                             const SizedBox(width: 12),
                             Text(
                               "$_quantity",
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             IconButton(
@@ -178,15 +200,15 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.cardColor,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: theme.dividerColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: theme.shadowColor.withValues(alpha: 0.12),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
-                        )
+                        ),
                       ],
                     ),
                     child: Row(
@@ -196,12 +218,12 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: theme.colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.local_fire_department,
-                            color: Colors.black,
+                            color: theme.colorScheme.onSurfaceVariant,
                             size: 28,
                           ),
                         ),
@@ -211,11 +233,11 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 "Calories",
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.black54,
+                                  color: textSecondary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -223,10 +245,14 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                                 controller: _caloriesController,
                                 keyboardType: TextInputType.number,
                                 onChanged: (val) => _onMacroChanged(val, 'cal'),
-                                style: const TextStyle(
-                                    fontSize: 32, fontWeight: FontWeight.bold),
-                                decoration: const InputDecoration(
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary,
+                                ),
+                                decoration: InputDecoration(
                                   hintText: "0",
+                                  hintStyle: TextStyle(color: textSecondary),
                                   border: InputBorder.none,
                                   isDense: true,
                                   contentPadding: EdgeInsets.zero,
@@ -248,7 +274,7 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                         child: _buildMacroCard(
                           label: "Protein",
                           icon: Icons.fitness_center, // Or a generic food icon
-                          iconColor: Colors.redAccent,
+                          iconColor: theme.colorScheme.error,
                           controller: _proteinController,
                           type: 'prot',
                         ),
@@ -258,7 +284,7 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                         child: _buildMacroCard(
                           label: "Carbs",
                           icon: Icons.grass, // Closest to wheat/grain
-                          iconColor: Colors.orange,
+                          iconColor: theme.colorScheme.secondary,
                           controller: _carbsController,
                           type: 'carb',
                         ),
@@ -268,7 +294,7 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                         child: _buildMacroCard(
                           label: "Fats",
                           icon: Icons.water_drop,
-                          iconColor: Colors.blue,
+                          iconColor: theme.colorScheme.primary,
                           controller: _fatsController,
                           type: 'fat',
                         ),
@@ -282,18 +308,20 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
           // Bottom Log Button
           Container(
             padding: const EdgeInsets.only(
-                left: 20, right: 20, bottom: 34, top: 16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+              left: 20,
+              right: 20,
+              bottom: 34,
+              top: 16,
             ),
+            decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
             child: SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
                 onPressed: _logMeal,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade200,
-                  foregroundColor: Colors.black,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  foregroundColor: textPrimary,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -318,12 +346,17 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
     required TextEditingController controller,
     required String type,
   }) {
+    final ThemeData theme = Theme.of(context);
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.72);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,10 +368,10 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black54,
+                    color: textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -355,22 +388,27 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
                   controller: controller,
                   keyboardType: TextInputType.number,
                   onChanged: (val) => _onMacroChanged(val, type),
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textTheme.bodyLarge?.color,
+                  ),
+                  decoration: InputDecoration(
                     hintText: "0",
+                    hintStyle: TextStyle(color: textSecondary),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
-              const Text(
+              Text(
                 "g",
                 style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500),
+                  fontSize: 14,
+                  color: textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -380,8 +418,9 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
   }
 
   void _logMeal() {
-    final String name =
-        _nameController.text.isEmpty ? "Manual Meal" : _nameController.text;
+    final String name = _nameController.text.isEmpty
+        ? "Manual Meal"
+        : _nameController.text;
 
     // Create a Food object with the calculated totals
     // Note: The app likely expects 'unit' to be the serving size name, e.g., "1 serving"
@@ -407,14 +446,11 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
     // Since we don't know the exact return contract, we'll return a Map or similar.
     // Ideally we return the Food object, and the caller asks for quantity.
     // Or we return {food, quantity}.
-    
+
     // For now, let's return the food object, assuming the quantity sets the *default* serving count?
-    // Actually, if we pass the Food object with base nutrition, and pass quantity back, 
+    // Actually, if we pass the Food object with base nutrition, and pass quantity back,
     // the receiver can multiply.
-    
-    Navigator.pop(context, {
-      'food': food,
-      'quantity': _quantity,
-    });
+
+    Navigator.pop(context, {'food': food, 'quantity': _quantity});
   }
 }

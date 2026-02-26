@@ -17,6 +17,8 @@ class _MyFoodsScreenState extends State<MyFoodsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
     return StreamBuilder<List<CustomFood>>(
       stream: _service.getUserCustomFoods(),
       builder: (context, snapshot) {
@@ -35,7 +37,10 @@ class _MyFoodsScreenState extends State<MyFoodsScreen> {
             children: [
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   itemCount: allFoods.length,
                   itemBuilder: (context, index) {
                     final food = allFoods[index];
@@ -46,8 +51,8 @@ class _MyFoodsScreenState extends State<MyFoodsScreen> {
             ],
           ),
           floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.black,
-            child: const Icon(Icons.add, color: Colors.white),
+            backgroundColor: theme.colorScheme.primary,
+            child: Icon(Icons.add, color: theme.colorScheme.onPrimary),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const CreateFoodScreen()),
@@ -59,20 +64,26 @@ class _MyFoodsScreenState extends State<MyFoodsScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.lunch_dining, size: 80, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(
-            "My Foods",
-            style: AppTextStyles.h2,
+          Icon(
+            Icons.lunch_dining,
+            size: 80,
+            color: textSecondary.withValues(alpha: 0.7),
           ),
+          const SizedBox(height: 16),
+          Text("My Foods", style: AppTextStyles.h2),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             "Add a custom food to your personal list",
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: textSecondary),
           ),
           const SizedBox(height: 24),
           ElevatedButton(
@@ -81,10 +92,12 @@ class _MyFoodsScreenState extends State<MyFoodsScreen> {
               MaterialPageRoute(builder: (_) => const CreateFoodScreen()),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
             ),
             child: const Text("Add Food"),
           ),
@@ -93,11 +106,22 @@ class _MyFoodsScreenState extends State<MyFoodsScreen> {
     );
   }
 
-  Widget _buildFoodCard(BuildContext context, CustomFood food, CustomFoodService service) {
+  Widget _buildFoodCard(
+    BuildContext context,
+    CustomFood food,
+    CustomFoodService service,
+  ) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
-      color: Colors.grey[50], // Light grey background
+      color: theme.cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () => Navigator.push(
@@ -115,18 +139,21 @@ class _MyFoodsScreenState extends State<MyFoodsScreen> {
                   children: [
                     Text(
                       food.description,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       "${food.nutrition.calories.toInt()} kcal • ${food.servingSize}",
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      style: TextStyle(color: textSecondary, fontSize: 14),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.add_circle_outline, color: Colors.black),
+                icon: Icon(Icons.add_circle_outline, color: textPrimary),
                 onPressed: () async {
                   await service.logCustomFood(food, DateTime.now());
                   if (context.mounted) {

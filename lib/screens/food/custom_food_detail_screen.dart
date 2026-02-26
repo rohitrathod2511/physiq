@@ -49,10 +49,11 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
       );
       await SavedFoodService().saveFood(savedFood);
       if (mounted) {
+        final Color primary = Theme.of(context).colorScheme.primary;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text("Food saved successfully"),
-            backgroundColor: Colors.green,
+            backgroundColor: primary,
           ),
         );
       }
@@ -83,16 +84,20 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
             child: Text(
               "Cancel",
               style: AppTextStyles.button.copyWith(
-                color: AppColors.secondaryText,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: Text(
               "Delete",
-              style: AppTextStyles.button.copyWith(color: Colors.red),
+              style: AppTextStyles.button.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
           ),
         ],
@@ -102,10 +107,11 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
     if (confirm == true) {
       await _service.deleteCustomFood(widget.food.id);
       if (mounted) {
+        final ThemeData theme = Theme.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text("Food deleted"),
-            backgroundColor: Colors.black,
+            backgroundColor: theme.colorScheme.primary,
           ),
         );
         Navigator.pop(context);
@@ -115,31 +121,38 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
     final nutrition = widget.food.nutrition;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(widget.food.description, style: AppTextStyles.h2),
+        title: Text(
+          widget.food.description,
+          style: AppTextStyles.h2.copyWith(color: textPrimary),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(
               Icons.bookmark_border,
-              color: _isSaving
-                  ? AppColors.secondaryText
-                  : AppColors.primaryText,
+              color: _isSaving ? textSecondary : textPrimary,
             ),
             onPressed: _isSaving ? null : _saveToSavedScans,
           ),
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: AppColors.primaryText),
+            icon: Icon(Icons.more_vert, color: textPrimary),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -147,13 +160,20 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
               if (value == 'delete') _deleteFood();
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                    SizedBox(width: 8),
-                    Text("Delete", style: TextStyle(color: Colors.red)),
+                    Icon(
+                      Icons.delete_outline,
+                      color: theme.colorScheme.error,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Delete",
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
                   ],
                 ),
               ),
@@ -184,7 +204,7 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(AppRadii.card),
                 boxShadow: [AppShadows.card],
               ),
@@ -293,7 +313,7 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(AppRadii.card),
             boxShadow: [AppShadows.card],
           ),
@@ -321,7 +341,10 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
           ),
         ),
         if (showDivider)
-          Divider(color: Colors.grey.withOpacity(0.1), height: 16),
+          Divider(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.4),
+            height: 16,
+          ),
       ],
     );
   }

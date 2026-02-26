@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/models/my_meal_model.dart';
 import 'package:physiq/services/my_meals_service.dart';
-import 'package:physiq/services/my_meals_service.dart';
 import 'package:physiq/screens/meal/food_database_screen.dart';
 import 'package:physiq/services/saved_food_service.dart';
 import 'package:physiq/models/saved_food_model.dart';
@@ -163,6 +162,8 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   Future<void> _deleteMeal() async {
+    final ThemeData theme = Theme.of(context);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -175,7 +176,10 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: Text(
+              "Delete",
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
           ),
         ],
       ),
@@ -190,23 +194,33 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+    final Color proteinAccent = theme.colorScheme.error;
+    final Color carbsAccent = theme.colorScheme.secondary;
+    final Color fatsAccent = theme.colorScheme.primary;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Meal Details",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: AppTextStyles.h2.copyWith(color: textPrimary),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.star_border, color: Colors.black),
+            icon: Icon(Icons.star_border, color: textPrimary),
             onPressed: () async {
               try {
                 final user = FirebaseAuth.instance.currentUser;
@@ -245,7 +259,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
+            icon: Icon(Icons.delete, color: theme.colorScheme.error),
             onPressed: _deleteMeal,
           ),
         ],
@@ -264,13 +278,17 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     onChanged: (val) => _autoUpdate(), // Auto-save name changes
                     decoration: InputDecoration(
                       hintText: "Meal Name",
-                      suffixIcon: const Icon(Icons.edit, color: Colors.grey),
+                      suffixIcon: Icon(Icons.edit, color: textSecondary),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Colors.grey[100],
+                      fillColor:
+                          theme.inputDecorationTheme.fillColor ??
+                          theme.colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.45,
+                          ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -279,21 +297,21 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(color: theme.dividerColor),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: theme.colorScheme.secondaryContainer,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.local_fire_department,
-                            color: Colors.orange,
+                            color: theme.colorScheme.onSecondaryContainer,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -303,7 +321,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                             Text(
                               "Calories",
                               style: AppTextStyles.body.copyWith(
-                                color: Colors.grey,
+                                color: textSecondary,
                               ),
                             ),
                             Text(
@@ -322,7 +340,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         child: _buildMiniMacro(
                           "Protein",
                           "${_totalProtein.toInt()}g",
-                          Colors.red,
+                          proteinAccent,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -330,7 +348,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         child: _buildMiniMacro(
                           "Carbs",
                           "${_totalCarbs.toInt()}g",
-                          Colors.amber,
+                          carbsAccent,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -338,7 +356,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         child: _buildMiniMacro(
                           "Fats",
                           "${_totalFat.toInt()}g",
-                          Colors.blue,
+                          fatsAccent,
                         ),
                       ),
                     ],
@@ -354,7 +372,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     children: [
                       Text("Meal Items", style: AppTextStyles.h2),
                       IconButton(
-                        icon: const Icon(Icons.add_circle, color: Colors.black),
+                        icon: Icon(Icons.add_circle, color: textPrimary),
                         onPressed: _addItems,
                       ),
                     ],
@@ -376,8 +394,11 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         background: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.only(right: 20),
-                          color: Colors.red,
-                          child: const Icon(Icons.delete, color: Colors.white),
+                          color: theme.colorScheme.error,
+                          child: Icon(
+                            Icons.delete,
+                            color: theme.colorScheme.onError,
+                          ),
                         ),
                         child: ListTile(
                           title: Text(item.foodName, style: AppTextStyles.h3),
@@ -399,11 +420,13 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   Widget _buildMiniMacro(String label, String value, Color color) {
+    final ThemeData theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         children: [
@@ -414,14 +437,21 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.textTheme.bodyMedium?.color,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: theme.textTheme.bodyLarge?.color,
+            ),
           ),
         ],
       ),

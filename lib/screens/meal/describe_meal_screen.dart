@@ -8,8 +8,6 @@ import 'package:physiq/screens/meal/meal_preview_screen.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/models/fatsecret_food_model.dart';
 import 'package:physiq/models/fatsecret_serving_model.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 
 /// Describe meal - FatSecret search with details.
 class DescribeMealScreen extends ConsumerStatefulWidget {
@@ -29,7 +27,8 @@ class DescribeMealScreen extends ConsumerStatefulWidget {
 class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
   late TextEditingController _controller;
   final stt.SpeechToText _speech = stt.SpeechToText();
-  final FatSecretService _fatSecretService = FatSecretService(); // Use FatSecretService directly
+  final FatSecretService _fatSecretService =
+      FatSecretService(); // Use FatSecretService directly
 
   List<FatSecretFood> _searchResults = [];
   bool _isListening = false;
@@ -92,19 +91,19 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
         });
       }
     } catch (e) {
-      print("❌ Search Error: $e");
+      debugPrint("Search error: $e");
       if (mounted) {
         setState(() => _isSearching = false);
-        
+
         String msg = "Search failed: $e";
         if (e.toString().contains('unauthenticated')) {
-           msg = "Auth Error: Please restart app to sign in.";
+          msg = "Auth Error: Please restart app to sign in.";
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -129,7 +128,9 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
         onResult: (result) {
           setState(() {
             _controller.text = result.recognizedWords;
-            _controller.selection = TextSelection.fromPosition(TextPosition(offset: _controller.text.length));
+            _controller.selection = TextSelection.fromPosition(
+              TextPosition(offset: _controller.text.length),
+            );
           });
           _onTextChanged(result.recognizedWords);
           if (result.finalResult) {
@@ -152,8 +153,10 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
 
     try {
       // Fetch full details (servings)
-      final detailedFood = await _fatSecretService.getFoodDetails(partialFood.id);
-      
+      final detailedFood = await _fatSecretService.getFoodDetails(
+        partialFood.id,
+      );
+
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading
 
@@ -161,7 +164,7 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
@@ -169,10 +172,14 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
           food: detailedFood,
           onConfirm: (quantity, serving, description) {
             final appFood = _mapToAppFood(detailedFood, serving, quantity);
-            
+
             Navigator.pop(ctx); // Close sheet
             if (widget.isPicking) {
-              Navigator.pop(context, {'food': appFood, 'quantity': quantity, 'description': description});
+              Navigator.pop(context, {
+                'food': appFood,
+                'quantity': quantity,
+                'description': description,
+              });
               return;
             }
             Navigator.push(
@@ -195,11 +202,15 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
     }
   }
 
-  Food _mapToAppFood(FatSecretFood fsFood, FatSecretServing serving, double quantity) {
-    // Calculate total macros for the base Food object if needed, 
+  Food _mapToAppFood(
+    FatSecretFood fsFood,
+    FatSecretServing serving,
+    double quantity,
+  ) {
+    // Calculate total macros for the base Food object if needed,
     // but usually Food object represents 1 unit/serving.
     // Here we map 1 'serving' unit to the Food object.
-    
+
     return Food(
       id: "fs_${fsFood.id}",
       name: fsFood.name,
@@ -228,19 +239,23 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.72);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          "Log Food",
-          style: AppTextStyles.h2.copyWith(fontSize: 20),
-        ),
+        title: Text("Log Food", style: AppTextStyles.h2.copyWith(fontSize: 20)),
         centerTitle: true,
       ),
       body: Column(
@@ -250,11 +265,11 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(AppRadii.bigCard),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: theme.shadowColor.withValues(alpha: 0.12),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -271,7 +286,9 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       hintText: "Search food (e.g. Peanut Butter, Chicken)",
-                      hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
+                      hintStyle: AppTextStyles.body.copyWith(
+                        color: textSecondary,
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -289,16 +306,24 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: _isListening ? Colors.redAccent.withOpacity(0.1) : Colors.transparent,
+                            color: _isListening
+                                ? theme.colorScheme.errorContainer
+                                : Colors.transparent,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: _isListening ? Colors.redAccent : AppColors.primary.withOpacity(0.2),
+                              color: _isListening
+                                  ? theme.colorScheme.error
+                                  : theme.colorScheme.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
                               width: 2,
                             ),
                           ),
                           child: Icon(
                             _isListening ? Icons.mic : Icons.mic_none,
-                            color: _isListening ? Colors.redAccent : AppColors.primary,
+                            color: _isListening
+                                ? theme.colorScheme.error
+                                : theme.colorScheme.primary,
                             size: 24,
                           ),
                         ),
@@ -321,16 +346,24 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.search, size: 48, color: Colors.grey.withOpacity(0.5)),
+                                Icon(
+                                  Icons.search,
+                                  size: 48,
+                                  color: textSecondary.withValues(alpha: 0.5),
+                                ),
                                 const SizedBox(height: 16),
                                 Text(
                                   "Search for food to log",
-                                  style: AppTextStyles.body.copyWith(color: Colors.grey),
+                                  style: AppTextStyles.body.copyWith(
+                                    color: textSecondary,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   "e.g. Peanut Butter, Chicken, Rice",
-                                  style: AppTextStyles.label.copyWith(color: Colors.grey),
+                                  style: AppTextStyles.label.copyWith(
+                                    color: textSecondary,
+                                  ),
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -340,10 +373,10 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
                       else
                         ..._searchResults.map((food) {
                           // Show calories if available, else standard text
-                          final macros = food.calories != null 
+                          final macros = food.calories != null
                               ? "${food.calories!.toInt()} cal"
                               : food.description ?? "Tap for details";
-                          
+
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: InkWell(
@@ -352,39 +385,59 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: AppColors.card,
+                                  color: theme.cardColor,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                  border: Border.all(
+                                    color: theme.dividerColor.withValues(
+                                      alpha: 0.45,
+                                    ),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
                                     CircleAvatar(
-                                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                                      backgroundColor: theme.colorScheme.primary
+                                          .withValues(alpha: 0.1),
                                       child: Text(
-                                        food.name.isNotEmpty ? food.name[0].toUpperCase() : "?",
-                                        style: TextStyle(color: AppColors.primary),
+                                        food.name.isNotEmpty
+                                            ? food.name[0].toUpperCase()
+                                            : "?",
+                                        style: TextStyle(
+                                          color: theme.colorScheme.primary,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             food.name,
-                                            style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                                            style: AppTextStyles.body.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            food.brandName.isNotEmpty ? "${food.brandName} • $macros" : macros,
-                                            style: AppTextStyles.label.copyWith(fontSize: 13, color: Colors.grey),
+                                            food.brandName.isNotEmpty
+                                                ? "${food.brandName} • $macros"
+                                                : macros,
+                                            style: AppTextStyles.label.copyWith(
+                                              fontSize: 13,
+                                              color: textSecondary,
+                                            ),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
                                       ),
                                     ),
-                                    Icon(Icons.add_circle, color: AppColors.primary),
+                                    Icon(
+                                      Icons.add_circle,
+                                      color: theme.colorScheme.primary,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -402,7 +455,8 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
 
 class _FoodQuantitySelector extends StatefulWidget {
   final FatSecretFood food;
-  final Function(double quantity, FatSecretServing serving, String description) onConfirm;
+  final Function(double quantity, FatSecretServing serving, String description)
+  onConfirm;
 
   const _FoodQuantitySelector({required this.food, required this.onConfirm});
 
@@ -419,19 +473,19 @@ class _FoodQuantitySelectorState extends State<_FoodQuantitySelector> {
     super.initState();
     if (widget.food.servings.isNotEmpty) {
       // Pick default or first
-      _selectedServing = widget.food.servings.first; 
+      _selectedServing = widget.food.servings.first;
       // Theoretically we could look for 'is_default' but raw search response usually handles ordering or we trust list order.
       // FatSecretFood logic might not preserve is_default explicitly unless mapped.
     } else {
-        // Fallback dummy
-        _selectedServing = FatSecretServing(
-          id: '0', 
-          description: 'serving', 
-          calories: 0, 
-          protein: 0, 
-          carbs: 0, 
-          fat: 0
-        ); 
+      // Fallback dummy
+      _selectedServing = FatSecretServing(
+        id: '0',
+        description: 'serving',
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      );
     }
   }
 
@@ -443,13 +497,20 @@ class _FoodQuantitySelectorState extends State<_FoodQuantitySelector> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.72);
+
     if (widget.food.servings.isEmpty) {
-         return Padding(
-             padding: const EdgeInsets.all(20),
-             child: Text("No serving information available."),
-         );
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text("No serving information available."),
+      );
     }
-    
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
@@ -461,25 +522,31 @@ class _FoodQuantitySelectorState extends State<_FoodQuantitySelector> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.food.name, style: AppTextStyles.h2),
+          Text(
+            widget.food.name,
+            style: AppTextStyles.h2.copyWith(color: textPrimary),
+          ),
           if (widget.food.brandName.isNotEmpty)
-             Text(widget.food.brandName, style: AppTextStyles.label.copyWith(color: Colors.grey)),
+            Text(
+              widget.food.brandName,
+              style: AppTextStyles.label.copyWith(color: textSecondary),
+            ),
           const SizedBox(height: 16),
-          
+
           // Serving Size Dropdown
           Text("Serving Size", style: AppTextStyles.label),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: theme.dividerColor),
               borderRadius: BorderRadius.circular(12),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<FatSecretServing>(
                 value: _selectedServing,
                 isExpanded: true,
-                dropdownColor: AppColors.card,
+                dropdownColor: theme.cardColor,
                 items: widget.food.servings.map((s) {
                   return DropdownMenuItem(
                     value: s,
@@ -497,34 +564,47 @@ class _FoodQuantitySelectorState extends State<_FoodQuantitySelector> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           TextField(
             controller: _qtyController,
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: "Number of Servings",
               hintText: "e.g. 1, 0.5",
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              hintStyle: TextStyle(color: textSecondary),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             autofocus: true,
           ),
           const SizedBox(height: 24),
-          
+
           ElevatedButton(
             onPressed: () {
               final qty = double.tryParse(_qtyController.text) ?? 0;
               if (qty <= 0) return;
-              final desc = "$qty x ${_selectedServing.description} ${widget.food.name}";
+              final desc =
+                  "$qty x ${_selectedServing.description} ${widget.food.name}";
               widget.onConfirm(qty, _selectedServing, desc);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text("Add Food", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              "Add Food",
+              style: TextStyle(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

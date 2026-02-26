@@ -93,8 +93,13 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     });
   }
 
-  double _getNutrient(double Function(FatSecretServing) selector, double? fallback) {
-    if (_selectedServing != null) return selector(_selectedServing!) * _quantity;
+  double _getNutrient(
+    double Function(FatSecretServing) selector,
+    double? fallback,
+  ) {
+    if (_selectedServing != null) {
+      return selector(_selectedServing!) * _quantity;
+    }
     return (fallback ?? 0) * _quantity;
   }
 
@@ -102,7 +107,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final calories = _getNutrient((s) => s.calories, widget.initialFood.calories);
+    final calories = _getNutrient(
+      (s) => s.calories,
+      widget.initialFood.calories,
+    );
     final protein = _getNutrient((s) => s.protein, widget.initialFood.protein);
     final carbs = _getNutrient((s) => s.carbs, widget.initialFood.carbs);
     final fat = _getNutrient((s) => s.fat, widget.initialFood.fat);
@@ -133,7 +141,8 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       timestamp: DateTime.now(),
       imageUrl: widget.imagePath,
       source: _detailedFood != null ? 'fatsecret' : widget.initialFood.source,
-      servingDescription: _selectedServing?.description ?? widget.initialFood.unit,
+      servingDescription:
+          _selectedServing?.description ?? widget.initialFood.unit,
       servingAmount: _quantity,
       fullNutritionMap: _selectedServing != null
           ? {
@@ -141,19 +150,44 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               'protein': protein,
               'carbs': carbs,
               'fat': fat,
-              'saturatedFat': _getNutrient((s) => s.saturatedFat, widget.initialFood.saturatedFat),
-              'polyunsaturatedFat':
-                  _getNutrient((s) => s.polyunsaturatedFat, widget.initialFood.polyunsaturatedFat),
-              'monounsaturatedFat':
-                  _getNutrient((s) => s.monounsaturatedFat, widget.initialFood.monounsaturatedFat),
-              'cholesterol': _getNutrient((s) => s.cholesterol, widget.initialFood.cholesterol),
-              'sodium': _getNutrient((s) => s.sodium, widget.initialFood.sodium),
+              'saturatedFat': _getNutrient(
+                (s) => s.saturatedFat,
+                widget.initialFood.saturatedFat,
+              ),
+              'polyunsaturatedFat': _getNutrient(
+                (s) => s.polyunsaturatedFat,
+                widget.initialFood.polyunsaturatedFat,
+              ),
+              'monounsaturatedFat': _getNutrient(
+                (s) => s.monounsaturatedFat,
+                widget.initialFood.monounsaturatedFat,
+              ),
+              'cholesterol': _getNutrient(
+                (s) => s.cholesterol,
+                widget.initialFood.cholesterol,
+              ),
+              'sodium': _getNutrient(
+                (s) => s.sodium,
+                widget.initialFood.sodium,
+              ),
               'fiber': _getNutrient((s) => s.fiber, widget.initialFood.fiber),
               'sugar': _getNutrient((s) => s.sugar, widget.initialFood.sugar),
-              'potassium': _getNutrient((s) => s.potassium, widget.initialFood.potassium),
-              'vitaminA': _getNutrient((s) => s.vitaminA, widget.initialFood.vitaminA),
-              'vitaminC': _getNutrient((s) => s.vitaminC, widget.initialFood.vitaminC),
-              'calcium': _getNutrient((s) => s.calcium, widget.initialFood.calcium),
+              'potassium': _getNutrient(
+                (s) => s.potassium,
+                widget.initialFood.potassium,
+              ),
+              'vitaminA': _getNutrient(
+                (s) => s.vitaminA,
+                widget.initialFood.vitaminA,
+              ),
+              'vitaminC': _getNutrient(
+                (s) => s.vitaminC,
+                widget.initialFood.vitaminC,
+              ),
+              'calcium': _getNutrient(
+                (s) => s.calcium,
+                widget.initialFood.calcium,
+              ),
               'iron': _getNutrient((s) => s.iron, widget.initialFood.iron),
             }
           : {},
@@ -165,41 +199,61 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+    final Color proteinAccent = theme.colorScheme.error;
+    final Color carbsAccent = theme.colorScheme.secondary;
+    final Color fatsAccent = theme.colorScheme.primary;
+
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    final cals = _getNutrient((s) => s.calories, widget.initialFood.calories).round();
-    final protein = _getNutrient((s) => s.protein, widget.initialFood.protein).round();
-    final carbs = _getNutrient((s) => s.carbs, widget.initialFood.carbs).round();
+    final cals = _getNutrient(
+      (s) => s.calories,
+      widget.initialFood.calories,
+    ).round();
+    final protein = _getNutrient(
+      (s) => s.protein,
+      widget.initialFood.protein,
+    ).round();
+    final carbs = _getNutrient(
+      (s) => s.carbs,
+      widget.initialFood.carbs,
+    ).round();
     final fat = _getNutrient((s) => s.fat, widget.initialFood.fat).round();
     final servings = _detailedFood?.servings ?? const <FatSecretServing>[];
-    final selectedServingIndex = (_selectedServing != null && servings.isNotEmpty)
+    final selectedServingIndex =
+        (_selectedServing != null && servings.isNotEmpty)
         ? servings.indexWhere((serving) => serving.id == _selectedServing!.id)
         : 0;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Nutrition',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: Icon(Icons.more_vert, color: textPrimary),
             onPressed: () {},
-          )
+          ),
         ],
       ),
       body: Column(
@@ -217,16 +271,19 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                       clipBehavior: Clip.hardEdge,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        color: Colors.grey[100],
+                        color:
+                            theme.inputDecorationTheme.fillColor ??
+                            theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.45),
                       ),
                       child: Image.file(
                         File(widget.imagePath!),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          return const Center(
+                          return Center(
                             child: Icon(
                               Icons.image_not_supported_outlined,
-                              color: Colors.grey,
+                              color: textSecondary,
                               size: 36,
                             ),
                           );
@@ -241,7 +298,11 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                       Expanded(
                         child: Text(
                           _detailedFood?.name ?? widget.initialFood.name,
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -255,28 +316,35 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Serving Size',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<int>(
-                          initialValue: selectedServingIndex < 0 ? 0 : selectedServingIndex,
+                          initialValue: selectedServingIndex < 0
+                              ? 0
+                              : selectedServingIndex,
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            fillColor:
+                                theme.inputDecorationTheme.fillColor ??
+                                theme.cardColor,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(color: theme.dividerColor),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(color: theme.dividerColor),
                             ),
                           ),
                           items: List<DropdownMenuItem<int>>.generate(
@@ -306,24 +374,30 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Serving Size',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: Colors.black,
+                            color: theme.colorScheme.primary,
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: Text(
                             widget.initialFood.unit,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: theme.colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -332,17 +406,17 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Serving Amount',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: textPrimary,
                         ),
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: theme.dividerColor),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -350,7 +424,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                             IconButton(
                               icon: const Icon(Icons.remove),
                               onPressed: () => _updateQuantity(-0.5),
-                              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
+                              ),
                               padding: EdgeInsets.zero,
                             ),
                             Container(
@@ -360,46 +437,68 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                                 _quantity % 1 == 0
                                     ? _quantity.toInt().toString()
                                     : _quantity.toStringAsFixed(1),
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary,
+                                ),
                               ),
                             ),
                             IconButton(
                               icon: const Icon(Icons.add),
                               onPressed: () => _updateQuantity(0.5),
-                              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
+                              ),
                               padding: EdgeInsets.zero,
                             ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(color: theme.dividerColor),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
+                            color: theme.colorScheme.secondaryContainer,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.local_fire_department, color: Colors.orange),
+                          child: Icon(
+                            Icons.local_fire_department,
+                            color: theme.colorScheme.onSecondaryContainer,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Calories', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                            Text(
+                              'Calories',
+                              style: TextStyle(
+                                color: textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('$cals',
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                            Text(
+                              '$cals',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -413,7 +512,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                           label: 'Protein',
                           value: '${protein}g',
                           icon: Icons.restaurant,
-                          color: Colors.red,
+                          color: proteinAccent,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -422,7 +521,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                           label: 'Carbs',
                           value: '${carbs}g',
                           icon: Icons.grain,
-                          color: Colors.orange,
+                          color: carbsAccent,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -431,7 +530,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                           label: 'Fats',
                           value: '${fat}g',
                           icon: Icons.water_drop,
-                          color: Colors.blue,
+                          color: fatsAccent,
                         ),
                       ),
                     ],
@@ -439,29 +538,45 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Other nutrition facts',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _buildFactRow(
                     'Saturated Fat',
-                    _getNutrient((s) => s.saturatedFat, widget.initialFood.saturatedFat),
+                    _getNutrient(
+                      (s) => s.saturatedFat,
+                      widget.initialFood.saturatedFat,
+                    ),
                     'g',
                   ),
                   _buildFactRow(
                     'Polyunsaturated Fat',
-                    _getNutrient((s) => s.polyunsaturatedFat, widget.initialFood.polyunsaturatedFat),
+                    _getNutrient(
+                      (s) => s.polyunsaturatedFat,
+                      widget.initialFood.polyunsaturatedFat,
+                    ),
                     'g',
                   ),
                   _buildFactRow(
                     'Monounsaturated Fat',
-                    _getNutrient((s) => s.monounsaturatedFat, widget.initialFood.monounsaturatedFat),
+                    _getNutrient(
+                      (s) => s.monounsaturatedFat,
+                      widget.initialFood.monounsaturatedFat,
+                    ),
                     'g',
                   ),
                   _buildFactRow(
                     'Cholesterol',
-                    _getNutrient((s) => s.cholesterol, widget.initialFood.cholesterol),
+                    _getNutrient(
+                      (s) => s.cholesterol,
+                      widget.initialFood.cholesterol,
+                    ),
                     'mg',
                   ),
                   _buildFactRow(
@@ -481,17 +596,26 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                   ),
                   _buildFactRow(
                     'Potassium',
-                    _getNutrient((s) => s.potassium, widget.initialFood.potassium),
+                    _getNutrient(
+                      (s) => s.potassium,
+                      widget.initialFood.potassium,
+                    ),
                     'mg',
                   ),
                   _buildFactRow(
                     'Vitamin A',
-                    _getNutrient((s) => s.vitaminA, widget.initialFood.vitaminA),
+                    _getNutrient(
+                      (s) => s.vitaminA,
+                      widget.initialFood.vitaminA,
+                    ),
                     'mcg',
                   ),
                   _buildFactRow(
                     'Vitamin C',
-                    _getNutrient((s) => s.vitaminC, widget.initialFood.vitaminC),
+                    _getNutrient(
+                      (s) => s.vitaminC,
+                      widget.initialFood.vitaminC,
+                    ),
                     'mg',
                   ),
                   _buildFactRow(
@@ -510,9 +634,9 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
           ),
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFEEEEEE))),
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              border: Border(top: BorderSide(color: theme.dividerColor)),
             ),
             child: SizedBox(
               width: double.infinity,
@@ -520,13 +644,16 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               child: ElevatedButton(
                 onPressed: _saveMeal,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                 ),
                 child: Text(
                   widget.isSelectionMode ? 'Add' : 'Save',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: theme.colorScheme.onPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -563,18 +690,25 @@ class _MacroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: theme.dividerColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: theme.shadowColor.withValues(alpha: 0.12),
             blurRadius: 4,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -586,14 +720,29 @@ class _MacroCard extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 label,
-                style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.normal),
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
               ),
               const Spacer(),
-              Icon(Icons.edit, size: 12, color: Colors.grey[300]),
+              Icon(
+                Icons.edit,
+                size: 12,
+                color: textSecondary.withValues(alpha: 0.5),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: textPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -608,18 +757,28 @@ class _FactRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+        border: Border(
+          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.45)),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+          Text(label, style: TextStyle(fontSize: 14, color: textPrimary)),
           Text(
             value,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: textPrimary,
+            ),
           ),
         ],
       ),

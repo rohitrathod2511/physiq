@@ -149,7 +149,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Year Overview",
+              "Total Score",
               style: AppTextStyles.heading2.copyWith(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -326,6 +326,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
         ),
         const SizedBox(height: 24),
         _buildLegend(),
+        const SizedBox(height: 92),
       ],
     );
   }
@@ -362,11 +363,11 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
     final status = _historyStatus[dateKey] ?? 'none';
     final isToday = DateUtils.isSameDay(date, _today);
 
-    Color color = Colors.grey.shade200;
+    Color color = const Color(0xFFD1D5DB);
     if (status == 'full') {
       color = const Color(0xFF22C55E);
     } else if (status == 'partial') {
-      color = const Color(0xFF86EFAC);
+      color = const Color(0xFF4ADE80);
     }
 
     return Material(
@@ -396,9 +397,9 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
         children: [
           _legendItem(const Color(0xFF22C55E), "Goal Met"),
           const SizedBox(width: 24),
-          _legendItem(const Color(0xFF86EFAC), "Partial"),
+          _legendItem(const Color(0xFF4ADE80), "Partial"),
           const SizedBox(width: 24),
-          _legendItem(Colors.grey.shade200, "None"),
+          _legendItem(const Color(0xFFD1D5DB), "None"),
         ],
       ),
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:physiq/models/custom_food_model.dart';
 import 'package:physiq/services/custom_food_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
 class AddNutritionScreen extends StatefulWidget {
@@ -27,7 +26,7 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
   final _proteinController = TextEditingController();
   final _carbsController = TextEditingController();
   final _fatController = TextEditingController();
-  
+
   // Advanced macros
   final _saturatedFatController = TextEditingController();
   final _polyunsaturatedFatController = TextEditingController();
@@ -47,13 +46,22 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color primary = theme.colorScheme.primary;
+    final Color onPrimary = theme.colorScheme.onPrimary;
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Add Nutrition"),
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
-        foregroundColor: Colors.black,
+        foregroundColor: textPrimary,
       ),
       body: Column(
         children: [
@@ -68,13 +76,37 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
                 _buildField("Total Fat (g)", _fatController, isNumber: true),
                 const SizedBox(height: 24),
                 _buildSection("Optional"),
-                _buildField("Saturated Fat (g)", _saturatedFatController, isNumber: true),
-                _buildField("Polyunsaturated Fat (g)", _polyunsaturatedFatController, isNumber: true),
-                _buildField("Monounsaturated Fat (g)", _monounsaturatedFatController, isNumber: true),
-                _buildField("Trans Fat (g)", _transFatController, isNumber: true),
-                _buildField("Cholesterol (mg)", _cholesterolController, isNumber: true),
+                _buildField(
+                  "Saturated Fat (g)",
+                  _saturatedFatController,
+                  isNumber: true,
+                ),
+                _buildField(
+                  "Polyunsaturated Fat (g)",
+                  _polyunsaturatedFatController,
+                  isNumber: true,
+                ),
+                _buildField(
+                  "Monounsaturated Fat (g)",
+                  _monounsaturatedFatController,
+                  isNumber: true,
+                ),
+                _buildField(
+                  "Trans Fat (g)",
+                  _transFatController,
+                  isNumber: true,
+                ),
+                _buildField(
+                  "Cholesterol (mg)",
+                  _cholesterolController,
+                  isNumber: true,
+                ),
                 _buildField("Sodium (mg)", _sodiumController, isNumber: true),
-                _buildField("Potassium (mg)", _potassiumController, isNumber: true),
+                _buildField(
+                  "Potassium (mg)",
+                  _potassiumController,
+                  isNumber: true,
+                ),
                 _buildField("Sugar (g)", _sugarController, isNumber: true),
                 _buildField("Fiber (g)", _fiberController, isNumber: true),
                 _buildField("Vitamin A", _vitaminAController, isNumber: true),
@@ -91,13 +123,25 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveFood,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.grey,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  backgroundColor: primary,
+                  foregroundColor: onPrimary,
+                  disabledBackgroundColor:
+                      theme.colorScheme.surfaceContainerHighest,
+                  disabledForegroundColor: textSecondary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
-                child: _isLoading 
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Save Food", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                child: _isLoading
+                    ? CircularProgressIndicator(color: onPrimary)
+                    : Text(
+                        "Save Food",
+                        style: TextStyle(
+                          color: onPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -111,30 +155,53 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).textTheme.bodyMedium?.color,
+          fontSize: 12,
+        ),
       ),
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, {bool isNumber = false}) {
+  Widget _buildField(
+    String label,
+    TextEditingController controller, {
+    bool isNumber = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
-            keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+            keyboardType: isNumber
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.text,
             decoration: InputDecoration(
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor:
+                  Theme.of(context).inputDecorationTheme.fillColor ??
+                  Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
         ],
@@ -145,7 +212,9 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
   Future<void> _saveFood() async {
     final calories = double.tryParse(_caloriesController.text.trim());
     if (calories == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter calories")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please enter calories")));
       return;
     }
 
@@ -158,8 +227,10 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
         carbs: double.tryParse(_carbsController.text) ?? 0,
         fat: double.tryParse(_fatController.text) ?? 0,
         saturatedFat: double.tryParse(_saturatedFatController.text) ?? 0,
-        polyunsaturatedFat: double.tryParse(_polyunsaturatedFatController.text) ?? 0,
-        monounsaturatedFat: double.tryParse(_monounsaturatedFatController.text) ?? 0,
+        polyunsaturatedFat:
+            double.tryParse(_polyunsaturatedFatController.text) ?? 0,
+        monounsaturatedFat:
+            double.tryParse(_monounsaturatedFatController.text) ?? 0,
         transFat: double.tryParse(_transFatController.text) ?? 0,
         cholesterol: double.tryParse(_cholesterolController.text) ?? 0,
         sodium: double.tryParse(_sodiumController.text) ?? 0,
@@ -193,7 +264,9 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error saving food: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error saving food: $e")));
       }
     } finally {
       if (mounted) {

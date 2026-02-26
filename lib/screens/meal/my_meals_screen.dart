@@ -28,38 +28,47 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
   void _logMeal(MyMeal meal) async {
     // Implement immediate logging
     await _service.logMyMeal(meal, DateTime.now());
-    
+
     // Refresh Home ViewModel
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       ref.read(homeViewModelProvider.notifier).fetchRecentMeals(uid);
       // Also update summary if selected date is today, logic inside VM handles selectedDate stream but sometimes manual fetch helps
-      ref.read(homeViewModelProvider.notifier).fetchDailySummary(DateTime.now(), uid);
+      ref
+          .read(homeViewModelProvider.notifier)
+          .fetchDailySummary(DateTime.now(), uid);
     }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Logged ${meal.name}"),
-          backgroundColor: Colors.green,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           duration: const Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context); 
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return StreamBuilder<List<MyMeal>>(
       stream: _service.streamMyMeals(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-           return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
 
         final allMeals = snapshot.data ?? [];
-        
+
         // 1. Empty State
         if (allMeals.isEmpty) {
           return Center(
@@ -67,24 +76,37 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Illustration placeholder
-                Icon(Icons.bento, size: 80, color: Colors.grey.shade300), 
+                Icon(
+                  Icons.bento,
+                  size: 80,
+                  color: textSecondary.withValues(alpha: 0.5),
+                ),
                 const SizedBox(height: 16),
                 Text("My Meals", style: AppTextStyles.h2),
                 const SizedBox(height: 8),
                 Text(
                   "Quickly log your go-to meal combinations",
-                  style: AppTextStyles.body.copyWith(color: Colors.grey),
+                  style: AppTextStyles.body.copyWith(color: textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _navToCreate,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                   ),
-                  child: const Text("Create a Meal", style: TextStyle(color: Colors.white)),
+                  child: Text(
+                    "Create a Meal",
+                    style: TextStyle(color: theme.colorScheme.onPrimary),
+                  ),
                 ),
               ],
             ),
@@ -97,29 +119,39 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
             // List
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                itemCount: allMeals.length + 1, // +1 for Create Button at bottom or top?
-                                             // User req: "Button: Create a Meal" in empty state.
-                                             // Does existing state have a create button?
-                                             // Reference image usually implies a FAB or a list item.
-                                             // Let's add a "Create new meal" button at top or FAB.
-                                             // I'll add a CTA row at top if not empty.
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                itemCount:
+                    allMeals.length +
+                    1, // +1 for Create Button at bottom or top?
+                // User req: "Button: Create a Meal" in empty state.
+                // Does existing state have a create button?
+                // Reference image usually implies a FAB or a list item.
+                // Let's add a "Create new meal" button at top or FAB.
+                // I'll add a CTA row at top if not empty.
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   if (index == allMeals.length) {
-                     return Padding(
-                       padding: const EdgeInsets.only(bottom: 30, top: 10),
-                       child: OutlinedButton.icon(
-                         onPressed: _navToCreate,
-                         icon: const Icon(Icons.add, color: Colors.black),
-                         label: const Text("Create New Meal", style: TextStyle(color: Colors.black)),
-                         style: OutlinedButton.styleFrom(
-                           padding: const EdgeInsets.symmetric(vertical: 16),
-                           side: const BorderSide(color: Colors.grey),
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                         ),
-                       ),
-                     );
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 30, top: 10),
+                      child: OutlinedButton.icon(
+                        onPressed: _navToCreate,
+                        icon: Icon(Icons.add, color: textPrimary),
+                        label: Text(
+                          "Create New Meal",
+                          style: TextStyle(color: textPrimary),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: theme.dividerColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    );
                   }
 
                   final meal = allMeals[index];
@@ -134,6 +166,11 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
   }
 
   Widget _buildMealCard(MyMeal meal) {
+    final ThemeData theme = Theme.of(context);
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -144,10 +181,14 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-             BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+            BoxShadow(
+              color: theme.shadowColor.withValues(alpha: 0.12),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
@@ -161,16 +202,23 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
                   const SizedBox(height: 4),
                   Text(
                     "${meal.items.length} items • ${meal.totalCalories.toInt()} kcal",
-                    style: AppTextStyles.body.copyWith(color: Colors.grey, fontSize: 13),
+                    style: AppTextStyles.body.copyWith(
+                      color: textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
             ),
-            
+
             // Log Button
             IconButton(
               onPressed: () => _logMeal(meal), // Updated to use method
-              icon: const Icon(Icons.add_circle, color: Colors.blueAccent, size: 32),
+              icon: Icon(
+                Icons.add_circle,
+                color: theme.colorScheme.primary,
+                size: 32,
+              ),
             ),
           ],
         ),
