@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
@@ -6,7 +5,6 @@ import 'package:physiq/services/auth_service.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/providers/preferences_provider.dart';
-
 
 class GetStartedScreen extends ConsumerWidget {
   const GetStartedScreen({super.key});
@@ -22,7 +20,6 @@ class GetStartedScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -39,7 +36,7 @@ class GetStartedScreen extends ConsumerWidget {
                 style: AppTextStyles.h1.copyWith(fontSize: 32),
               ),
               const SizedBox(height: 40),
-              
+
               // Primary Button
               SizedBox(
                 width: double.infinity,
@@ -56,26 +53,35 @@ class GetStartedScreen extends ConsumerWidget {
                   ),
                   child: Text(
                     'Get Started',
-                    style: AppTextStyles.button.copyWith(color: Colors.white, fontSize: 16),
+                    style: AppTextStyles.button.copyWith(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Sign In Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Already have an account?',
-                    style: AppTextStyles.body.copyWith(color: AppColors.secondaryText, fontSize: 14),
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.secondaryText,
+                      fontSize: 14,
+                    ),
                   ),
                   TextButton(
                     onPressed: () => _showSignInSheet(context),
                     child: Text(
                       'Sign in',
-                      style: AppTextStyles.button.copyWith(color: Colors.blue, fontSize: 14),
+                      style: AppTextStyles.button.copyWith(
+                        color: Colors.blue,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
@@ -103,27 +109,31 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
     setState(() => _isLoading = true);
     try {
       // 🎯 CORRECT SIGN-IN Logic:
-      // Force sign-out to ensure Google account chooser is shown (fixes auto-login issue)
+      // Force sign-out to ensure Google account chooser is shown
       await _authService.disconnectGoogle();
 
-      // No name, no onboardingData passed. Just pure sign-in.
-      final user = await _authService.signInWithGoogle(allowCreate: false);
-      
+      final userCredential = await _authService.signInWithGoogle(
+        allowCreate: false,
+      );
+
       if (mounted) {
         setState(() => _isLoading = false);
-        if (user != null) {
+        if (userCredential != null) {
           // 🎯 CORRECT NAVIGATION:
           // 1. Close the bottom sheet first
           Navigator.pop(context);
-          // 2. Clear stack and go to Home
-          context.go('/home'); 
+          // 2. Clear stack and go to Home (Router will handle final destination based on onboarding state)
+          context.go('/home');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -141,7 +151,6 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -157,12 +166,12 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
         children: [
           Center(
             child: Container(
-              width: 40, 
-              height: 4, 
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300], 
+                color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(2),
-              ), 
+              ),
               margin: const EdgeInsets.only(bottom: 24),
             ),
           ),
@@ -178,7 +187,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             // Google Button
             ElevatedButton.icon(
               onPressed: _handleGoogleSignIn,
-              icon: const Icon(Icons.g_mobiledata, size: 28), 
+              icon: const Icon(Icons.g_mobiledata, size: 28),
               label: Text('Continue with Google'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
@@ -190,7 +199,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Email Button
             OutlinedButton(
               onPressed: _handleEmailSignIn,
@@ -240,33 +249,36 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
 
     try {
       // 🎯 CORRECT SIGN-IN Logic:
-      // Regular email/password sign in. No creating new users here.
-      final user = await _authService.signInWithEmail(email, password);
-      
+      final userCredential = await _authService.signInWithEmail(
+        email,
+        password,
+      );
+
       if (mounted) {
         setState(() => _isLoading = false);
-        if (user != null) {
+        if (userCredential != null) {
           // 🎯 CORRECT NAVIGATION:
           // 1. Close the bottom sheet first
           Navigator.pop(context);
-          // 2. Clear stack and go to Home
+          // 2. Clear stack and go to Home (Router will handle final destination based on onboarding state)
           context.go('/home');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-         );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-
     // Handling keyboard overlap
     return Padding(
       padding: EdgeInsets.only(
@@ -287,12 +299,12 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
           children: [
             Center(
               child: Container(
-                width: 40, 
-                height: 4, 
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300], 
+                  color: Colors.grey[300],
                   borderRadius: BorderRadius.circular(2),
-                ), 
+                ),
                 margin: const EdgeInsets.only(bottom: 24),
               ),
             ),
@@ -302,12 +314,14 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            
+
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
-                labelText: 'Email', 
-                border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
+                labelText: 'Email',
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
@@ -315,17 +329,19 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
             TextField(
               controller: _passwordController,
               decoration: InputDecoration(
-                labelText: 'Password', 
-                border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)))
+                labelText: 'Password',
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
               ),
               obscureText: true,
             ),
             const SizedBox(height: 24),
 
             if (_isLoading)
-               const Center(child: CircularProgressIndicator())
+              const Center(child: CircularProgressIndicator())
             else
-               ElevatedButton(
+              ElevatedButton(
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -335,10 +351,16 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text('Sign in', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Sign in',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
 
-             const SizedBox(height: 16),
+            const SizedBox(height: 16),
           ],
         ),
       ),

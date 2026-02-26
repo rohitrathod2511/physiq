@@ -17,7 +17,6 @@ import 'package:physiq/widgets/leaderboard/join_card.dart';
 import 'package:physiq/widgets/leaderboard/rank_card.dart';
 import 'package:physiq/screens/leaderboard_screen.dart';
 
-
 class ProgressScreen extends ConsumerStatefulWidget {
   const ProgressScreen({super.key});
 
@@ -63,7 +62,10 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 8.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -74,7 +76,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) => const LeaderboardScreen()),
+                                  builder: (_) => const LeaderboardScreen(),
+                                ),
                               );
                             },
                           )
@@ -94,12 +97,18 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                           child: WeightGoalCard(
                             currentWeight: state.currentWeight,
                             goalWeight: state.goalWeight,
-                            onTap: () => _showSetWeightDialog(context, viewModel, state.currentWeight),
+                            onTap: () => _showSetWeightDialog(
+                              context,
+                              viewModel,
+                              state.currentWeight,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: ProgressRingCard(percent: state.progressPercent),
+                          child: ProgressRingCard(
+                            percent: state.progressPercent,
+                          ),
                         ),
                       ],
                     ),
@@ -108,6 +117,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     // Graph
                     EcgGraphCard(
                       history: state.weightHistory,
+                      currentWeight: state.currentWeight,
+                      goalWeight: state.goalWeight,
                       selectedRange: state.selectedRange,
                       onRangeChanged: (range) => viewModel.setRange(range),
                     ),
@@ -116,14 +127,17 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     // Photos
                     GestureDetector(
                       onTap: () {
-                         Navigator.push(
+                        Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ProgressPhotosGridScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const ProgressPhotosGridScreen(),
+                          ),
                         );
                       },
                       child: ProgressPhotoCard(
                         photos: state.photos,
-                        onUploadTap: () => _onCameraTap(context, state.currentWeight),
+                        onUploadTap: () =>
+                            _onCameraTap(context, state.currentWeight),
                         onPhotoTap: (photo) {
                           Navigator.push(
                             context,
@@ -140,10 +154,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     const SizedBox(height: 20),
 
                     // BMI
-                    BmiCard(
-                      bmi: state.bmi,
-                      category: state.bmiCategory,
-                    ),
+                    BmiCard(bmi: state.bmi, category: state.bmiCategory),
                     const SizedBox(height: 100), // Bottom padding
                   ],
                 ),
@@ -163,7 +174,9 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       context: context,
       builder: (ctx) => Dialog(
         backgroundColor: AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -177,7 +190,11 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 label: 'Take Photo',
                 onTap: () {
                   Navigator.pop(ctx);
-                  _pickAndShowPreview(context, ImageSource.camera, currentWeight);
+                  _pickAndShowPreview(
+                    context,
+                    ImageSource.camera,
+                    currentWeight,
+                  );
                 },
               ),
               const SizedBox(height: 16),
@@ -187,7 +204,11 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 label: 'Choose from Gallery',
                 onTap: () {
                   Navigator.pop(ctx);
-                  _pickAndShowPreview(context, ImageSource.gallery, currentWeight);
+                  _pickAndShowPreview(
+                    context,
+                    ImageSource.gallery,
+                    currentWeight,
+                  );
                 },
               ),
             ],
@@ -197,7 +218,12 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     );
   }
 
-  Widget _buildDialogOption(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildDialogOption(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -225,7 +251,11 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     );
   }
 
-  Future<void> _pickAndShowPreview(BuildContext context, ImageSource source, double currentWeight) async {
+  Future<void> _pickAndShowPreview(
+    BuildContext context,
+    ImageSource source,
+    double currentWeight,
+  ) async {
     try {
       final ImagePicker picker = ImagePicker();
       // Compress here using imageQuality to target roughly < 300KB (heuristic)
@@ -234,7 +264,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
         source: source,
         maxWidth: 1080,
         maxHeight: 1920,
-        imageQuality: 70, 
+        imageQuality: 70,
       );
 
       if (image != null && context.mounted) {
@@ -253,13 +283,19 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     }
   }
 
-  void _showSetWeightDialog(BuildContext context, ProgressViewModel viewModel, double currentWeight) {
+  void _showSetWeightDialog(
+    BuildContext context,
+    ProgressViewModel viewModel,
+    double currentWeight,
+  ) {
     final controller = TextEditingController(text: currentWeight.toString());
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+        ),
         titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
         contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
         actionsPadding: const EdgeInsets.all(16),
@@ -271,8 +307,12 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           decoration: InputDecoration(
             suffixText: 'kg',
             suffixStyle: AppTextStyles.body,
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300)),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary),
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
           ),
         ),
         actions: [
@@ -295,7 +335,9 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               textStyle: AppTextStyles.button,
             ),

@@ -6,12 +6,16 @@ import 'package:intl/intl.dart';
 
 class EcgGraphCard extends StatelessWidget {
   final List<WeightEntry> history;
+  final double currentWeight;
+  final double? goalWeight;
   final String selectedRange;
   final ValueChanged<String> onRangeChanged;
 
   const EcgGraphCard({
     super.key,
     required this.history,
+    required this.currentWeight,
+    this.goalWeight,
     required this.selectedRange,
     required this.onRangeChanged,
   });
@@ -30,18 +34,19 @@ class EcgGraphCard extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildRangeSelector(),
-            ],
+            children: [_buildRangeSelector()],
           ),
           const SizedBox(height: 24),
           SizedBox(
             height: 200,
             child: history.isEmpty
-                ? Center(child: Text('No weight logs yet.', style: AppTextStyles.bodyMedium))
-                : LineChart(
-                    _buildChartData(),
-                  ),
+                ? Center(
+                    child: Text(
+                      'No weight logs yet.',
+                      style: AppTextStyles.bodyMedium,
+                    ),
+                  )
+                : ClipRect(child: LineChart(_buildChartData())),
           ),
         ],
       ),
@@ -55,7 +60,7 @@ class EcgGraphCard extends StatelessWidget {
         return GestureDetector(
           onTap: () => onRangeChanged(range),
           child: Container(
-            margin: const EdgeInsets.only(left: 8),
+            margin: const EdgeInsets.only(left: 14),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: isSelected ? AppColors.accent : Colors.transparent,
@@ -64,7 +69,9 @@ class EcgGraphCard extends StatelessWidget {
             child: Text(
               range,
               style: AppTextStyles.smallLabel.copyWith(
-                color: isSelected ? AppColors.background : AppColors.secondaryText,
+                color: isSelected
+                    ? AppColors.background
+                    : AppColors.secondaryText,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -81,8 +88,22 @@ class EcgGraphCard extends StatelessWidget {
       return FlSpot(e.key.toDouble(), e.value.weightKg);
     }).toList();
 
-    final minY = history.map((e) => e.weightKg).reduce((a, b) => a < b ? a : b) - 2;
-    final maxY = history.map((e) => e.weightKg).reduce((a, b) => a > b ? a : b) + 2;
+    // DYNAMIC Y RANGE: min/max of (start, goal, logs) + buffer
+    double minWeight = history
+        .map((e) => e.weightKg)
+        .reduce((a, b) => a < b ? a : b);
+    double maxWeight = history
+        .map((e) => e.weightKg)
+        .reduce((a, b) => a > b ? a : b);
+
+    if (goalWeight != null && goalWeight! > 0) {
+      if (goalWeight! < minWeight) minWeight = goalWeight!;
+      if (goalWeight! > maxWeight) maxWeight = goalWeight!;
+    }
+
+    const double verticalBuffer = 3.0;
+    final minY = minWeight - verticalBuffer;
+    final maxY = maxWeight + verticalBuffer;
 
     final isSinglePoint = history.length == 1;
     final maxX = isSinglePoint ? 1.0 : (history.length - 1).toDouble();
@@ -95,6 +116,47 @@ class EcgGraphCard extends StatelessWidget {
       maxX: maxX,
       minY: minY,
       maxY: maxY,
+      extraLinesData: ExtraLinesData(
+        horizontalLines: [
+          // Current Weight Baseline (Dashed)
+          HorizontalLine(
+            y: currentWeight,
+            color: AppColors.secondaryText.withOpacity(0.2),
+            strokeWidth: 1,
+            dashArray: [5, 5],
+            label: HorizontalLineLabel(
+              show: true,
+              alignment: Alignment.topRight,
+              padding: const EdgeInsets.only(right: 8, bottom: 8),
+              style: AppTextStyles.smallLabel.copyWith(
+                color: AppColors.secondaryText.withOpacity(0.4),
+                fontSize: 9,
+              ),
+              labelResolver: (line) => 'Current',
+            ),
+          ),
+          // Goal Weight Line (Dashed)
+          if (goalWeight != null && goalWeight! > 0)
+            HorizontalLine(
+              y: goalWeight!,
+              color: AppColors.accent.withOpacity(0.4),
+              strokeWidth: 1.5,
+              dashArray: [8, 4],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.bottomRight,
+                padding: const EdgeInsets.only(right: 8, top: 8),
+                style: AppTextStyles.smallLabel.copyWith(
+                  color: AppColors.accent.withOpacity(0.6),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                labelResolver: (line) =>
+                    'Goal: ${goalWeight!.toStringAsFixed(1)} kg',
+              ),
+            ),
+        ],
+      ),
       lineBarsData: [
         LineChartBarData(
           spots: spots,

@@ -8,12 +8,13 @@ import 'package:physiq/models/progress_photo_model.dart';
 import 'package:physiq/services/progress_repository.dart';
 import 'package:physiq/services/user_repository.dart';
 
-final progressViewModelProvider = StateNotifierProvider<ProgressViewModel, ProgressState>((ref) {
-  return ProgressViewModel(
-    ref.read(progressRepositoryProvider),
-    ref.read(userRepositoryProvider),
-  );
-});
+final progressViewModelProvider =
+    StateNotifierProvider<ProgressViewModel, ProgressState>((ref) {
+      return ProgressViewModel(
+        ref.read(progressRepositoryProvider),
+        ref.read(userRepositoryProvider),
+      );
+    });
 
 class ProgressState {
   final bool isLoading;
@@ -61,7 +62,7 @@ class ProgressState {
       selectedRange: selectedRange ?? this.selectedRange,
     );
   }
-  
+
   double get progressPercent {
     final start = initialWeight;
     final end = goalWeight;
@@ -69,34 +70,34 @@ class ProgressState {
 
     // Safety
     if (start <= 0 || end <= 0) return 0;
-    
+
     // Normalized check
     if (goalType == 'maintain') {
-      const tolerance = 5.0; 
+      const tolerance = 5.0;
       double diff = (current - end).abs();
       double p = 1.0 - (diff / tolerance);
       return p.clamp(0.0, 1.0);
     }
-    
+
     if (goalType == 'gain') {
       // Gain: from start to end
       if (end <= start) return 0; // target must be > start
       double p = (current - start) / (end - start);
       return p.clamp(0.0, 1.0);
     }
-    
+
     // Loss
     if (start <= end) return 0; // target must be < start for loss
     double p = (start - current) / (start - end);
     return p.clamp(0.0, 1.0);
   }
-  
+
   double get bmi {
     if (height <= 0) return 0;
-    double heightM = height / 100.0; 
+    double heightM = height / 100.0;
     return currentWeight / (heightM * heightM);
   }
-  
+
   String get bmiCategory {
     final val = bmi;
     if (val < 18.5) return 'Underweight';
@@ -112,14 +113,15 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
   StreamSubscription<User?>? _authSubscription;
   StreamSubscription<UserModel?>? _userDocSubscription;
 
-  ProgressViewModel(this._repository, this._userRepository) : super(ProgressState()) {
+  ProgressViewModel(this._repository, this._userRepository)
+    : super(ProgressState()) {
     // 1. Listen to Auth Changes (Login/Logout/Switch)
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null) {
         _init(user.uid);
       } else {
         // Clear state on logout to prevent leaks
-        state = ProgressState(); 
+        state = ProgressState();
         _userDocSubscription?.cancel();
       }
     });
@@ -159,69 +161,70 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
   Future<void> loadData({UserModel? user}) async {
     // We'll only set isLoading if history is empty (first load)
     if (state.weightHistory.isEmpty) {
-       state = state.copyWith(isLoading: true);
+      state = state.copyWith(isLoading: true);
     }
 
     // Fetch data - Use 'user' if available for instant sync
     final double goal = user?.goalWeightKg ?? await _repository.getGoalWeight();
-    
+
     // START WEIGHT LOGIC:
-    // We want the Start Weight to be the user's FIRST EVER weight (onboarding).
-    // user.weightKg is often updated to be 'Current Profile Weight' in settings.
-    // So we try fetching the earliest history entry.
-    double? earliest = await _repository.getEarliestWeight();
-    
-    // Fallback: If no history, use profile weight (onboarding typically sets this and history together)
-    // If profile weight is used as fallback, it's correct for a brand new user.
-    final double initial = earliest ?? (user?.weightKg ?? await _repository.getInitialWeight());
+    // Always treat the onboarding weight as the absolute baseline for progress tracking.
+    // This ensures progress is calculated from the very start (e.g. 60kg),
+    // even after the first weight log (e.g. 62kg).
+    final double initial = await _repository.getInitialWeight();
 
     final double height = user?.heightCm ?? await _repository.getUserHeight();
-    
-    // Type usually doesn't change from settings but nice to have.
     final rawType = await _repository.getGoalType();
-    
-    // History is in subcollection, so we MUST fetch it or listen to it separately.
-    // Repo fetch is fine, but if we wanted instant weight update from 'currentWeight' field in Settings -> 
-    // we already handle that by reading 'user?.weightKg' as 'initial'.
-    // If 'currentWeight' is derived from History, we need History.
     final history = await _repository.getWeightHistory(state.selectedRange);
     final photos = await _repository.getProgressPhotos();
-    final created = user?.createdAt ?? await _repository.getAccountCreationDate();
+    final created =
+        user?.createdAt ?? await _repository.getAccountCreationDate();
 
     final normalizedType = _normalizeGoalType(rawType);
 
-    // FIX: Determine current weight logic
-    // initialWeight = onboarding/first-baseline. currentWeight = latest weight_history OR initialWeight.
-    double current = 0;
-
-    if (history.isNotEmpty) {
-      current = history.last.weightKg;
-    } else {
-      current = initial;
-    }
-
-    // Safety check
+    // Determine current weight: Latest from history, or baseline if no logs.
+    double current = history.isNotEmpty ? history.last.weightKg : initial;
     if (current == 0 && initial > 0) current = initial;
-
-    // FIRST-TIME SYNC FIX:
-    // When user logs first weight (history.length == 1), we need to ensure:
-    // - Cards display immediately with the single data point
-    // - No comparison needed (initial == current for first entry)
-    // For length == 1: treat first log as both start and current
-    // For length >= 2: normal comparison (initial = earliest, current = latest)
-    final double effectiveInitial = history.length == 1 ? current : initial;
 
     // Construct display history for graph
     List<WeightEntry> displayHistory = [...history];
 
-    // For empty state (no logs yet), keep synthetic baseline
-    // This helps show UI structure even before first log
-    if (displayHistory.isEmpty && initial > 0) {
-      final date = created ?? DateTime.now();
-      displayHistory.add(WeightEntry(id: 'init', weightKg: initial, date: date, loggedAt: date));
-      displayHistory.add(WeightEntry(id: 'curr', weightKg: current, date: DateTime.now(), loggedAt: DateTime.now()));
+    // Ensure the baseline is represented in the graph
+    if (initial > 0) {
+      final baselineDate =
+          created ?? DateTime.now().subtract(const Duration(days: 1));
+
+      if (displayHistory.isEmpty) {
+        displayHistory.add(
+          WeightEntry(
+            id: 'init',
+            weightKg: initial,
+            date: baselineDate,
+            loggedAt: baselineDate,
+          ),
+        );
+        if (current != initial) {
+          displayHistory.add(
+            WeightEntry(
+              id: 'curr',
+              weightKg: current,
+              date: DateTime.now(),
+              loggedAt: DateTime.now(),
+            ),
+          );
+        }
+      } else if (displayHistory.first.date.isAfter(baselineDate)) {
+        displayHistory.insert(
+          0,
+          WeightEntry(
+            id: 'init',
+            weightKg: initial,
+            date: baselineDate,
+            loggedAt: baselineDate,
+          ),
+        );
+      }
     }
-    // When length >= 1: use real data only (no synthetic entries)
 
     displayHistory.sort((a, b) => a.date.compareTo(b.date));
 
@@ -230,7 +233,7 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
       state = state.copyWith(
         isLoading: false,
         goalWeight: goal,
-        initialWeight: effectiveInitial,
+        initialWeight: initial, // Use the real baseline weight
         currentWeight: current,
         height: height,
         goalType: normalizedType,
@@ -247,9 +250,9 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
 
   Future<void> addWeight(double weight, DateTime date) async {
     await _repository.addWeightEntry(weight, date);
-    await loadData(); 
+    await loadData();
   }
-  
+
   Future<void> updateGoal(double weight) async {
     await _repository.updateGoalWeight(weight);
     await loadData();
@@ -267,4 +270,3 @@ class ProgressViewModel extends StateNotifier<ProgressState> {
     await loadData();
   }
 }
-

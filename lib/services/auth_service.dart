@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -43,7 +42,7 @@ class AuthService {
   /// Returns the current user as a custom [AuthUser] object.
   AuthUser? getCurrentUser() {
     if (AppConfig.useMockBackend) {
-       return AuthUser(
+      return AuthUser(
         uid: 'mock_user_id',
         displayName: 'Test User',
         email: 'test@user.com',
@@ -92,9 +91,8 @@ class AuthService {
 
       // Update Firestore: users/{uid}.profile.name
       await _firestore.collection('users').doc(user.uid).set({
-        'profile': {'name': newName}
+        'profile': {'name': newName},
       }, SetOptions(merge: true));
-
     } catch (e) {
       throw 'Failed to update username: $e';
     }
@@ -104,14 +102,6 @@ class AuthService {
 
   Future<UserCredential?> signInWithEmail(String email, String password) async {
     try {
-      final methods = await _lookupSignInMethodsForEmail(email);
-      if (methods.isEmpty) {
-        throw 'No account found. Please sign up first.';
-      }
-      if (!methods.contains(EmailAuthProvider.EMAIL_PASSWORD_SIGN_IN_METHOD)) {
-        throw 'This email is registered with a different sign-in method.';
-      }
-
       final credential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -128,10 +118,13 @@ class AuthService {
       return credential;
     } on FirebaseAuthException catch (e) {
       // Throw meaningful error messages for UI to catch
-      if (e.code == 'user-not-found') throw 'No account found. Please sign up first.';
+      if (e.code == 'user-not-found')
+        throw 'No account found. Please sign up first.';
       if (e.code == 'wrong-password') throw 'Wrong password provided.';
       if (e.code == 'invalid-credential') throw 'Invalid email or password.';
       if (e.code == 'invalid-email') throw 'The email address is invalid.';
+      if (e.code == 'user-disabled')
+        throw 'This user account has been disabled.';
       throw e.message ?? 'Sign in failed.';
     } catch (e) {
       if (e is String) rethrow;
@@ -163,20 +156,21 @@ class AuthService {
 
         // Ensure Firestore user document exists (Create account)
         await _ensureUserDocumentExists(
-            user, 
-            defaultName: name, 
-            authProvider: 'email',
-            onboardingData: onboardingData
+          user,
+          defaultName: name,
+          authProvider: 'email',
+          onboardingData: onboardingData,
         );
       }
 
       return credential;
     } on FirebaseAuthException catch (e) {
-       if (e.code == 'weak-password') throw 'The password provided is too weak.';
-       if (e.code == 'email-already-in-use') throw 'The account already exists for that email.';
-       throw e.message ?? 'Sign up failed.';
+      if (e.code == 'weak-password') throw 'The password provided is too weak.';
+      if (e.code == 'email-already-in-use')
+        throw 'The account already exists for that email.';
+      throw e.message ?? 'Sign up failed.';
     } catch (e) {
-       throw 'An unexpected error occurred: $e';
+      throw 'An unexpected error occurred: $e';
     }
   }
 
@@ -184,52 +178,50 @@ class AuthService {
 
   Future<UserCredential?> signInWithGoogle({
     bool allowCreate = true,
-    String? name, 
-    Map<String, dynamic>? onboardingData
+    String? name,
+    Map<String, dynamic>? onboardingData,
   }) async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-         // User cancelled
-         return null;
+        // User cancelled
+        return null;
       }
 
-      final methods = await _lookupSignInMethodsForEmail(
-        googleUser.email,
-      );
-      if (!allowCreate && methods.isEmpty) {
-        await _googleSignIn.signOut();
-        throw 'No account found. Please sign up first.';
-      }
-      if (!allowCreate &&
-          methods.isNotEmpty &&
-          !methods.contains(GoogleAuthProvider.PROVIDER_ID)) {
-        await _googleSignIn.signOut();
-        throw 'This email is registered with a different sign-in method.';
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final userCredential = await _firebaseAuth.signInWithCredential(
+        credential,
+      );
       final user = userCredential.user;
 
       if (user != null) {
-        // Creates Firestore user if not exists
+        // If allowCreate is false, we check if this is a new user
+        if (!allowCreate &&
+            (userCredential.additionalUserInfo?.isNewUser ?? false)) {
+          // New user created when we didn't want one. Delete and sign out.
+          await user.delete();
+          await _googleSignIn.signOut();
+          throw 'No account found. Please sign up first.';
+        }
+
+        // Creates Firestore user if not exists (or updates metadata)
         await _ensureUserDocumentExists(
-          user, 
+          user,
           defaultName: name ?? user.displayName ?? 'User',
           authProvider: 'google',
-          onboardingData: onboardingData
+          onboardingData: onboardingData,
         );
       }
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      if (!allowCreate && e.code == 'account-exists-with-different-credential') {
+      if (e.code == 'account-exists-with-different-credential') {
         throw 'This email is registered with a different sign-in method.';
       }
       throw e.message ?? 'Google Sign-In failed.';
@@ -242,8 +234,8 @@ class AuthService {
   // 5️⃣ ANONYMOUS USER SUPPORT
 
   Future<UserCredential?> signInAnonymously({
-    String? name, 
-    Map<String, dynamic>? onboardingData
+    String? name,
+    Map<String, dynamic>? onboardingData,
   }) async {
     try {
       // 1. Authenticate anonymously
@@ -257,7 +249,7 @@ class AuthService {
           defaultName: name ?? 'Guest',
           authProvider: 'anonymous',
           isAnonymous: true,
-          onboardingData: onboardingData
+          onboardingData: onboardingData,
         );
       }
 
@@ -267,7 +259,6 @@ class AuthService {
     }
   }
 
-  
   // UTILITIES & HELPERS
 
   Future<List<String>> _lookupSignInMethodsForEmail(String email) async {
@@ -290,7 +281,8 @@ class AuthService {
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final rawMethods = body['signinMethods'] ?? body['allProviders'] ?? <dynamic>[];
+    final rawMethods =
+        body['signinMethods'] ?? body['allProviders'] ?? <dynamic>[];
     if (rawMethods is! List) {
       return <String>[];
     }
@@ -314,10 +306,10 @@ class AuthService {
           'email': user.email,
         },
       'meta': {
-         if (!snapshot.exists) 'created_at': FieldValue.serverTimestamp(),
-         'isAnonymous': isAnonymous,
-         'last_login': FieldValue.serverTimestamp(),
-         if (authProvider != null) 'auth_provider': authProvider,
+        if (!snapshot.exists) 'created_at': FieldValue.serverTimestamp(),
+        'isAnonymous': isAnonymous,
+        'last_login': FieldValue.serverTimestamp(),
+        if (authProvider != null) 'auth_provider': authProvider,
       },
       if (!snapshot.exists) 'onboardingCompleted': false,
       if (onboardingData != null) ...onboardingData,

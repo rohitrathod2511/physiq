@@ -21,12 +21,9 @@ class RecentMealsList extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 12.0),
-          child: Text(
-            'Recently uploaded',
-            style: AppTextStyles.heading2,
-          ),
+          child: Text('Recently uploaded', style: AppTextStyles.heading2),
         ),
-        
+
         if (!hasLogs)
           // Placeholder Card matching the image
           Container(
@@ -51,13 +48,20 @@ class RecentMealsList extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Icon(Icons.lunch_dining, size: 32, color: Colors.grey.shade400),
+                    child: Icon(
+                      Icons.lunch_dining,
+                      size: 32,
+                      color: Colors.grey.shade400,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Tap + to add your first meal or workout',
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText, fontSize: 14),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.secondaryText,
+                    fontSize: 14,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -91,14 +95,20 @@ class RecentMealsList extends StatelessWidget {
     final carbs = meal['carbsG'] ?? 0;
     final fat = meal['fatG'] ?? 0;
     final imageUrl = meal['imageUrl'] as String?;
-    
+    final source = meal['source'] as String? ?? '';
+
+    // Only show image for Snap Meal items
+    final bool showImage = source == 'snap';
+
     // Time Formatting
     String timeStr = '';
     if (meal['timestamp'] is Timestamp) {
-      timeStr = DateFormat('h:mm a').format((meal['timestamp'] as Timestamp).toDate());
+      timeStr = DateFormat(
+        'h:mm a',
+      ).format((meal['timestamp'] as Timestamp).toDate());
     } else if (meal['timestamp'] is String) {
-       // Try parsing ISO8601 if strictly string, but assuming Timestamp from Firestore
-       timeStr = ''; 
+      // Try parsing ISO8601 if strictly string, but assuming Timestamp from Firestore
+      timeStr = '';
     }
 
     return Container(
@@ -113,22 +123,28 @@ class RecentMealsList extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image or Icon
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(16),
+          // Image container only for Snap Meal
+          if (showImage) ...[
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              clipBehavior: Clip.hardEdge,
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? Image.file(
+                      File(imageUrl),
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, o, s) =>
+                          const Icon(Icons.broken_image, color: Colors.grey),
+                    )
+                  : const Icon(Icons.fastfood, color: Colors.grey, size: 32),
             ),
-            clipBehavior: Clip.hardEdge,
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.file(File(imageUrl), fit: BoxFit.cover, 
-                    errorBuilder: (c, o, s) => const Icon(Icons.broken_image, color: Colors.grey))
-                : const Icon(Icons.fastfood, color: Colors.grey, size: 32),
-          ),
-          const SizedBox(width: 16),
-          // Details
+            const SizedBox(width: 16),
+          ],
+          // Details - Automatically expands to full width when image is hidden
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,11 +175,26 @@ class RecentMealsList extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _buildMacroChip('P', '${protein}g', Colors.purple.shade100, Colors.purple.shade700),
+                    _buildMacroChip(
+                      'P',
+                      '${protein}g',
+                      Colors.purple.shade100,
+                      Colors.purple.shade700,
+                    ),
                     const SizedBox(width: 8),
-                    _buildMacroChip('C', '${carbs}g', Colors.orange.shade100, Colors.orange.shade700),
+                    _buildMacroChip(
+                      'C',
+                      '${carbs}g',
+                      Colors.orange.shade100,
+                      Colors.orange.shade700,
+                    ),
                     const SizedBox(width: 8),
-                    _buildMacroChip('F', '${fat}g', Colors.blue.shade100, Colors.blue.shade700),
+                    _buildMacroChip(
+                      'F',
+                      '${fat}g',
+                      Colors.blue.shade100,
+                      Colors.blue.shade700,
+                    ),
                   ],
                 ),
               ],
@@ -177,13 +208,17 @@ class RecentMealsList extends StatelessWidget {
   Widget _buildWorkoutCard(ExerciseLog log) {
     final name = log.name;
     final calories = log.calories.toInt();
-    
+    final source = log.source;
+
+    // Only show image/icon if it was a "snap" (unlikely for workouts, but following the rule)
+    final bool showImage = source == 'snap';
+
     // Time Formatting
     String timeStr = DateFormat('h:mm a').format(log.timestamp);
-    
+
     // Details formatting
     String detailsText = '';
-    
+
     // Home Exercises (Sets & Reps)
     if (log.details.containsKey('sets') && log.details['sets'] is List) {
       final setsList = log.details['sets'] as List;
@@ -196,12 +231,13 @@ class RecentMealsList extends StatelessWidget {
           detailsText += ' × $firstReps reps';
         }
       }
-    } 
-    // Manual/Gym sets stored as simple count? 
+    }
+    // Manual/Gym sets stored as simple count?
     // Or Timer Based
     else if (log.details.containsKey('rounds')) {
-       // Timer: Total time, rounds
-       detailsText = '${log.durationMinutes} min • ${log.details['rounds']} rounds';
+      // Timer: Total time, rounds
+      detailsText =
+          '${log.durationMinutes} min • ${log.details['rounds']} rounds';
     }
     // Cardio / Sports / Describe
     else {
@@ -223,20 +259,26 @@ class RecentMealsList extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+          // Icon/Image container only for Snap
+          if (showImage) ...[
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.fitness_center,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+              ),
             ),
-            child: Center(
-              child: Icon(Icons.fitness_center, color: AppColors.primary, size: 28),
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Details
+            const SizedBox(width: 16),
+          ],
+          // Details - Automatically expands to full width when icon is hidden
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
