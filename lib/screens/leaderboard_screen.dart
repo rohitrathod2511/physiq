@@ -1,258 +1,235 @@
 import 'package:flutter/material.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/widgets/leaderboard/leaderboard_data.dart';
-import 'package:physiq/widgets/header_widget.dart'; // Assuming generic header exists, or I'll build custom
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = LeaderboardData.currentUser;
     final allUsers = LeaderboardData.getFullList();
+    final topThree = allUsers.take(3).toList();
+    final remainingUsers = allUsers.skip(3).toList();
+    final currentUser = LeaderboardData.currentUser;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Custom App Bar / Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
-                children: [
-                   IconButton(
-                    icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Leaderboard',
-                        style: AppTextStyles.heading2,
-                      ),
-                    ),
-                  ),
-                   const SizedBox(width: 48), // Balance back button
-                ],
-              ),
-            ),
-            
-            Expanded(
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 24.0),
-                      child: Column(
-                        children: [
-                          Icon(Icons.emoji_events, size: 64, color: Color(0xFFFFD700)), // Gold-ish crown/trophy
-                          const SizedBox(height: 8),
-                          Text(
-                            '₹10,00,000',
-                            style: AppTextStyles.largeNumber.copyWith(fontSize: 40),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Build your dream physique and compete\nfor ₹10 lakh in rewards!',
-                            textAlign: TextAlign.center,
-                            style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  // Sticky Header for Current User
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SliverHeaderDelegate(
-                      minHeight: 80,
-                      maxHeight: 80,
-                      child: Container(
-                        color: AppColors.background, // Match background
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: _UserRow(
-                          user: currentUser,
-                          isHighlight: true,
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // Divider
-                   SliverToBoxAdapter(
-                     child: Divider(height: 1, color: AppColors.secondaryText.withOpacity(0.1)),
-                   ),
-
-                   // List of All Users
-                   SliverList(
-                     delegate: SliverChildBuilderDelegate(
-                       (context, index) {
-                         final user = allUsers[index];
-                         // Check if this user is the current user (Rank 7).
-                         // The prompt says "Always show current user at top". 
-                         // It doesn't explicitly say "Remove current user from list". 
-                         // But usually if it's pinned at top, it's weird to show it again.
-                         // However, scrolling to rank 7 and seeing yourself is normal.
-                         // But if I already have a pinned header, maybe I should strictly follow "Leaderboard UI matches reference images".
-                         // Reference Image 2 shows #7 HIGHLIGHTED in the list. It DOES NOT show a pinned header separately.
-                         // BUT Prompt says "Top Highlight (Current User): Always show current user at top".
-                         // This contradicts Image 2. 
-                         // "Highlight row with darker background" checks out with Image 2.
-                         // "Always show current user at top" might mean "Show current user ROW at the top of the list" (Pinned).
-                         
-                         // Decision: I will keep the Pinned Header AND the list content. This ensures requirements are met.
-                         // Actually, if I pin it, I don't need to show it again in the list if it looks redundant?
-                         // Let's show it in the list too, but highlighted, like in the image. 
-                         
-                         return Column(
-                           children: [
-                             _UserRow(
-                               user: user,
-                               isHighlight: user.rank == currentUser.rank,
-                             ),
-                             Divider(
-                               height: 1, 
-                               indent: 70, 
-                               endIndent: 0, 
-                               color: AppColors.secondaryText.withOpacity(0.05)
-                             ),
-                           ],
-                         );
-                       },
-                       childCount: allUsers.length,
-                     ),
-                   ),
-                   
-                   const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                ],
-              ),
-            ),
-          ],
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: Text(
+          'Leaderboard',
+          style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
-    );
-  }
-}
-
-class _UserRow extends StatelessWidget {
-  final LeaderboardUser user;
-  final bool isHighlight;
-
-  const _UserRow({required this.user, required this.isHighlight});
-
-  @override
-  Widget build(BuildContext context) {
-    // Highlight means dark background (in light mode) or lighter in dark mode?
-    // Image 2 shows #7 has a Dark Black background with White text (in what looks like a light mode app).
-    // So "Highlight row with darker background" -> Use AppColors.primary (Black/DarkGrey) background.
-    
-    final bgColor = isHighlight ? AppColors.primary : Colors.transparent;
-    final textColor = isHighlight ? AppColors.background : AppColors.primaryText; // Text inverse
-    final subTextColor = isHighlight ? AppColors.background.withOpacity(0.8) : AppColors.secondaryText;
-    
-    // Trophies for Top 3
-    Widget rankWidget;
-    if (user.rank == 1) {
-      rankWidget = _buildTrophy(Colors.amber, user.rank, textColor); // Gold
-    } else if (user.rank == 2) {
-      rankWidget = _buildTrophy(Colors.grey.shade400, user.rank, textColor); // Silver
-    } else if (user.rank == 3) {
-      rankWidget = _buildTrophy(const Color(0xFFE5E4E2), user.rank, textColor); // Platinum
-    } else {
-       rankWidget = Text(
-         '#${user.rank}',
-         style: AppTextStyles.bodyBold.copyWith(color: subTextColor),
-       );
-    }
-    
-    // If highlighted, we override the text color even for non-trophy ranks (though top 3 normally aren't highlighted unless user is top 3)
-    if (isHighlight) {
-       // user.rank is 7.
-    }
-
-    return Container(
-      color: bgColor,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+      body: Column(
         children: [
-          Container(
-            width: 40,  
-            alignment: Alignment.center,
-            child: rankWidget,
-          ),
-          const SizedBox(width: 12),
-          // Flag
-          Text(
-            user.countryFlag,
-            style: const TextStyle(fontSize: 20),
-          ),
-          const SizedBox(width: 12),
-          // Name
+          const SizedBox(height: 20),
+          // Top 3 Hero Section
+          _buildTopThreeSection(topThree),
+          const SizedBox(height: 32),
+
+          // Rank List Section
           Expanded(
-            child: Text(
-              user.name,
-              style: AppTextStyles.bodyBold.copyWith(color: textColor),
-              overflow: TextOverflow.ellipsis,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(32),
+                  topRight: Radius.circular(32),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(32),
+                  topRight: Radius.circular(32),
+                ),
+                child: ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
+                  itemCount: remainingUsers.length,
+                  separatorBuilder: (context, index) => Divider(
+                    height: 1,
+                    color: AppColors.secondaryText.withOpacity(0.05),
+                    indent: 50,
+                  ),
+                  itemBuilder: (context, index) {
+                    final user = remainingUsers[index];
+                    final isCurrentUser = user.rank == currentUser.rank;
+                    return _buildRankRow(user, isCurrentUser);
+                  },
+                ),
+              ),
             ),
-          ),
-          // Points
-          Text(
-            '${user.points} pts',
-            style: AppTextStyles.bodyMedium.copyWith(color: textColor),
           ),
         ],
       ),
     );
   }
-  
-  Widget _buildTrophy(Color color, int rank, Color textColor) {
-    // "Rank number inside trophy icon"
-    // Since I don't have a complex trophy widget with text inside, I'll stack it.
-    return Stack(
-      alignment: Alignment.center,
+
+  Widget _buildTopThreeSection(List<LeaderboardUser> topThree) {
+    if (topThree.length < 3) return const SizedBox();
+
+    // Order: 2nd, 1st, 3rd
+    final first = topThree[0];
+    final second = topThree[1];
+    final third = topThree[2];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // 2nd Place
+          Expanded(child: _buildTopUserBlock(second, 2, false)),
+          // 1st Place (Elevated)
+          Expanded(child: _buildTopUserBlock(first, 1, true)),
+          // 3rd Place
+          Expanded(child: _buildTopUserBlock(third, 3, false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopUserBlock(LeaderboardUser user, int rank, bool isFirst) {
+    Color crownColor;
+    double size = isFirst ? 100 : 80;
+    double fontSize = isFirst ? 40 : 32;
+
+    if (rank == 1) {
+      crownColor = const Color(0xFFFFD700); // Gold
+    } else if (rank == 2) {
+      crownColor = const Color(0xFFC0C0C0); // Silver
+    } else {
+      crownColor = const Color(0xFFCD7F32); // Bronze
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.emoji_events, color: color, size: 32),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6.0), // Adjust to center in the "cup" part
+        // Crown
+        Icon(
+          Icons.workspace_premium,
+          color: crownColor,
+          size: isFirst ? 32 : 24,
+        ),
+        const SizedBox(height: 4),
+        // Rank Number Container
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: crownColor.withOpacity(0.5),
+              width: isFirst ? 4 : 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: crownColor.withOpacity(0.2),
+                blurRadius: 15,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
           child: Text(
             '$rank',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.white, // Number inside trophy usually contrasts
+            style: AppTextStyles.largeNumber.copyWith(
+              fontSize: fontSize,
+              color: AppColors.primaryText,
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        // Username
+        Text(
+          user.name,
+          style: AppTextStyles.bodyBold.copyWith(fontSize: isFirst ? 16 : 14),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 4),
+        // Points
+        Text(
+          '${user.points} Pts',
+          style: AppTextStyles.label.copyWith(
+            color: crownColor,
+            fontWeight: FontWeight.bold,
+            fontSize: isFirst ? 14 : 12,
+          ),
+        ),
+        if (isFirst) const SizedBox(height: 20), // Lift first place up
       ],
     );
   }
-}
 
-class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final double minHeight;
-  final double maxHeight;
-  final Widget child;
+  Widget _buildRankRow(LeaderboardUser user, bool isCurrentUser) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isCurrentUser
+            ? AppColors.primary.withOpacity(0.05)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        border: isCurrentUser
+            ? Border.all(color: AppColors.primary.withOpacity(0.1))
+            : null,
+      ),
+      child: Row(
+        children: [
+          // Rank Number
+          SizedBox(
+            width: 40,
+            child: Text(
+              '${user.rank}',
+              style: AppTextStyles.bodyBold.copyWith(
+                color: AppColors.secondaryText.withOpacity(0.6),
+                fontSize: 15,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Flag (Optional, but kept from logic if needed, or remove if strictly following "No profile images")
+          // Reference shows only Username. I'll remove flag for cleaner look.
 
-  _SliverHeaderDelegate({required this.minHeight, required this.maxHeight, required this.child});
-
-  @override
-  double get minExtent => minHeight;
-  @override
-  double get maxExtent => maxHeight;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return SizedBox.expand(child: child);
-  }
-
-  @override
-  bool shouldRebuild(_SliverHeaderDelegate oldDelegate) {
-    return maxHeight != oldDelegate.maxHeight ||
-        minHeight != oldDelegate.minHeight ||
-        child != oldDelegate.child;
+          // Username
+          Expanded(
+            child: Text(
+              user.name,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: isCurrentUser ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+          // Points
+          Text(
+            '${user.points} Pts',
+            style: AppTextStyles.bodyBold.copyWith(
+              fontSize: 15,
+              color: isCurrentUser
+                  ? AppColors.primaryText
+                  : AppColors.secondaryText,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

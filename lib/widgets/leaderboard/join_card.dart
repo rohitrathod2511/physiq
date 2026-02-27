@@ -27,13 +27,14 @@ class JoinCard extends StatelessWidget {
                 width: 60,
                 height: 60, // Approximate size from image
                 alignment: Alignment.center,
-                 // Using a standard icon for now as no assets were provided, 
-                 // simply using a FontAwesome icon or Material icon that looks like a trophy.
-                 // Icons.emoji_events is a trophy.
+                // Using a standard icon for now as no assets were provided,
+                // simply using a FontAwesome icon or Material icon that looks like a trophy.
+                // Icons.emoji_events is a trophy.
                 child: Icon(
                   Icons.emoji_events,
                   size: 50,
-                  color: AppColors.primaryText, // Black in light, White in dark (Image shows black silhouette)
+                  color: AppColors
+                      .primaryText, // Black in light, White in dark (Image shows black silhouette)
                 ),
               ),
               const SizedBox(width: 16),
@@ -43,7 +44,7 @@ class JoinCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '₹10,00,000',
+                      '₹1,00,000',
                       style: AppTextStyles.heading1.copyWith(
                         fontSize: 26, // Slightly adjusted to fit
                         height: 1.1,
@@ -51,10 +52,10 @@ class JoinCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Global Physiq Championship',
+                      'Physiq Fitness Championship',
                       style: AppTextStyles.heading3.copyWith(
-                         fontWeight: FontWeight.w700,
-                         fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -71,7 +72,7 @@ class JoinCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          
+
           // Dashed Divider
           CustomPaint(
             painter: _DashedLinePainter(
@@ -79,7 +80,7 @@ class JoinCard extends StatelessWidget {
             ),
             size: const Size(double.infinity, 1),
           ),
-          
+
           const SizedBox(height: 16),
 
           // Footer
@@ -92,37 +93,43 @@ class JoinCard extends StatelessWidget {
                   Icon(Icons.groups, color: AppColors.secondaryText, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    '18,725 joined',
+                    '1,42,836 joined',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.secondaryText,
                     ),
                   ),
                 ],
               ),
-              
+
               // Join Button
               ElevatedButton(
                 onPressed: onJoinTap,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.card, // Text color inverse of card usually (White on Black button)
+                  foregroundColor: AppColors
+                      .card, // Text color inverse of card usually (White on Black button)
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30), // Rounded pill shape
+                    borderRadius: BorderRadius.circular(
+                      30,
+                    ), // Rounded pill shape
                   ),
                 ),
                 child: Text(
-                  'Join Now',
+                  'Join Free Now',
                   style: AppTextStyles.button.copyWith(
-                     color: AppColors.background, // Ideally inverse of primary.
-                     // AppColors.primary is Black in light -> Text should be White.
-                     // AppColors.background is White in light.
-                     // In dark mode: primary is DarkGrey -> Text needs to be White?
-                     // Let's check AppColors.background again.
-                     // Dark mode: Primary is 0xFF333333 (Dark Grey). Background is 0xFF121212 (Black).
-                     // If button is 333333, text should be light.
-                     // Existing 'Save' button in ProgressScreen uses 'Colors.white' for foreground.
+                    color: AppColors.background, // Ideally inverse of primary.
+                    // AppColors.primary is Black in light -> Text should be White.
+                    // AppColors.background is White in light.
+                    // In dark mode: primary is DarkGrey -> Text needs to be White?
+                    // Let's check AppColors.background again.
+                    // Dark mode: Primary is 0xFF333333 (Dark Grey). Background is 0xFF121212 (Black).
+                    // If button is 333333, text should be light.
+                    // Existing 'Save' button in ProgressScreen uses 'Colors.white' for foreground.
                   ),
                 ),
               ),
@@ -150,11 +157,7 @@ class _DashedLinePainter extends CustomPainter {
     double startX = 0;
 
     while (startX < size.width) {
-      canvas.drawLine(
-        Offset(startX, 0),
-        Offset(startX + dashWidth, 0),
-        paint,
-      );
+      canvas.drawLine(Offset(startX, 0), Offset(startX + dashWidth, 0), paint);
       startX += dashWidth + dashSpace;
     }
   }

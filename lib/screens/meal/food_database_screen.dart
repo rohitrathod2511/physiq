@@ -152,10 +152,6 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          'Log food',
-          style: AppTextStyles.h2.copyWith(color: textPrimary),
-        ),
         centerTitle: true,
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
@@ -166,9 +162,9 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
       ),
       body: Column(
         children: [
-          // Custom Tab Row with equal spacing and balanced margins
+          // Custom Tab Row with reduced margins
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
             child: Container(
               height: 48,
               decoration: BoxDecoration(
@@ -189,16 +185,32 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                             child: Container(
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? theme.cardColor
+                                    ? (theme.brightness == Brightness.dark
+                                          ? Colors.white.withValues(alpha: 0.14)
+                                          : theme.cardColor)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(20),
+                                border:
+                                    isSelected &&
+                                        theme.brightness == Brightness.dark
+                                    ? Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.24,
+                                        ),
+                                        width: 1,
+                                      )
+                                    : null,
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: theme.shadowColor.withValues(
-                                            alpha: 0.12,
+                                          color: Colors.black.withValues(
+                                            alpha:
+                                                theme.brightness ==
+                                                    Brightness.dark
+                                                ? 0.3
+                                                : 0.08,
                                           ),
-                                          blurRadius: 4,
+                                          blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         ),
                                       ]
