@@ -17,8 +17,12 @@ class CalorieAndMacrosPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Extract data
-    final int caloriesGoal = (currentPlan?['calories'] ?? dailySummary['caloriesGoal'] ?? 2000).toInt();
-    final int caloriesConsumed = (dailySummary['caloriesConsumed'] ?? dailySummary['calories'] ?? 0).toInt();
+    final int caloriesGoal =
+        (currentPlan?['calories'] ?? dailySummary['caloriesGoal'] ?? 2000)
+            .toInt();
+    final int caloriesConsumed =
+        (dailySummary['caloriesConsumed'] ?? dailySummary['calories'] ?? 0)
+            .toInt();
     final int caloriesBurned = (dailySummary['caloriesBurned'] ?? 0).toInt();
 
     final double caloriesPercent = (caloriesGoal > 0)
@@ -26,10 +30,14 @@ class CalorieAndMacrosPage extends StatelessWidget {
         : 0.0;
 
     // Macros
-    final int carbsConsumed = (dailySummary['carbsConsumed'] ?? dailySummary['carbs'] ?? 0).toInt();
-    final int proteinConsumed = (dailySummary['proteinConsumed'] ?? dailySummary['protein'] ?? 0).toInt();
-    final int fatConsumed = (dailySummary['fatConsumed'] ?? dailySummary['fat'] ?? 0).toInt();
-    
+    final int carbsConsumed =
+        (dailySummary['carbsConsumed'] ?? dailySummary['carbs'] ?? 0).toInt();
+    final int proteinConsumed =
+        (dailySummary['proteinConsumed'] ?? dailySummary['protein'] ?? 0)
+            .toInt();
+    final int fatConsumed =
+        (dailySummary['fatConsumed'] ?? dailySummary['fat'] ?? 0).toInt();
+
     final int proteinGoal = (currentPlan?['protein'] ?? 150).toInt();
     final int carbsGoal = (currentPlan?['carbs'] ?? 250).toInt();
     final int fatGoal = (currentPlan?['fat'] ?? 70).toInt();
@@ -57,10 +65,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Eaten
-              _buildTopStat(
-                label: 'EATEN',
-                value: '$caloriesConsumed',
-              ),
+              _buildTopStat(label: 'EATEN', value: '$caloriesConsumed'),
 
               // Center Ring
               CircularPercentIndicator(
@@ -68,7 +73,7 @@ class CalorieAndMacrosPage extends StatelessWidget {
                 lineWidth: 14.0,
                 animation: true,
                 percent: caloriesPercent,
-                circularStrokeCap: CircularStrokeCap.round,
+                circularStrokeCap: CircularStrokeCap.butt,
                 backgroundColor: const Color(0xFFF3F4F6),
                 progressColor: const Color(0xFF374151), // Softer charcoal black
                 center: Column(
@@ -76,25 +81,33 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   children: [
                     Text(
                       "${math.max(0, caloriesGoal - caloriesConsumed)}",
-                      style: AppTextStyles.heading2.copyWith(fontSize: 28, fontWeight: FontWeight.w800),
+                      style: AppTextStyles.heading2.copyWith(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     Text(
                       "KCAL",
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText, fontSize: 14,  fontStyle: FontStyle.italic),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.secondaryText,
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                     Text(
                       "LEFT",
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText, fontSize: 14,  fontStyle: FontStyle.italic),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.secondaryText,
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ],
                 ),
               ),
 
               // Burned
-              _buildTopStat(
-                label: 'BURNED',
-                value: '$caloriesBurned',
-              ),
+              _buildTopStat(label: 'BURNED', value: '$caloriesBurned'),
             ],
           ),
         ),
@@ -111,10 +124,16 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   label: 'Protein',
                   consumed: proteinConsumed,
                   goal: proteinGoal,
-                  color: const Color(0xFFFEE2E2), 
+                  color: const Color(0xFFFEE2E2),
                   iconColor: const Color(0xFFF87171), // Softer red
-                  centerWidget: FishIcon(color: const Color(0xFFEF4444), size: 28), 
-                  percent: _getMacroPercent(proteinConsumed, proteinGoal.toDouble()),
+                  centerWidget: FishIcon(
+                    color: const Color(0xFFEF4444),
+                    size: 28,
+                  ),
+                  percent: _getMacroPercent(
+                    proteinConsumed,
+                    proteinGoal.toDouble(),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -123,10 +142,16 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   label: 'Carbs',
                   consumed: carbsConsumed,
                   goal: carbsGoal,
-                  color: const Color(0xFFFEF3C7), 
+                  color: const Color(0xFFFEF3C7),
                   iconColor: const Color(0xFFFBBF24), // Softer warm yellow
-                  centerWidget: WheatIcon(color: const Color(0xFFF59E0B), size: 28),
-                  percent: _getMacroPercent(carbsConsumed, carbsGoal.toDouble()),
+                  centerWidget: WheatIcon(
+                    color: const Color(0xFFF59E0B),
+                    size: 28,
+                  ),
+                  percent: _getMacroPercent(
+                    carbsConsumed,
+                    carbsGoal.toDouble(),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -135,9 +160,12 @@ class CalorieAndMacrosPage extends StatelessWidget {
                   label: 'Fats',
                   consumed: fatConsumed,
                   goal: fatGoal,
-                  color: const Color(0xFFDBEAFE), 
+                  color: const Color(0xFFDBEAFE),
                   iconColor: const Color(0xFF60A5FA), // Softer calm blue
-                  centerWidget: AvocadoIcon(color: const Color(0xFF3B82F6), size: 28),
+                  centerWidget: AvocadoIcon(
+                    color: const Color(0xFF3B82F6),
+                    size: 28,
+                  ),
                   percent: _getMacroPercent(fatConsumed, fatGoal.toDouble()),
                 ),
               ),
@@ -159,7 +187,10 @@ class CalorieAndMacrosPage extends StatelessWidget {
       children: [
         Text(
           value,
-          style: AppTextStyles.heading2.copyWith(fontSize: 24, fontWeight: FontWeight.w800),
+          style: AppTextStyles.heading2.copyWith(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -198,32 +229,46 @@ class CalorieAndMacrosPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-            CircularPercentIndicator(
-              radius: 32.0, 
-              lineWidth: 6.0,
-              animation: true,
-              percent: percent,
-              circularStrokeCap: CircularStrokeCap.round,
-              backgroundColor: const Color(0xFFF3F4F6),
-              progressColor: iconColor,
-              center: centerWidget,
-            ),
+          CircularPercentIndicator(
+            radius: 32.0,
+            lineWidth: 6.0,
+            animation: true,
+            percent: percent,
+            circularStrokeCap: CircularStrokeCap.butt,
+            backgroundColor: const Color(0xFFF3F4F6),
+            progressColor: iconColor,
+            center: centerWidget,
+          ),
           const SizedBox(height: 12),
           RichText(
             text: TextSpan(
-              style: AppTextStyles.bodyBold.copyWith(color: AppColors.primaryText, height: 1.0),
+              style: AppTextStyles.bodyBold.copyWith(
+                color: AppColors.primaryText,
+                height: 1.0,
+              ),
               children: [
                 TextSpan(
                   text: '$consumed',
-                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 TextSpan(
                   text: ' / $goal',
-                  style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.normal),
+                  style: const TextStyle(
+                    color: Color(0xFF9CA3AF),
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
                 const TextSpan(
                   text: 'g',
-                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.normal),
+                  style: TextStyle(
+                    color: Color(0xFF9CA3AF),
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
               ],
             ),
@@ -231,7 +276,9 @@ class CalorieAndMacrosPage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: AppTextStyles.smallLabel.copyWith(color: AppColors.secondaryText),
+            style: AppTextStyles.smallLabel.copyWith(
+              color: AppColors.secondaryText,
+            ),
           ),
         ],
       ),

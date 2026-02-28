@@ -1,4 +1,3 @@
-
 import 'dart:async'; // Added for StreamSubscription
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Added for Firestore
@@ -44,41 +43,49 @@ class AuthSubscription extends ChangeNotifier {
   late final StreamSubscription<User?> _authSubscription;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   User? currentUser;
-  bool? onboardingCompleted; // null = loading/unknown, false = new user, true = existing
+  bool?
+  onboardingCompleted; // null = loading/unknown, false = new user, true = existing
 
   AuthSubscription() {
-    // 1. Listen to Auth State
-    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) async {
-      currentUser = user;
-      
-      // 2. If user exists, listen to their Firestore document
-      if (user != null) {
-        _userSubscription?.cancel(); // Cancel any previous listener
-        _userSubscription = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .snapshots()
-            .listen((snapshot) {
-          
+    // 1. Initialize with current values if available synchronously
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      _startUserSubscription(currentUser!);
+    }
+
+    // 2. Listen to Auth State changes for future events
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((
+      user,
+    ) async {
+      if (currentUser?.uid != user?.uid) {
+        currentUser = user;
+        if (user != null) {
+          _startUserSubscription(user);
+        } else {
+          _userSubscription?.cancel();
+          _userSubscription = null;
+          onboardingCompleted = null;
+          notifyListeners();
+        }
+      }
+    });
+  }
+
+  void _startUserSubscription(User user) {
+    _userSubscription?.cancel();
+    _userSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .listen((snapshot) {
           if (snapshot.exists) {
             final data = snapshot.data();
-            // Default to TRUE if field is missing (LEGACY USER SUPPORT)
-            // Default to FALSE only if explicitly false (NEW USER)
             onboardingCompleted = data?['onboardingCompleted'] ?? true;
           } else {
-             // Doc doesn't exist yet (creating...)
-             onboardingCompleted = false; 
+            onboardingCompleted = false;
           }
           notifyListeners();
         });
-      } else {
-        // User logged out
-        _userSubscription?.cancel();
-        _userSubscription = null;
-        onboardingCompleted = null; // Reset
-        notifyListeners();
-      }
-    });
   }
 
   @override
@@ -94,7 +101,7 @@ final authSubscription = AuthSubscription();
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
   refreshListenable: authSubscription,
-  initialLocation: '/', 
+  initialLocation: '/',
   redirect: (context, state) {
     final isAuthenticated = authSubscription.currentUser != null;
     final isOnboardingComplete = authSubscription.onboardingCompleted;
@@ -105,12 +112,13 @@ final GoRouter router = GoRouter(
     // ----------------------------------------------------
     if (!isAuthenticated) {
       // Protected routes logic
-      final isProtected = location.startsWith('/home') ||
-                          location.startsWith('/settings') ||
-                          location.startsWith('/progress') ||
-                          location.startsWith('/exercise') ||
-                          location.startsWith('/meal-history');
-      
+      final isProtected =
+          location.startsWith('/home') ||
+          location.startsWith('/settings') ||
+          location.startsWith('/progress') ||
+          location.startsWith('/exercise') ||
+          location.startsWith('/meal-history');
+
       // If trying to access protected route, kick to Get Started
       if (isProtected) {
         return '/get-started';
@@ -122,14 +130,8 @@ final GoRouter router = GoRouter(
     // 2. If Authenticated but Firestore data still loading
     // ----------------------------------------------------
     if (isOnboardingComplete == null) {
-       // Optional: Could redirect to a dedicated loading screen if stuck too long
-       // But usually letting it pass or showing splash is fine.
-       // For safety, if on home, maybe show loading?
-       // For now, let's allow them to stay where they are or go to loading if critical.
-       if (location == '/home') {
-          return '/onboarding/loading'; 
-       }
-       return null; 
+      // Stay on current screen while loading
+      return null;
     }
 
     // ----------------------------------------------------
@@ -137,11 +139,12 @@ final GoRouter router = GoRouter(
     // 3. Authenticated AND Onboarding INCOMPLETE (New User)
     // ----------------------------------------------------
     if (!isOnboardingComplete) {
-      final isProtected = location.startsWith('/home') ||
-                          location.startsWith('/settings') ||
-                          location.startsWith('/progress') ||
-                          location.startsWith('/exercise') ||
-                          location.startsWith('/meal-history');
+      final isProtected =
+          location.startsWith('/home') ||
+          location.startsWith('/settings') ||
+          location.startsWith('/progress') ||
+          location.startsWith('/exercise') ||
+          location.startsWith('/meal-history');
 
       // Enforce paywall/onboarding completion before app shell access.
       if (isProtected ||
@@ -150,21 +153,21 @@ final GoRouter router = GoRouter(
           location == '/sign-in') {
         return '/onboarding/paywall-free';
       }
-      return null; 
+      return null;
     }
 
     // ----------------------------------------------------
     // 4. Authenticated AND Onboarding COMPLETE (Returning User)
     // ----------------------------------------------------
     if (isOnboardingComplete) {
-       // Redirect away from auth/onboarding screens to Home
-       if (location == '/sign-in' || 
-           location == '/get-started' || 
-           location == '/' ||
-           location.startsWith('/onboarding') ||
-           location == '/review') {
-         return '/home';
-       }
+      // Redirect away from auth/onboarding screens to Home
+      if (location == '/sign-in' ||
+          location == '/get-started' ||
+          location == '/' ||
+          location.startsWith('/onboarding') ||
+          location == '/review') {
+        return '/home';
+      }
     }
 
     return null;
@@ -177,10 +180,7 @@ final GoRouter router = GoRouter(
         return ScaffoldWithNavBar(child: child);
       },
       routes: <RouteBase>[
-        GoRoute(
-          path: '/home',
-          builder: (context, state) => const HomeScreen(),
-        ),
+        GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
         GoRoute(
           path: '/progress',
           builder: (context, state) => const ProgressScreen(),
@@ -196,10 +196,7 @@ final GoRouter router = GoRouter(
       ],
     ),
     // Standalone routes that sit outside the main shell
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(
       path: '/get-started',
       builder: (context, state) => const GetStartedScreen(),
@@ -208,33 +205,90 @@ final GoRouter router = GoRouter(
       path: '/sign-in',
       builder: (context, state) => const SignUpScreen(),
     ),
-    
+
     // Onboarding Flow
     // Name Screen removed from flow per user request (still available in settings if implemented there, but removed from router)
     // GoRoute(path: '/onboarding/name', builder: (context, state) => const NameScreen()),
-    GoRoute(path: '/onboarding/gender', builder: (context, state) => const GenderScreen()),
-    GoRoute(path: '/onboarding/birthyear', builder: (context, state) => const BirthYearScreen()),
-    GoRoute(path: '/onboarding/height-weight', builder: (context, state) => const HeightWeightScreen()),
-    GoRoute(path: '/onboarding/activity', builder: (context, state) => const ActivityLifestyleScreen()),
-    GoRoute(path: '/onboarding/goal', builder: (context, state) => const GoalScreen()),
-    GoRoute(path: '/onboarding/target-weight', builder: (context, state) => const TargetWeightScreen()),
-    GoRoute(path: '/onboarding/motivational-message', builder: (context, state) => const MotivationalMessageScreen()),
-    GoRoute(path: '/onboarding/timeframe', builder: (context, state) => const TimeframeScreen()),
-    GoRoute(path: '/onboarding/result-message', builder: (context, state) => const ResultMessageScreen()),
-    GoRoute(path: '/onboarding/diet-preference', builder: (context, state) => const DietPreferenceScreen()),
-    GoRoute(path: '/onboarding/notification', builder: (context, state) => const NotificationScreen()),
-    GoRoute(path: '/onboarding/referral', builder: (context, state) => const ReferralScreen()),
-    GoRoute(path: '/onboarding/generate-plan', builder: (context, state) => const GeneratePlanScreen()),
-    GoRoute(path: '/onboarding/loading', builder: (context, state) => const LoadingScreen()),
-    
+    GoRoute(
+      path: '/onboarding/gender',
+      builder: (context, state) => const GenderScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/birthyear',
+      builder: (context, state) => const BirthYearScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/height-weight',
+      builder: (context, state) => const HeightWeightScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/activity',
+      builder: (context, state) => const ActivityLifestyleScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/goal',
+      builder: (context, state) => const GoalScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/target-weight',
+      builder: (context, state) => const TargetWeightScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/motivational-message',
+      builder: (context, state) => const MotivationalMessageScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/timeframe',
+      builder: (context, state) => const TimeframeScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/result-message',
+      builder: (context, state) => const ResultMessageScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/diet-preference',
+      builder: (context, state) => const DietPreferenceScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/notification',
+      builder: (context, state) => const NotificationScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/referral',
+      builder: (context, state) => const ReferralScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/generate-plan',
+      builder: (context, state) => const GeneratePlanScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/loading',
+      builder: (context, state) => const LoadingScreen(),
+    ),
+
     // Review & Paywall
     GoRoute(path: '/review', builder: (context, state) => const ReviewScreen()),
 
-    GoRoute(path: '/onboarding/paywall-free', builder: (context, state) => const PaywallFreeScreen()),
-    GoRoute(path: '/onboarding/paywall-notification', builder: (context, state) => const PaywallNotificationScreen()),
-    GoRoute(path: '/onboarding/paywall-main', builder: (context, state) => const PaywallMainScreen()),
-    GoRoute(path: '/onboarding/paywall-spinner', builder: (context, state) => const PaywallSpinnerScreen()),
-    GoRoute(path: '/onboarding/paywall-offer', builder: (context, state) => const PaywallOfferScreen()),
+    GoRoute(
+      path: '/onboarding/paywall-free',
+      builder: (context, state) => const PaywallFreeScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/paywall-notification',
+      builder: (context, state) => const PaywallNotificationScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/paywall-main',
+      builder: (context, state) => const PaywallMainScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/paywall-spinner',
+      builder: (context, state) => const PaywallSpinnerScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/paywall-offer',
+      builder: (context, state) => const PaywallOfferScreen(),
+    ),
 
     GoRoute(
       path: '/meal-history',

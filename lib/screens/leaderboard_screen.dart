@@ -27,51 +27,68 @@ class LeaderboardScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Column(
+      body: Stack(
         children: [
-          const SizedBox(height: 20),
-          // Top 3 Hero Section
-          _buildTopThreeSection(topThree),
-          const SizedBox(height: 32),
+          Column(
+            children: [
+              const SizedBox(height: 20),
+              // Top 3 Hero Section
+              _buildTopThreeSection(topThree),
+              const SizedBox(height: 32),
 
-          // Rank List Section
-          Expanded(
+              // Rank List Section
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
+                    child: ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
+                      itemCount: remainingUsers.length,
+                      separatorBuilder: (context, index) => Divider(
+                        height: 1,
+                        color: AppColors.secondaryText.withOpacity(0.05),
+                        indent: 50,
+                      ),
+                      itemBuilder: (context, index) {
+                        final user = remainingUsers[index];
+                        final isCurrentUser = user.rank == currentUser.rank;
+                        return _buildRankRow(user, isCurrentUser);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Floating Current User Rank Card
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 20,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ),
-                child: ListView.separated(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
-                  itemCount: remainingUsers.length,
-                  separatorBuilder: (context, index) => Divider(
-                    height: 1,
-                    color: AppColors.secondaryText.withOpacity(0.05),
-                    indent: 50,
-                  ),
-                  itemBuilder: (context, index) {
-                    final user = remainingUsers[index];
-                    final isCurrentUser = user.rank == currentUser.rank;
-                    return _buildRankRow(user, isCurrentUser);
-                  },
-                ),
-              ),
+              padding: const EdgeInsets.only(
+                bottom: 10,
+              ), // Space for bottom nav bar
+              color: AppColors.background, // To hide content underneath
+              child: _buildRankRow(currentUser, true),
             ),
           ),
         ],

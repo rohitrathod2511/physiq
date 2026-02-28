@@ -19,10 +19,14 @@ void main() async {
   // Initialize Firebase Messaging
   await MessagingService().initialize();
 
-  // 🔹 FIX: Sign in anonymously to authenticate with Cloud Functions
+  // 🔹 FIX: Sign in anonymously ONLY IF NOT ALREADY AUTHENTICATED
   try {
-    final userCredential = await FirebaseAuth.instance.signInAnonymously();
-    print("✅ Signed in anonymously. Current user: ${userCredential.user?.uid}");
+    if (FirebaseAuth.instance.currentUser == null) {
+      final userCredential = await FirebaseAuth.instance.signInAnonymously();
+      print("✅ Signed in anonymously. Current user: ${userCredential.user?.uid}");
+    } else {
+      print("✅ Already authenticated: ${FirebaseAuth.instance.currentUser?.uid}");
+    }
   } catch (e) {
     print("❌ Failed to sign in anonymously: $e");
   }
