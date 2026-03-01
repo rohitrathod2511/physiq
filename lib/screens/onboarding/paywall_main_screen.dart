@@ -79,10 +79,10 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildPlanCard('Monthly', '₹499.00/mo', false),
+                    child: _buildPlanCard('Monthly', '₹990.00/mo', false),
                   ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildPlanCard('Yearly', '₹166.58/mo', true)),
+                  Expanded(child: _buildPlanCard('Yearly', '₹250.00/mo', true)),
                 ],
               ),
 
@@ -120,8 +120,8 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               Center(
                 child: Text(
                   _selectedPlan == 'Yearly'
-                      ? "Just ₹166.58 per month"
-                      : "Just ₹499.00 per month",
+                      ? "Just ₹250.00 per month"
+                      : "Just ₹990.00 per month",
                   style: AppTextStyles.smallLabel,
                 ),
               ),

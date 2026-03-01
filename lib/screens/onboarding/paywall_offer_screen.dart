@@ -99,7 +99,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            "₹1,999.00",
+                            "₹3000.00",
                             style: TextStyle(
                               decoration: TextDecoration.lineThrough,
                               color: AppColors.secondaryText,
@@ -108,7 +108,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            "₹99.00",
+                            "₹166.58",
                             style: AppTextStyles.h1.copyWith(
                               color: Colors.redAccent,
                               fontSize: 32,
@@ -180,7 +180,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text("Yearly Plan", style: AppTextStyles.h3),
-                              Text("₹99.00/mo", style: AppTextStyles.h3),
+                              Text("₹166.58/mo", style: AppTextStyles.h3),
                             ],
                           ),
                         ],

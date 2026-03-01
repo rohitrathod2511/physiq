@@ -96,7 +96,7 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "Just ₹1,999.00 per year (₹166.58/mo)",
+              "Just ₹250.00 per month",
               style: AppTextStyles.smallLabel,
             ),
             const SizedBox(height: 20),
