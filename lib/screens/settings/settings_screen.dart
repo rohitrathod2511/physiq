@@ -9,13 +9,13 @@ import 'package:physiq/screens/settings/invite_friends_page.dart';
 import 'package:physiq/screens/settings/personal_details_page.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/screens/settings/weight_history_screen.dart';
-import 'package:physiq/screens/settings/legal_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:physiq/providers/preferences_provider.dart';
 import 'package:physiq/services/support_service.dart';
 import 'package:physiq/services/cloud_functions_client.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:physiq/widgets/header_widget.dart';
 import 'package:physiq/main.dart';
 // Localizations import removed
@@ -28,6 +28,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  static final Uri _termsOfServiceUri = Uri.parse(
+    'https://sites.google.com/view/termsandcondition-physiqai/home',
+  );
+  static final Uri _privacyPolicyUri = Uri.parse(
+    'https://sites.google.com/view/physiqai-privacy/home',
+  );
+
   final _supportService = SupportService();
   final _cloudFunctions = CloudFunctionsClient();
   final _auth = FirebaseAuth.instance;
@@ -150,23 +157,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           icon: Icons.description_outlined,
                           title: 'Terms of Service',
                           showChevron: false,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const TermsPage(),
-                            ),
-                          ),
+                          onTap: openTermsOfService,
                         ),
                         SettingsRow(
                           icon: Icons.privacy_tip_outlined,
                           title: 'Privacy Policy',
                           showChevron: false,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PrivacyPage(),
-                            ),
-                          ),
+                          onTap: openPrivacyPolicy,
                         ),
                         SettingsRow(
                           icon: Icons.mail_outline,
@@ -240,12 +237,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _sendSupportEmail() async {
     try {
-      final uid = _auth.currentUser?.uid ?? 'unknown';
-      final packageInfo = await PackageInfo.fromPlatform();
-      final version = packageInfo.version;
-      await _supportService.sendSupportEmail(uid, version);
+      await _supportService.openSupportEmail();
     } catch (e) {
       if (mounted) _showErrorDialog('Could not launch email client: $e');
+    }
+  }
+
+  Future<void> openTermsOfService() async {
+    await _openExternalLink(_termsOfServiceUri);
+  }
+
+  Future<void> openPrivacyPolicy() async {
+    await _openExternalLink(_privacyPolicyUri);
+  }
+
+  Future<void> _openExternalLink(Uri uri) async {
+    try {
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to open link. Please try again.'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to open link. Please try again.'),
+          ),
+        );
+      }
     }
   }
 

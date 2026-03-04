@@ -7,17 +7,22 @@ import 'package:physiq/widgets/settings/personal_details_sheet.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/screens/settings/weight_history_screen.dart';
 import 'package:physiq/widgets/settings/preferences_sheet.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:physiq/widgets/header_widget.dart';
-
-
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  static final Uri _termsOfServiceUri = Uri.parse(
+    'https://sites.google.com/view/termsandcondition-physiqai/home',
+  );
+  static final Uri _privacyPolicyUri = Uri.parse(
+    'https://sites.google.com/view/physiqai-privacy/home',
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     // In a real app, we'd watch a user provider. For now, fetching stream.
     final authService = AuthService();
     final currentUser = authService.getCurrentUser();
@@ -115,21 +120,15 @@ class SettingsScreen extends ConsumerWidget {
                     _buildSectionItem(
                       icon: Icons.description_outlined,
                       title: 'Terms of Service',
-                      onTap: () => _showLegalDialog(
-                        context,
-                        'Terms of Service',
-                        'Terms content...',
-                      ),
+                      onTap: () =>
+                          _openExternalLink(context, _termsOfServiceUri),
                     ),
                     const SizedBox(height: 32),
                     _buildSectionItem(
                       icon: Icons.privacy_tip_outlined,
                       title: 'Privacy Policy',
-                      onTap: () => _showLegalDialog(
-                        context,
-                        'Privacy Policy',
-                        'Privacy content...',
-                      ),
+                      onTap: () =>
+                          _openExternalLink(context, _privacyPolicyUri),
                     ),
                     const SizedBox(height: 32),
                     _buildSectionItem(
@@ -226,7 +225,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-
   void _showPreferences(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -250,6 +248,27 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openExternalLink(BuildContext context, Uri uri) async {
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to open link. Please try again.'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to open link. Please try again.'),
+          ),
+        );
+      }
+    }
   }
 
   void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {
