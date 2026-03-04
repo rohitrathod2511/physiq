@@ -6,7 +6,6 @@ import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/user_repository.dart';
 import 'package:physiq/widgets/settings/settings_widgets.dart';
 import 'package:physiq/screens/settings/invite_friends_page.dart';
-import 'package:physiq/screens/settings/leaderboard_page.dart';
 import 'package:physiq/screens/settings/personal_details_page.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/screens/settings/weight_history_screen.dart';
@@ -74,7 +73,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
 
-                    // Leaderboard Button
                     const SizedBox(height: 8),
 
                     // Personal & Preferences

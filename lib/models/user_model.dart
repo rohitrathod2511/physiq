@@ -16,7 +16,6 @@ class UserModel {
   final bool isPremium;
   final UserInvites? invites;
   final List<Referral>? referrals;
-  final double leaderboardScore;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final Map<String, dynamic>? nutritionGoals;
@@ -37,7 +36,6 @@ class UserModel {
     this.isPremium = false,
     this.invites,
     this.referrals,
-    this.leaderboardScore = 0.0,
     this.createdAt,
     this.updatedAt,
     this.nutritionGoals,
@@ -66,7 +64,6 @@ class UserModel {
       referrals: (data['referrals'] as List?)
           ?.map((e) => Referral.fromMap(e))
           .toList(),
-      leaderboardScore: (data['leaderboardScore'] as num?)?.toDouble() ?? 0.0,
       createdAt: (data['auth']?['createdAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       nutritionGoals: nutrition.isNotEmpty ? nutrition : data['nutritionGoals'],
@@ -89,7 +86,6 @@ class UserModel {
       'isPremium': isPremium,
       'invites': invites?.toMap(),
       'referrals': referrals?.map((e) => e.toMap()).toList(),
-      'leaderboardScore': leaderboardScore,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'nutritionGoals': nutritionGoals,

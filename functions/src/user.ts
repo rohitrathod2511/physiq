@@ -18,7 +18,7 @@ export const deleteUserData = functions.https.onCall(async (data, context) => {
     // 2. Delete auth record
     await admin.auth().deleteUser(uid);
 
-    // 3. Cleanup other collections (invites, leaderboards, etc.) - simplified for now
+    // 3. Cleanup other collections (invites, etc.) - simplified for now
     
     return { success: true };
 });

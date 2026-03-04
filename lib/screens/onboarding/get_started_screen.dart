@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
+import 'package:physiq/screens/onboarding/forgot_password_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/providers/preferences_provider.dart';
@@ -234,6 +235,18 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  void _handleForgotPassword() {
+    FocusScope.of(context).unfocus();
+    final email = _emailController.text.trim();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ForgotPasswordScreen(
+          prefilledEmail: email.isEmpty ? null : email,
+        ),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -336,7 +349,20 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
               ),
               obscureText: true,
             ),
-            const SizedBox(height: 24),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _handleForgotPassword,
+                child: Text(
+                  'Forgot Password?',
+                  style: AppTextStyles.button.copyWith(
+                    color: Colors.blue,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
 
             if (_isLoading)
               const Center(child: CircularProgressIndicator())

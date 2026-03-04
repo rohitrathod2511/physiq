@@ -9,5 +9,4 @@ if (!admin.apps.length) {
 export * from './user';
 export * from './plan';
 export * from './invite';
-export * from './leaderboard';
 export * from './nutrition';

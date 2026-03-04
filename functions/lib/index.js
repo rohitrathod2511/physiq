@@ -23,6 +23,5 @@ if (!admin.apps.length) {
 __exportStar(require("./user"), exports);
 __exportStar(require("./plan"), exports);
 __exportStar(require("./invite"), exports);
-__exportStar(require("./leaderboard"), exports);
 __exportStar(require("./nutrition"), exports);
 //# sourceMappingURL=index.js.map

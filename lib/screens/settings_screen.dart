@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/user_repository.dart';
 import 'package:physiq/utils/design_system.dart';
-import 'package:physiq/widgets/settings/leaderboard_sheet.dart';
 import 'package:physiq/widgets/settings/personal_details_sheet.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/screens/settings/weight_history_screen.dart';
@@ -19,7 +18,6 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
 
-    final userRepo = ref.watch(userRepositoryProvider);
     // In a real app, we'd watch a user provider. For now, fetching stream.
     final authService = AuthService();
     final currentUser = authService.getCurrentUser();
@@ -70,14 +68,6 @@ class SettingsScreen extends ConsumerWidget {
                       subtitle:
                           'Goal: ${currentUser?.goalWeightKg ?? "--"}kg • Age: ${currentUser?.birthYear != null ? DateTime.now().year - currentUser!.birthYear! : "--"}',
                       onTap: () => _showPersonalDetails(context),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // 3. Leaderboard
-                    _buildSectionItem(
-                      icon: Icons.leaderboard_outlined,
-                      title: 'Leaderboard',
-                      onTap: () => _showLeaderboard(context),
                     ),
                     const SizedBox(height: 32),
 
@@ -236,14 +226,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showLeaderboard(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const LeaderboardSheet(),
-    );
-  }
 
   void _showPreferences(BuildContext context) {
     showModalBottomSheet(

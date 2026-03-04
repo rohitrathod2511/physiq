@@ -62,10 +62,6 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               ),
               const SizedBox(height: 32),
               _buildFeatureItem(
-                'Activate Leaderboard (Yearly)',
-                'Earn ₹1,00,000 by maintaining discipline',
-              ),
-              _buildFeatureItem(
                 'Get your Dream Body',
                 'We keep it simple to make getting results easy',
               ),

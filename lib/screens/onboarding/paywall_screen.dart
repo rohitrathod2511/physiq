@@ -36,7 +36,6 @@ class PaywallScreen extends StatelessWidget {
               _buildFeatureItem('AI Snap Meal Tracking'),
               _buildFeatureItem('Voice Log Entry'),
               _buildFeatureItem('Priority Processing'),
-              _buildFeatureItem('Leaderboards'),
 
               const Spacer(),
 

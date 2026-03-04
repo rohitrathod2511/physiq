@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/models/user_model.dart';
-import 'package:physiq/models/leaderboard_model.dart';
 import 'package:physiq/services/auth_service.dart';
 
 final userRepositoryProvider = Provider((ref) => UserRepository());
@@ -24,7 +23,6 @@ class UserRepository {
         weightKg: 70,
         goalWeightKg: 75,
         preferences: UserPreferences(),
-        leaderboardScore: 123.4,
         invites: UserInvites(code: 'MOCK123', redeemedCount: 2, creditedAmount: 200),
       ));
     }
@@ -200,26 +198,6 @@ class UserRepository {
     }
   }
 
-  // Leaderboard
-  Future<List<LeaderboardEntry>> fetchGlobalLeaderboard() async {
-    if (AppConfig.useMockBackend) {
-      return List.generate(10, (index) => LeaderboardEntry(
-        uid: 'user_$index',
-        displayName: 'User $index',
-        score: 1000.0 - (index * 50),
-        streakDays: 10 - index,
-      ));
-    }
-    final snapshot = await _firestore
-        .collection('leaderboards')
-        .doc('global')
-        .collection('users')
-        .orderBy('score', descending: true)
-        .limit(10)
-        .get();
-    
-    return snapshot.docs.map((doc) => LeaderboardEntry.fromMap(doc.data())).toList();
-  }
 
   Future<void> deleteAccount() async {}
 }
