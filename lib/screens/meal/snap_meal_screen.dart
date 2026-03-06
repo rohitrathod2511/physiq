@@ -1,12 +1,16 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:physiq/screens/meal/food_database_screen.dart';
+import 'package:physiq/screens/meal/meal_logging_flows.dart';
 import 'package:physiq/screens/meal/meal_preview_screen.dart';
 import 'package:physiq/services/food_service.dart';
 
-/// Camera flow with FatSecret image recognition for Scan/Gallery.
+/// Camera flow:
+/// - Scan/Gallery: ML Kit on-device object detection + Open Food Facts nutrition
+/// - Barcode: Open Food Facts barcode lookup
 class SnapMealScreen extends ConsumerStatefulWidget {
   const SnapMealScreen({super.key});
 
@@ -21,10 +25,33 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
   bool _isProcessing = false;
   int _selectedMode = 0; // 0=Scan, 1=Barcode, 2=Gallery, 3=Type
   final FoodService _foodService = FoodService();
+  late final ObjectDetector _objectDetector;
+
+  static const List<String> _foodKeywords = [
+    'apple',
+    'rice',
+    'chicken',
+    'dal',
+    'bread',
+    'maggi',
+    'banana',
+    'veggies',
+    'vegetable',
+    'meat',
+    'juice',
+    'food',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _objectDetector = ObjectDetector(
+      options: ObjectDetectorOptions(
+        mode: DetectionMode.single,
+        classifyObjects: true,
+        multipleObjects: true,
+      ),
+    );
     WidgetsBinding.instance.addObserver(this);
     _initCamera();
   }
@@ -35,10 +62,11 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
       if (_cameras.isNotEmpty) {
         _controller = CameraController(
           _cameras[0],
-          ResolutionPreset.medium,
+          ResolutionPreset.high,
           enableAudio: false,
         );
         await _controller!.initialize();
+        await _controller!.setZoomLevel(1.0);
         if (mounted) setState(() => _isCameraInitialized = true);
       }
     } catch (e) {
@@ -49,6 +77,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _objectDetector.close();
     _controller?.dispose();
     super.dispose();
   }
@@ -63,29 +92,75 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
     }
   }
 
-  Future<void> _openMealPreviewFromImage(XFile imageFile) async {
-    final bytes = await imageFile.readAsBytes();
-    final recognition = await _foodService.recognizeMealFromImageBytes(bytes);
-    if (!mounted) return;
+  bool _isFoodLabel(String label) {
+    final normalized = label.trim().toLowerCase();
+    if (normalized.isEmpty) return false;
+    return _foodKeywords.any(normalized.contains);
+  }
 
-    if (recognition == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No food detected. Try another image or use Type search.'),
-        ),
-      );
-      return;
+  Future<List<String>> _detectFoodLabels(String imagePath) async {
+    final inputImage = InputImage.fromFilePath(imagePath);
+    final detectedObjects = await _objectDetector.processImage(inputImage);
+    final labels = <String>{};
+
+    for (final detectedObject in detectedObjects) {
+      for (final label in detectedObject.labels) {
+        final text = label.text.trim().toLowerCase();
+        if (_isFoodLabel(text)) {
+          labels.add(text);
+        }
+      }
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MealPreviewScreen(
-          initialFood: recognition.meal,
-          imagePath: imageFile.path,
+    return labels.toList();
+  }
+
+  Future<void> _openMealPreviewFromImage(
+    XFile imageFile, {
+    String source = 'camera',
+  }) async {
+    var loadingShown = false;
+    try {
+      if (mounted) {
+        showLoading(context, source == 'gallery' ? 'Detecting...' : 'Scanning...');
+        loadingShown = true;
+      }
+
+      final labels = await _detectFoodLabels(imageFile.path);
+      final recognition = await _foodService.getMealNutritionFromLabels(labels);
+
+      if (!mounted) return;
+      if (loadingShown) {
+        closeLoading(context);
+        loadingShown = false;
+      }
+
+      if (recognition == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No food detected. Try another image, barcode, or Type search.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MealPreviewScreen(
+            initialFood: recognition.meal,
+            imagePath: imageFile.path,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (mounted && loadingShown) {
+        closeLoading(context);
+      }
+      rethrow;
+    }
   }
 
   Future<void> _onSnap() async {
@@ -95,13 +170,10 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
 
     try {
       final imageFile = await _controller!.takePicture();
-      await _openMealPreviewFromImage(imageFile);
+      await _openMealPreviewFromImage(imageFile, source: 'camera');
     } catch (e) {
       if (mounted) {
         String msg = 'Scan failed: $e';
-        if (e.toString().contains('unauthenticated') || e.toString().contains('internal')) {
-           msg = 'Scan failed. Please try again or log manually.';
-        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg)),
         );
@@ -162,9 +234,6 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
     } catch (e) {
       if (mounted) {
         String msg = 'Barcode search failed: $e';
-        if (e.toString().contains('unauthenticated') || e.toString().contains('internal')) {
-           msg = 'Barcode search failed. Please try again or log manually.';
-        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg)),
         );
@@ -186,13 +255,10 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
 
     setState(() => _isProcessing = true);
     try {
-      await _openMealPreviewFromImage(picked);
+      await _openMealPreviewFromImage(picked, source: 'gallery');
     } catch (e) {
       if (mounted) {
         String msg = 'Gallery scan failed: $e';
-        if (e.toString().contains('unauthenticated') || e.toString().contains('internal')) {
-           msg = 'Gallery scan failed. Please try again or log manually.';
-        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg)),
         );

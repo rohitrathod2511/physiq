@@ -1,8 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 import '../models/food_model.dart';
 
@@ -16,519 +15,653 @@ class MealRecognitionResult {
   });
 }
 
-/// FatSecret is the only food provider for search/details/barcode.
+class _ParsedUserInput {
+  final String query;
+  final double quantity;
+  final String? unit;
+  final double gramsPerUnit;
+
+  const _ParsedUserInput({
+    required this.query,
+    required this.quantity,
+    this.unit,
+    required this.gramsPerUnit,
+  });
+}
+
 class FoodService {
-  FoodService({FirebaseFunctions? functions, FirebaseAuth? auth})
-    : _functions =
-          functions ?? FirebaseFunctions.instanceFor(region: 'us-central1'),
-      _auth = auth ?? FirebaseAuth.instance;
+  static const String _searchBaseUrl =
+      'https://world.openfoodfacts.org/cgi/search.pl';
+  static const String _barcodeBaseUrl =
+      'https://world.openfoodfacts.org/api/v2/product';
 
-  final FirebaseFunctions _functions;
-  final FirebaseAuth _auth;
+  static const Map<String, double> _unitToGrams = {
+    'cup': 240.0,
+    'cups': 240.0,
+    'bowl': 250.0,
+    'bowls': 250.0,
+    'glass': 200.0,
+    'glasses': 200.0,
+    'ml': 1.0,
+    'l': 1000.0,
+    'liter': 1000.0,
+    'litre': 1000.0,
+    'g': 1.0,
+    'gram': 1.0,
+    'grams': 1.0,
+    'kg': 1000.0,
+    'oz': 28.35,
+    'serving': 100.0,
+    'servings': 100.0,
+    'slice': 30.0,
+    'slices': 30.0,
+    'piece': 80.0,
+    'pieces': 80.0,
+    'plate': 300.0,
+    'plates': 300.0,
+  };
 
-  bool _isAuthCallableError(FirebaseFunctionsException error) {
-    return error.code == 'unauthenticated' || error.code == 'permission-denied';
-  }
+  static const Map<String, double> _countBasedWeights = {
+    'apple': 182.0,
+    'banana': 118.0,
+    'orange': 131.0,
+    'egg': 50.0,
+    'pizza': 120.0,
+    'roti': 40.0,
+    'chapati': 40.0,
+  };
 
-  Future<T> _runCallableWithAuthRetry<T>(Future<T> Function() action) async {
-    await _ensureAuthenticatedUser();
-    try {
-      return await action();
-    } on FirebaseFunctionsException catch (error) {
-      if (!_isAuthCallableError(error)) rethrow;
+  static const Set<String> _queryStopWords = {
+    'and',
+    'with',
+    'of',
+    'the',
+    'a',
+    'an',
+    'to',
+    'for',
+    'in',
+    'on',
+    'x',
+  };
 
-      // Token can expire/revoke between app start and function call. Refresh once and retry.
-      final user = await _ensureAuthenticatedUser();
-      await user.getIdToken(true);
-      return await action();
-    }
-  }
+  static const String _offFields =
+      'product_name,product_name_en,brands,code,serving_size,serving_quantity,nutriments,popularity_key,image_front_small_url';
 
-  Future<User> _ensureAuthenticatedUser() async {
-    User? user = _auth.currentUser;
-    if (user == null) {
-      final credential = await _auth.signInAnonymously();
-      user = credential.user;
-    }
+  final http.Client _client;
 
-    if (user == null) {
-      throw Exception('Unable to authenticate user for food functions.');
-    }
+  FoodService({http.Client? client}) : _client = client ?? http.Client();
 
-    try {
-      await user.getIdToken();
-    } catch (_) {
-      await user.getIdToken(true);
-    }
-
-    return user;
-  }
+  Map<String, String> get _headers => const {
+    'User-Agent': 'Physiq/1.0 (support@physiq.app)',
+    'Accept': 'application/json',
+  };
 
   double _toDouble(dynamic value) {
     if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0.0;
+    if (value is String) {
+      return double.tryParse(value.replaceAll(',', '.').trim()) ?? 0.0;
+    }
     return 0.0;
   }
 
-  bool _toBool(dynamic value) {
-    if (value is bool) return value;
-    if (value is num) return value == 1;
-    if (value is String) {
-      final normalized = value.trim().toLowerCase();
-      return normalized == 'true' || normalized == '1';
-    }
-    return false;
+  String _formatQuantity(double quantity) {
+    if (quantity % 1 == 0) return quantity.toInt().toString();
+    return quantity.toStringAsFixed(1);
   }
 
-  Map<String, double> _parseDescriptionMacros(String description) {
-    double parse(String label) {
-      final match = RegExp(
-        '$label:\\s*([\\d.]+)',
-        caseSensitive: false,
-      ).firstMatch(description);
-      if (match == null) return 0;
-      return double.tryParse(match.group(1) ?? '0') ?? 0;
-    }
-
-    return {
-      'calories': parse('Calories'),
-      'protein': parse('Protein'),
-      'carbs': parse('Carbs'),
-      'fat': parse('Fat'),
-    };
-  }
-
-  String _extractServingSummary(String description) {
-    final match = RegExp(
-      r'^Per\s+(.+?)\s*-',
-      caseSensitive: false,
-    ).firstMatch(description);
-    return (match?.group(1)?.trim().isNotEmpty ?? false)
-        ? match!.group(1)!.trim()
-        : 'serving';
-  }
-
-  List<dynamic> _extractFoodListFromNode(dynamic node) {
-    if (node is List) return node;
-    if (node is Map) {
-      final nested = node['food'];
-      if (nested is List) return nested;
-      if (nested != null) return [nested];
-    }
-    return const [];
-  }
-
-  List<dynamic> _extractFoodsFromResponse(dynamic rawData) {
-    if (rawData is! Map) return const [];
-
-    final primary = _extractFoodListFromNode(rawData['foods']);
-    if (primary.isNotEmpty) return primary;
-
-    final foodsSearch = rawData['foods_search'];
-    if (foodsSearch is Map) {
-      final resultsNode = foodsSearch['results'];
-      final fromResults = _extractFoodListFromNode(resultsNode);
-      if (fromResults.isNotEmpty) return fromResults;
-    }
-
-    final fallbackResults = _extractFoodListFromNode(rawData['results']);
-    if (fallbackResults.isNotEmpty) return fallbackResults;
-
-    final directFood = rawData['food'];
-    if (directFood is Map) return [directFood];
-
-    return const [];
-  }
-
-  List<dynamic> _extractServingsFromDetails(Map<String, dynamic> foodNode) {
-    final servingsNode = foodNode['servings'];
-    if (servingsNode is List) return servingsNode;
-
-    if (servingsNode is Map) {
-      final nested = servingsNode['serving'];
-      if (nested is List) return nested;
-      if (nested != null) return [nested];
-    }
-
-    return const [];
-  }
-
-  Map<String, dynamic>? _pickDefaultServing(
-    List<Map<String, dynamic>> servings,
-  ) {
-    if (servings.isEmpty) return null;
-    for (final serving in servings) {
-      if (_toBool(serving['is_default'])) {
-        return serving;
-      }
-    }
-    return servings.first;
-  }
-
-  Food _mapSearchFood(Map<String, dynamic> map) {
-    final description = map['description']?.toString() ?? '';
-    final parsed = _parseDescriptionMacros(description);
-    final servings = _extractServingsFromDetails(map)
-        .whereType<Map>()
-        .map((entry) => Map<String, dynamic>.from(entry))
-        .toList();
-    final defaultServing = _pickDefaultServing(servings);
-
-    double pick(String key, {String? altKey}) {
-      final fromResponse = _toDouble(map[key]);
-      if (fromResponse > 0) return fromResponse;
-      if (altKey != null) {
-        final fromAltResponse = _toDouble(map[altKey]);
-        if (fromAltResponse > 0) return fromAltResponse;
-      }
-      if (defaultServing != null) {
-        final fromServing = _toDouble(defaultServing[key]);
-        if (fromServing > 0) return fromServing;
-        if (altKey != null) {
-          final fromServingAlt = _toDouble(defaultServing[altKey]);
-          if (fromServingAlt > 0) return fromServingAlt;
-        }
-      }
-      return parsed[key] ?? 0;
-    }
-
-    final rawId = map['id']?.toString() ?? map['food_id']?.toString() ?? '';
-    final servingSummary = map['serving_summary']?.toString().trim();
-    final servingDescription = defaultServing?['serving_description']
-        ?.toString()
+  String _normalizeText(String input) {
+    return input
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9 ]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
-    final unit = (servingSummary != null && servingSummary.isNotEmpty)
-        ? servingSummary
-        : ((servingDescription != null && servingDescription.isNotEmpty)
-              ? servingDescription
-              : _extractServingSummary(description));
-
-    return Food(
-      id: 'fs_$rawId',
-      name:
-          map['name']?.toString() ?? map['food_name']?.toString() ?? 'Unknown',
-      category:
-          map['type']?.toString() ?? map['food_type']?.toString() ?? 'General',
-      unit: unit,
-      baseWeightG: _toDouble(defaultServing?['metric_serving_amount']),
-      calories: pick('calories'),
-      protein: pick('protein'),
-      carbs: pick('carbs', altKey: 'carbohydrate'),
-      fat: pick('fat'),
-      source: 'fatsecret',
-      isIndian: false,
-      saturatedFat: _toDouble(defaultServing?['saturated_fat']),
-      polyunsaturatedFat: _toDouble(defaultServing?['polyunsaturated_fat']),
-      monounsaturatedFat: _toDouble(defaultServing?['monounsaturated_fat']),
-      cholesterol: _toDouble(defaultServing?['cholesterol']),
-      sodium: _toDouble(defaultServing?['sodium']),
-      potassium: _toDouble(defaultServing?['potassium']),
-      fiber: _toDouble(defaultServing?['fiber']),
-      sugar: _toDouble(defaultServing?['sugar']),
-      vitaminA: _toDouble(defaultServing?['vitamin_a']),
-      vitaminC: _toDouble(defaultServing?['vitamin_c']),
-      calcium: _toDouble(defaultServing?['calcium']),
-      iron: _toDouble(defaultServing?['iron']),
-    );
   }
 
-  Future<List<Food>> searchFoods(String query) async {
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) return [];
+  String _extractProductName(Map<String, dynamic> product) {
+    final productName = (product['product_name'] ?? '').toString().trim();
+    final productNameEn = (product['product_name_en'] ?? '').toString().trim();
+    if (productName.isNotEmpty) return productName;
+    if (productNameEn.isNotEmpty) return productNameEn;
+    return '';
+  }
 
-    try {
-      final callable = _functions.httpsCallable('searchFood');
-      final result = await _runCallableWithAuthRetry(
-        () => callable.call({
-          'query': trimmed,
-          'region': 'US',
-          'language': 'en',
-        }),
-      );
-      final foodsRaw = _extractFoodsFromResponse(result.data);
+  List<String> _tokenizeQuery(String query) {
+    return query
+        .toLowerCase()
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where(
+          (token) => token.length >= 2 && !_queryStopWords.contains(token),
+        )
+        .toList();
+  }
 
-      return foodsRaw
-          .whereType<Map>()
-          .map((entry) => _mapSearchFood(Map<String, dynamic>.from(entry)))
-          .where((food) => food.id != 'fs_')
-          .toList();
-    } on FirebaseFunctionsException {
-      rethrow;
-    } catch (error) {
-      throw Exception('searchFood failed: $error');
+  String _extractMainFoodKeyword(String input) {
+    if (input.trim().isEmpty) return '';
+
+    const unitPattern =
+        r'(cup|cups|bowl|bowls|glass|glasses|ml|l|liter|litre|g|gram|grams|kg|oz|serving|servings|slice|slices|piece|pieces|plate|plates)';
+
+    var cleaned = input.toLowerCase();
+    cleaned = cleaned.replaceAll(RegExp(r'[\(\)\[\],]+'), ' ');
+    cleaned = cleaned.replaceAll(RegExp(r'\d+(?:\.\d+)?'), ' ');
+    cleaned = cleaned.replaceAll(RegExp('\b$unitPattern\b'), ' ');
+    cleaned = cleaned
+        .split(RegExp(r'\s+'))
+        .where((token) => token.isNotEmpty && !_queryStopWords.contains(token))
+        .join(' ');
+    return cleaned.trim();
+  }
+
+  _ParsedUserInput _parseInput(String input) {
+    final raw = input.trim();
+    if (raw.isEmpty) {
+      return const _ParsedUserInput(query: '', quantity: 1, gramsPerUnit: 0);
     }
-  }
 
-  Future<Food?> getFoodById(String id) async {
-    try {
-      if (id.startsWith('fs_')) {
-        return _getFatSecretDetails(id.substring(3));
+    const unitPattern =
+        r'(cup|cups|bowl|bowls|glass|glasses|ml|l|liter|litre|g|gram|grams|kg|oz|serving|servings|slice|slices|piece|pieces|plate|plates)';
+
+    double quantity = 1.0;
+    String remaining = raw;
+    String? unit;
+    double gramsPerUnit = 0;
+
+    final trailingQtyUnitMatch = RegExp(
+      '^(.+?)\\s+(\\d+(?:\\.\\d+)?)\\s*$unitPattern\\b',
+      caseSensitive: false,
+    ).firstMatch(remaining);
+    if (trailingQtyUnitMatch != null) {
+      quantity = _toDouble(trailingQtyUnitMatch.group(2));
+      unit = (trailingQtyUnitMatch.group(3) ?? '').toLowerCase();
+      gramsPerUnit = _unitToGrams[unit] ?? 0;
+      remaining = (trailingQtyUnitMatch.group(1) ?? '').trim();
+    }
+
+    if (unit == null) {
+      final leadingQtyUnitMatch = RegExp(
+        '^(\\d+(?:\\.\\d+)?)\\s*$unitPattern\\b\\s+(.+)\$',
+        caseSensitive: false,
+      ).firstMatch(remaining);
+      if (leadingQtyUnitMatch != null) {
+        quantity = _toDouble(leadingQtyUnitMatch.group(1));
+        unit = (leadingQtyUnitMatch.group(2) ?? '').toLowerCase();
+        gramsPerUnit = _unitToGrams[unit] ?? 0;
+        remaining = (leadingQtyUnitMatch.group(3) ?? '').trim();
       }
-      return null;
-    } catch (error) {
-      throw Exception('getFoodById failed: $error');
     }
-  }
 
-  Future<Food?> _getFatSecretDetails(String fsId) async {
-    try {
-      final callable = _functions.httpsCallable('getFoodDetails');
-      final result = await _runCallableWithAuthRetry(
-        () => callable.call({
-          'foodId': fsId,
-          'region': 'US',
-          'language': 'en',
-        }),
+    if (unit == null) {
+      final qtyMatch = RegExp(r'^(\d+(?:\.\d+)?)\s+(.+)$').firstMatch(
+        remaining,
       );
-
-      final raw = (result.data is Map)
-          ? Map<String, dynamic>.from(result.data as Map)
-          : <String, dynamic>{};
-      final dynamic foodNodeRaw = raw['food'];
-      final foodNode = (foodNodeRaw is Map)
-          ? Map<String, dynamic>.from(foodNodeRaw)
-          : raw;
-
-      final servings = _extractServingsFromDetails(foodNode)
-          .whereType<Map>()
-          .map((entry) => Map<String, dynamic>.from(entry))
-          .toList();
-
-      if (servings.isEmpty) {
-        return null;
+      if (qtyMatch != null) {
+        quantity = _toDouble(qtyMatch.group(1));
+        remaining = (qtyMatch.group(2) ?? '').trim();
       }
-
-      final serving = _pickDefaultServing(servings) ?? servings.first;
-      final carbsValue = _toDouble(serving['carbohydrate']) > 0
-          ? _toDouble(serving['carbohydrate'])
-          : _toDouble(serving['carbs']);
-
-      return Food(
-        id: 'fs_${foodNode['id']?.toString() ?? foodNode['food_id']?.toString() ?? fsId}',
-        name:
-            foodNode['name']?.toString() ??
-            foodNode['food_name']?.toString() ??
-            'Unknown',
-        category:
-            foodNode['type']?.toString() ??
-            foodNode['food_type']?.toString() ??
-            'General',
-        unit:
-            serving['serving_description']?.toString() ??
-            serving['description']?.toString() ??
-            serving['metric_serving_unit']?.toString() ??
-            'serving',
-        baseWeightG: _toDouble(serving['metric_serving_amount']),
-        calories: _toDouble(serving['calories']),
-        protein: _toDouble(serving['protein']),
-        carbs: carbsValue,
-        fat: _toDouble(serving['fat']),
-        source: 'fatsecret',
-        isIndian: false,
-        saturatedFat: _toDouble(serving['saturated_fat']),
-        polyunsaturatedFat: _toDouble(serving['polyunsaturated_fat']),
-        monounsaturatedFat: _toDouble(serving['monounsaturated_fat']),
-        cholesterol: _toDouble(serving['cholesterol']),
-        sodium: _toDouble(serving['sodium']),
-        potassium: _toDouble(serving['potassium']),
-        fiber: _toDouble(serving['fiber']),
-        sugar: _toDouble(serving['sugar']),
-        vitaminA: _toDouble(serving['vitamin_a']),
-        vitaminC: _toDouble(serving['vitamin_c']),
-        calcium: _toDouble(serving['calcium']),
-        iron: _toDouble(serving['iron']),
-      );
-    } on FirebaseFunctionsException {
-      rethrow;
-    } catch (error) {
-      throw Exception('getFoodDetails failed: $error');
     }
-  }
 
-  Food _mapRecognizedFood(Map<String, dynamic> map, int index) {
-    final rawId = map['id']?.toString() ?? map['food_id']?.toString() ?? '';
-    final servingDescription = map['serving_description']?.toString().trim();
-    final carbs = _toDouble(map['carbs']) > 0
-        ? _toDouble(map['carbs'])
-        : _toDouble(map['carbohydrate']);
-
-    return Food(
-      id: rawId.isNotEmpty ? 'fs_$rawId' : 'scan_item_$index',
-      name:
-          map['name']?.toString() ??
-          map['food_name']?.toString() ??
-          map['food_entry_name']?.toString() ??
-          'Detected food',
-      category:
-          map['type']?.toString() ??
-          map['food_type']?.toString() ??
-          'Scanned',
-      unit:
-          (servingDescription != null && servingDescription.isNotEmpty)
-          ? servingDescription
-          : 'serving',
-      baseWeightG: _toDouble(map['total_metric_amount']),
-      calories: _toDouble(map['calories']),
-      protein: _toDouble(map['protein']),
-      carbs: carbs,
-      fat: _toDouble(map['fat']),
-      source: 'fatsecret_scan',
-      isIndian: false,
-      saturatedFat: _toDouble(map['saturated_fat']),
-      polyunsaturatedFat: _toDouble(map['polyunsaturated_fat']),
-      monounsaturatedFat: _toDouble(map['monounsaturated_fat']),
-      cholesterol: _toDouble(map['cholesterol']),
-      sodium: _toDouble(map['sodium']),
-      potassium: _toDouble(map['potassium']),
-      fiber: _toDouble(map['fiber']),
-      sugar: _toDouble(map['sugar']),
-      vitaminA: _toDouble(map['vitamin_a']),
-      vitaminC: _toDouble(map['vitamin_c']),
-      calcium: _toDouble(map['calcium']),
-      iron: _toDouble(map['iron']),
-    );
-  }
-
-  Future<MealRecognitionResult?> recognizeMealFromImageBytes(
-    Uint8List imageBytes, {
-    List<Map<String, dynamic>> eatenFoods = const [],
-  }) async {
-    if (imageBytes.isEmpty) return null;
-
-    final imageB64 = base64Encode(imageBytes);
-    if (imageB64.isEmpty) return null;
-
-    try {
-      final callable = _functions.httpsCallable('recognizeMealImage');
-      final result = await _runCallableWithAuthRetry(
-        () => callable.call({
-          'imageB64': imageB64,
-          'includeFoodData': true,
-          if (eatenFoods.isNotEmpty) 'eatenFoods': eatenFoods,
-          'region': 'US',
-          'language': 'en',
-        }),
-      );
-
-      final raw = (result.data is Map)
-          ? Map<String, dynamic>.from(result.data as Map)
-          : <String, dynamic>{};
-
-      final detectedFoodsRaw = _extractFoodsFromResponse(raw);
-      final detectedFoods = <Food>[];
-      for (var i = 0; i < detectedFoodsRaw.length; i++) {
-        final entry = detectedFoodsRaw[i];
-        if (entry is Map) {
-          detectedFoods.add(
-            _mapRecognizedFood(Map<String, dynamic>.from(entry), i),
-          );
+    if (unit == null) {
+      final leadingUnitMatch = RegExp(
+        '^$unitPattern\\b',
+        caseSensitive: false,
+      ).firstMatch(remaining);
+      if (leadingUnitMatch != null) {
+        unit = (leadingUnitMatch.group(1) ?? '').toLowerCase();
+        gramsPerUnit = _unitToGrams[unit] ?? 0;
+        remaining = remaining.substring(leadingUnitMatch.end).trim();
+        if (remaining.toLowerCase().startsWith('of ')) {
+          remaining = remaining.substring(3).trim();
         }
       }
-
-      if (detectedFoods.isEmpty) {
-        return null;
-      }
-
-      double sum(double Function(Food) pick) =>
-          detectedFoods.fold(0.0, (total, food) => total + pick(food));
-
-      final mealNode = (raw['meal'] is Map)
-          ? Map<String, dynamic>.from(raw['meal'] as Map)
-          : <String, dynamic>{};
-
-      final mealName = mealNode['name']?.toString().trim();
-      final meal = Food(
-        id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
-        name: (mealName != null && mealName.isNotEmpty)
-            ? mealName
-            : detectedFoods.first.name,
-        category: 'Scanned Meal',
-        unit: 'serving',
-        baseWeightG: 0,
-        calories: _toDouble(mealNode['calories']) > 0
-            ? _toDouble(mealNode['calories'])
-            : sum((f) => f.calories),
-        protein: _toDouble(mealNode['protein']) > 0
-            ? _toDouble(mealNode['protein'])
-            : sum((f) => f.protein),
-        carbs: _toDouble(mealNode['carbs']) > 0
-            ? _toDouble(mealNode['carbs'])
-            : sum((f) => f.carbs),
-        fat: _toDouble(mealNode['fat']) > 0
-            ? _toDouble(mealNode['fat'])
-            : sum((f) => f.fat),
-        source: 'fatsecret_scan',
-        isIndian: false,
-        saturatedFat: _toDouble(mealNode['saturated_fat']) > 0
-            ? _toDouble(mealNode['saturated_fat'])
-            : sum((f) => f.saturatedFat ?? 0),
-        polyunsaturatedFat: _toDouble(mealNode['polyunsaturated_fat']) > 0
-            ? _toDouble(mealNode['polyunsaturated_fat'])
-            : sum((f) => f.polyunsaturatedFat ?? 0),
-        monounsaturatedFat: _toDouble(mealNode['monounsaturated_fat']) > 0
-            ? _toDouble(mealNode['monounsaturated_fat'])
-            : sum((f) => f.monounsaturatedFat ?? 0),
-        cholesterol: _toDouble(mealNode['cholesterol']) > 0
-            ? _toDouble(mealNode['cholesterol'])
-            : sum((f) => f.cholesterol ?? 0),
-        sodium: _toDouble(mealNode['sodium']) > 0
-            ? _toDouble(mealNode['sodium'])
-            : sum((f) => f.sodium ?? 0),
-        potassium: _toDouble(mealNode['potassium']) > 0
-            ? _toDouble(mealNode['potassium'])
-            : sum((f) => f.potassium ?? 0),
-        fiber: _toDouble(mealNode['fiber']) > 0
-            ? _toDouble(mealNode['fiber'])
-            : sum((f) => f.fiber ?? 0),
-        sugar: _toDouble(mealNode['sugar']) > 0
-            ? _toDouble(mealNode['sugar'])
-            : sum((f) => f.sugar ?? 0),
-        vitaminA: _toDouble(mealNode['vitamin_a']) > 0
-            ? _toDouble(mealNode['vitamin_a'])
-            : sum((f) => f.vitaminA ?? 0),
-        vitaminC: _toDouble(mealNode['vitamin_c']) > 0
-            ? _toDouble(mealNode['vitamin_c'])
-            : sum((f) => f.vitaminC ?? 0),
-        calcium: _toDouble(mealNode['calcium']) > 0
-            ? _toDouble(mealNode['calcium'])
-            : sum((f) => f.calcium ?? 0),
-        iron: _toDouble(mealNode['iron']) > 0
-            ? _toDouble(mealNode['iron'])
-            : sum((f) => f.iron ?? 0),
-      );
-
-      return MealRecognitionResult(meal: meal, detectedFoods: detectedFoods);
-    } on FirebaseFunctionsException {
-      rethrow;
-    } catch (error) {
-      throw Exception('recognizeMealImage failed: $error');
     }
+
+    if (unit == null) {
+      final trailingUnitMatch = RegExp(
+        '^(.+?)\\s+$unitPattern\\b',
+        caseSensitive: false,
+      ).firstMatch(remaining);
+      if (trailingUnitMatch != null) {
+        unit = (trailingUnitMatch.group(2) ?? '').toLowerCase();
+        gramsPerUnit = _unitToGrams[unit] ?? 0;
+        remaining = (trailingUnitMatch.group(1) ?? '').trim();
+      }
+    }
+
+    final query = _extractMainFoodKeyword(
+      remaining.isNotEmpty ? remaining : raw,
+    );
+
+    return _ParsedUserInput(
+      query: query.isNotEmpty ? query : raw,
+      quantity: quantity > 0 ? quantity : 1,
+      unit: unit,
+      gramsPerUnit: gramsPerUnit,
+    );
+  }
+
+  bool _containsJunkKeyword(String nameLower) {
+    return nameLower.contains('water') || nameLower.contains('eau');
+  }
+
+  bool _queryWantsJunkKeyword(String queryLower) {
+    return queryLower.contains('water') || queryLower.contains('eau');
+  }
+
+  bool _isLikelyJunkProduct(
+    Map<String, dynamic> product,
+    _ParsedUserInput parsed,
+  ) {
+    final normalizedName = _normalizeText(_extractProductName(product));
+    if (normalizedName.isEmpty) return true;
+
+    final normalizedQuery = _normalizeText(parsed.query);
+    if (_containsJunkKeyword(normalizedName) &&
+        !_queryWantsJunkKeyword(normalizedQuery)) {
+      return true;
+    }
+
+    final tokens = _tokenizeQuery(normalizedQuery);
+    if (tokens.isEmpty) return false;
+
+    final tokenHits = tokens.where(normalizedName.contains).length;
+    return tokenHits == 0;
+  }
+
+  double _extractServingQuantity(Map<String, dynamic> product) {
+    final fromField = _toDouble(product['serving_quantity']);
+    if (fromField > 0) return fromField;
+
+    final servingSize = (product['serving_size'] ?? '').toString();
+    final match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(servingSize);
+    if (match == null) return 0;
+    return _toDouble(match.group(1));
+  }
+
+  double _energyKcal100g(Map<String, dynamic> nutriments) {
+    final kcal100 =
+        _toDouble(nutriments['energy-kcal_100g']) > 0
+        ? _toDouble(nutriments['energy-kcal_100g'])
+        : _toDouble(nutriments['energy_kcal_100g']);
+    if (kcal100 > 0) return kcal100;
+
+    final kcal = _toDouble(nutriments['energy-kcal']);
+    if (kcal > 0) return kcal;
+
+    final kj100 = _toDouble(nutriments['energy_100g']);
+    if (kj100 > 0) return kj100 / 4.184;
+
+    return 0;
+  }
+
+  double _defaultPieceWeightForQuery(String query) {
+    final q = query.toLowerCase();
+    for (final entry in _countBasedWeights.entries) {
+      if (q.contains(entry.key)) return entry.value;
+    }
+    return 0;
+  }
+
+  String _buildServingLabel(
+    _ParsedUserInput parsed,
+    String servingSize,
+    double servingQuantity,
+    double inferredPieceWeight,
+  ) {
+    if (parsed.unit != null) {
+      return '${_formatQuantity(parsed.quantity)} ${parsed.unit}';
+    }
+
+    if (parsed.quantity > 1 && servingSize.isNotEmpty) {
+      return '${_formatQuantity(parsed.quantity)} x $servingSize';
+    }
+
+    if (servingSize.isNotEmpty) {
+      return servingSize;
+    }
+
+    if (servingQuantity > 0) {
+      if (parsed.quantity == 1) return '1 serving';
+      return '${_formatQuantity(parsed.quantity)} servings';
+    }
+
+    if (inferredPieceWeight > 0) {
+      if (parsed.quantity == 1) return '1 piece (${inferredPieceWeight.toInt()}g)';
+      return '${_formatQuantity(parsed.quantity)} pieces';
+    }
+
+    if (parsed.quantity == 1) return '100g';
+    return '${_formatQuantity(parsed.quantity)} x 100g';
+  }
+
+  double _weightForInput(
+    _ParsedUserInput parsed,
+    double servingQuantity,
+    double inferredPieceWeight,
+  ) {
+    if (parsed.gramsPerUnit > 0) return parsed.quantity * parsed.gramsPerUnit;
+    if (servingQuantity > 0) return parsed.quantity * servingQuantity;
+    if (inferredPieceWeight > 0) return parsed.quantity * inferredPieceWeight;
+    return parsed.quantity * 100.0;
+  }
+
+  int _relevanceScore(Map<String, dynamic> product, _ParsedUserInput parsed) {
+    final name = _normalizeText(_extractProductName(product));
+    final brand = _normalizeText((product['brands'] ?? '').toString());
+    final tokens = _tokenizeQuery(parsed.query);
+    final fullQuery = _normalizeText(parsed.query);
+    final nutriments =
+        (product['nutriments'] as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{};
+
+    int score = 0;
+    int tokenHits = 0;
+
+    if (name.isEmpty) return -999;
+    if (name == fullQuery) score += 35;
+    if (name.contains(fullQuery)) score += 24;
+
+    for (final token in tokens) {
+      if (name.contains(token)) {
+        score += 10;
+        tokenHits++;
+      } else if (brand.contains(token)) {
+        score += 4;
+        tokenHits++;
+      } else {
+        score -= 3;
+      }
+    }
+
+    if (tokens.length >= 2 && tokenHits >= 2) score += 10;
+    if (tokenHits == 0 && tokens.isNotEmpty) score -= 20;
+
+    if (_energyKcal100g(nutriments) > 0) {
+      score += 4;
+    } else {
+      score -= 4;
+    }
+
+    if (_extractServingQuantity(product) > 0) score += 2;
+
+    final popularity = _toDouble(product['popularity_key']);
+    if (popularity > 1000000) {
+      score += 8;
+    } else if (popularity > 100000) {
+      score += 6;
+    } else if (popularity > 10000) {
+      score += 4;
+    } else if (popularity > 1000) {
+      score += 2;
+    }
+
+    if (_containsJunkKeyword(name) && !_queryWantsJunkKeyword(fullQuery)) {
+      score -= 50;
+    }
+
+    return score;
+  }
+
+  Food _mapProductToFood(
+    Map<String, dynamic> product,
+    _ParsedUserInput parsed,
+  ) {
+    final nutriments =
+        (product['nutriments'] as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{};
+    final servingQuantity = _extractServingQuantity(product);
+    final inferredPieceWeight = _defaultPieceWeightForQuery(parsed.query);
+    final totalWeightG = _weightForInput(
+      parsed,
+      servingQuantity,
+      inferredPieceWeight,
+    );
+    final scale = totalWeightG / 100.0;
+
+    final calories100 = _energyKcal100g(nutriments);
+    final protein100 = _toDouble(nutriments['proteins_100g']);
+    final carbs100 = _toDouble(nutriments['carbohydrates_100g']);
+    final fat100 = _toDouble(nutriments['fat_100g']);
+
+    final servingSize = (product['serving_size'] ?? '').toString().trim();
+    final name = _extractProductName(product);
+    final code = (product['code'] ?? '').toString().trim();
+    final brand = (product['brands'] ?? '').toString().trim();
+
+    return Food(
+      id: code.isEmpty
+          ? 'off_${DateTime.now().millisecondsSinceEpoch}'
+          : 'off_$code',
+      name: name.isEmpty ? parsed.query : name,
+      category: brand.isNotEmpty ? brand : 'Open Food Facts',
+      unit: _buildServingLabel(
+        parsed,
+        servingSize,
+        servingQuantity,
+        inferredPieceWeight,
+      ),
+      baseWeightG: totalWeightG > 0 ? totalWeightG : 100.0,
+      calories: calories100 * scale,
+      protein: protein100 * scale,
+      carbs: carbs100 * scale,
+      fat: fat100 * scale,
+      source: 'open_food_facts',
+      saturatedFat: _toDouble(nutriments['saturated-fat_100g']) * scale,
+      polyunsaturatedFat:
+          _toDouble(nutriments['polyunsaturated-fat_100g']) * scale,
+      monounsaturatedFat:
+          _toDouble(nutriments['monounsaturated-fat_100g']) * scale,
+      cholesterol: _toDouble(nutriments['cholesterol_100g']) * scale,
+      sodium: _toDouble(nutriments['sodium_100g']) * scale,
+      fiber: _toDouble(nutriments['fiber_100g']) * scale,
+      sugar: _toDouble(nutriments['sugars_100g']) * scale,
+      potassium: _toDouble(nutriments['potassium_100g']) * scale,
+      calcium: _toDouble(nutriments['calcium_100g']) * scale,
+      iron: _toDouble(nutriments['iron_100g']) * scale,
+      vitaminA: _toDouble(nutriments['vitamin-a_100g']) * scale,
+      vitaminC: _toDouble(nutriments['vitamin-c_100g']) * scale,
+    );
+  }
+
+  Future<List<Food>> searchFoods(String userInput) async {
+    final parsed = _parseInput(userInput);
+    if (parsed.query.isEmpty) return [];
+
+    final encodedQuery = Uri.encodeComponent(parsed.query);
+    final url =
+        '$_searchBaseUrl?search_terms=$encodedQuery&search_simple=1&action=process&json=1&page_size=50&sort_by=popularity_key&fields=$_offFields';
+    debugPrint('OFF search URL: $url');
+
+    final response = await _client.get(Uri.parse(url), headers: _headers);
+    debugPrint('OFF search status: ${response.statusCode}');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Open Food Facts search failed: ${response.statusCode}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) return [];
+
+    final productsRaw = decoded['products'];
+    if (productsRaw is! List) return [];
+
+    final products = productsRaw
+        .whereType<Map>()
+        .map((product) => Map<String, dynamic>.from(product))
+        .toList();
+
+    final scored = products
+        .where((product) => !_isLikelyJunkProduct(product, parsed))
+        .map(
+          (product) => (
+            product: product,
+            score: _relevanceScore(product, parsed),
+          ),
+        )
+        .toList()
+      ..sort((a, b) => b.score.compareTo(a.score));
+
+    final seenNames = <String>{};
+    final resultFoods = <Food>[];
+
+    void collectFoods(int minScore) {
+      for (final entry in scored) {
+        if (entry.score < minScore) continue;
+
+        final mappedFood = _mapProductToFood(entry.product, parsed);
+        final normalizedName = _normalizeText(mappedFood.name);
+        if (normalizedName.isEmpty || normalizedName == 'unknown food') {
+          continue;
+        }
+        if (seenNames.contains(normalizedName)) continue;
+
+        seenNames.add(normalizedName);
+        resultFoods.add(mappedFood);
+
+        if (resultFoods.length >= 10) break;
+      }
+    }
+
+    collectFoods(4);
+    if (resultFoods.isEmpty) {
+      collectFoods(-5);
+    }
+
+    return resultFoods;
   }
 
   Future<List<Food>> searchByBarcode(String barcode) async {
-    final trimmed = barcode.trim();
-    if (trimmed.isEmpty) return [];
+    final code = barcode.trim();
+    if (code.isEmpty) return [];
 
-    try {
-      final callable = _functions.httpsCallable('searchBarcode');
-      final result = await _runCallableWithAuthRetry(
-        () => callable.call({
-          'barcode': trimmed,
-          'region': 'US',
-          'language': 'en',
-        }),
+    final url = '$_barcodeBaseUrl/$code.json';
+    debugPrint('OFF barcode URL: $url');
+    final response = await _client.get(Uri.parse(url), headers: _headers);
+    debugPrint('OFF barcode status: ${response.statusCode}');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Open Food Facts barcode lookup failed: ${response.statusCode}',
       );
-      final foodsRaw = _extractFoodsFromResponse(result.data);
-
-      return foodsRaw
-          .whereType<Map>()
-          .map((entry) => _mapSearchFood(Map<String, dynamic>.from(entry)))
-          .where((food) => food.id != 'fs_')
-          .toList();
-    } on FirebaseFunctionsException {
-      rethrow;
-    } catch (error) {
-      throw Exception('searchBarcode failed: $error');
     }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) return [];
+    final product = decoded['product'];
+    if (product is! Map) return [];
+
+    final parsed = _parseInput('1 serving');
+    return [_mapProductToFood(Map<String, dynamic>.from(product), parsed)];
+  }
+
+  Future<Food?> getFoodById(String id) async {
+    final code = id.startsWith('off_') ? id.substring(4) : id;
+    if (code.isEmpty) return null;
+    final results = await searchByBarcode(code);
+    return results.isEmpty ? null : results.first;
+  }
+
+  Food _getMealNutrition(
+    List<Food> detectedFoods,
+    List<String> detectedLabels,
+  ) {
+    if (detectedFoods.isEmpty) {
+      return Food(
+        id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
+        name: 'Detected Meal',
+        category: 'Scanned Meal',
+        unit: 'serving',
+        baseWeightG: 100,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        source: 'open_food_facts_scan',
+      );
+    }
+
+    double sum(double Function(Food food) selector) {
+      return detectedFoods.fold(0.0, (total, food) => total + selector(food));
+    }
+
+    double sumNullable(double? Function(Food food) selector) {
+      return detectedFoods.fold(
+        0.0,
+        (total, food) => total + (selector(food) ?? 0.0),
+      );
+    }
+
+    final ingredients = detectedFoods
+        .map((food) => food.name.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
+
+    final labelsForTitle = detectedLabels.isNotEmpty
+        ? detectedLabels
+        : ingredients;
+    final title = labelsForTitle.isEmpty
+        ? 'Detected Meal'
+        : 'Detected Meal: ${labelsForTitle.join(', ')}';
+
+    return Food(
+      id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
+      name: title,
+      category: 'Scanned Meal',
+      unit: 'serving',
+      baseWeightG: 100,
+      calories: sum((food) => food.calories),
+      protein: sum((food) => food.protein),
+      carbs: sum((food) => food.carbs),
+      fat: sum((food) => food.fat),
+      aliases: ingredients,
+      source: 'open_food_facts_scan',
+      saturatedFat: sumNullable((food) => food.saturatedFat),
+      polyunsaturatedFat: sumNullable((food) => food.polyunsaturatedFat),
+      monounsaturatedFat: sumNullable((food) => food.monounsaturatedFat),
+      cholesterol: sumNullable((food) => food.cholesterol),
+      sodium: sumNullable((food) => food.sodium),
+      fiber: sumNullable((food) => food.fiber),
+      sugar: sumNullable((food) => food.sugar),
+      potassium: sumNullable((food) => food.potassium),
+      vitaminA: sumNullable((food) => food.vitaminA),
+      vitaminC: sumNullable((food) => food.vitaminC),
+      calcium: sumNullable((food) => food.calcium),
+      iron: sumNullable((food) => food.iron),
+    );
+  }
+
+  Future<MealRecognitionResult?> getMealNutritionFromLabels(
+    List<String> labels,
+  ) async {
+    final cleanedLabels = labels
+        .map((label) => label.trim().toLowerCase())
+        .where((label) => label.isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (cleanedLabels.isEmpty) return null;
+
+    final detectedFoods = <Food>[];
+    final seenFoodNames = <String>{};
+
+    for (final label in cleanedLabels.take(8)) {
+      final results = await searchFoods(label);
+      if (results.isEmpty) continue;
+
+      final bestMatch = results.first;
+      final normalizedName = _normalizeText(bestMatch.name);
+      if (normalizedName.isEmpty || seenFoodNames.contains(normalizedName)) {
+        continue;
+      }
+
+      seenFoodNames.add(normalizedName);
+      detectedFoods.add(bestMatch);
+    }
+
+    if (detectedFoods.isEmpty) return null;
+
+    final meal = _getMealNutrition(detectedFoods, cleanedLabels);
+    return MealRecognitionResult(meal: meal, detectedFoods: detectedFoods);
   }
 }

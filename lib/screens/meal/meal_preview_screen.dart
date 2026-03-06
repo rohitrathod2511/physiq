@@ -3,12 +3,9 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:physiq/models/fatsecret_food_model.dart';
-import 'package:physiq/models/fatsecret_serving_model.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/models/my_meal_model.dart';
-import 'package:physiq/services/fatsecret_service.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
 
 class MealPreviewScreen extends ConsumerStatefulWidget {
@@ -30,61 +27,48 @@ class MealPreviewScreen extends ConsumerStatefulWidget {
 }
 
 class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
-  final FatSecretService _fatSecretService = FatSecretService();
-
-  bool _isLoading = true;
-  FatSecretFood? _detailedFood;
-  FatSecretServing? _selectedServing;
-  double _quantity = 1.0;
+  late double _quantity;
+  late Map<String, double> _servingMultipliers;
+  late List<String> _servingOptions;
+  late String _selectedServing;
+  late double _servingMultiplier;
 
   @override
   void initState() {
     super.initState();
     _quantity = widget.initialQuantity;
-    _loadFoodDetails();
+    _servingMultipliers = _buildServingMultipliers(widget.initialFood);
+    _servingOptions = _servingMultipliers.keys.toList();
+
+    final preferred = widget.initialFood.unit.trim();
+    _selectedServing = preferred.isNotEmpty && _servingOptions.contains(preferred)
+        ? preferred
+        : _servingOptions.first;
+    _servingMultiplier = _getServingMultiplier(_selectedServing);
   }
 
-  Future<void> _loadFoodDetails() async {
-    if (widget.initialFood.source != 'fatsecret') {
-      if (mounted) setState(() => _isLoading = false);
-      return;
+  Map<String, double> _buildServingMultipliers(Food food) {
+    final multipliers = <String, double>{};
+    final baseWeight = food.baseWeightG > 0 ? food.baseWeightG : 100.0;
+    final baseLabel = food.unit.trim().isEmpty ? 'serving' : food.unit.trim();
+
+    multipliers['100g'] = 100.0 / baseWeight;
+
+    final normalized = baseLabel.toLowerCase().replaceAll(' ', '');
+    if (normalized != '100g') {
+      multipliers[baseLabel] = 1.0;
+    } else {
+      multipliers['100g'] = 1.0;
     }
 
-    String foodId = widget.initialFood.id;
-    if (foodId.startsWith('fs_')) {
-      foodId = foodId.substring(3);
+    if (multipliers.isEmpty) {
+      multipliers['100g'] = 1.0;
     }
-
-    try {
-      final food = await _fatSecretService.getFoodDetails(foodId);
-      if (!mounted) return;
-
-      final selected = _pickInitialServing(food);
-      setState(() {
-        _detailedFood = food;
-        _selectedServing = selected;
-        _isLoading = false;
-      });
-    } catch (error) {
-      debugPrint('Error loading details: $error');
-      if (mounted) setState(() => _isLoading = false);
-    }
+    return multipliers;
   }
 
-  FatSecretServing? _pickInitialServing(FatSecretFood food) {
-    if (food.servings.isEmpty) return null;
-
-    final targetUnit = widget.initialFood.unit.toLowerCase();
-    try {
-      return food.servings.firstWhere(
-        (serving) =>
-            serving.description.toLowerCase() == targetUnit ||
-            serving.description.toLowerCase().contains(targetUnit) ||
-            serving.metricServingUnit.toLowerCase() == targetUnit,
-      );
-    } catch (_) {
-      return food.servings.first;
-    }
+  double _getServingMultiplier(String servingLabel) {
+    return _servingMultipliers[servingLabel] ?? 1.0;
   }
 
   void _updateQuantity(double delta) {
@@ -93,34 +77,29 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     });
   }
 
-  double _getNutrient(
-    double Function(FatSecretServing) selector,
-    double? fallback,
-  ) {
-    if (_selectedServing != null) {
-      return selector(_selectedServing!) * _quantity;
-    }
-    return (fallback ?? 0) * _quantity;
+  double _selectedScale() {
+    return _servingMultiplier * _quantity;
+  }
+
+  double _getNutrient(double? baseValue) {
+    return (baseValue ?? 0) * _selectedScale();
   }
 
   Future<void> _saveMeal() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final calories = _getNutrient(
-      (s) => s.calories,
-      widget.initialFood.calories,
-    );
-    final protein = _getNutrient((s) => s.protein, widget.initialFood.protein);
-    final carbs = _getNutrient((s) => s.carbs, widget.initialFood.carbs);
-    final fat = _getNutrient((s) => s.fat, widget.initialFood.fat);
+    final calories = _getNutrient(widget.initialFood.calories);
+    final protein = _getNutrient(widget.initialFood.protein);
+    final carbs = _getNutrient(widget.initialFood.carbs);
+    final fat = _getNutrient(widget.initialFood.fat);
 
     if (widget.isSelectionMode) {
       final item = MealItem(
-        foodId: _detailedFood?.id ?? widget.initialFood.id,
-        foodName: _detailedFood?.name ?? widget.initialFood.name,
+        foodId: widget.initialFood.id,
+        foodName: widget.initialFood.name,
         quantity: _quantity,
-        servingLabel: _selectedServing?.description ?? widget.initialFood.unit,
+        servingLabel: _selectedServing,
         calories: calories,
         protein: protein,
         carbs: carbs,
@@ -133,64 +112,34 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final meal = MealModel(
       id: '',
       userId: user.uid,
-      name: _detailedFood?.name ?? widget.initialFood.name,
+      name: widget.initialFood.name,
       calories: calories.round(),
       proteinG: protein.round(),
       carbsG: carbs.round(),
       fatG: fat.round(),
       timestamp: DateTime.now(),
       imageUrl: widget.imagePath,
-      source: _detailedFood != null ? 'fatsecret' : widget.initialFood.source,
-      servingDescription:
-          _selectedServing?.description ?? widget.initialFood.unit,
+      source: widget.initialFood.source,
+      servingDescription: _selectedServing,
       servingAmount: _quantity,
-      fullNutritionMap: _selectedServing != null
-          ? {
-              'calories': calories,
-              'protein': protein,
-              'carbs': carbs,
-              'fat': fat,
-              'saturatedFat': _getNutrient(
-                (s) => s.saturatedFat,
-                widget.initialFood.saturatedFat,
-              ),
-              'polyunsaturatedFat': _getNutrient(
-                (s) => s.polyunsaturatedFat,
-                widget.initialFood.polyunsaturatedFat,
-              ),
-              'monounsaturatedFat': _getNutrient(
-                (s) => s.monounsaturatedFat,
-                widget.initialFood.monounsaturatedFat,
-              ),
-              'cholesterol': _getNutrient(
-                (s) => s.cholesterol,
-                widget.initialFood.cholesterol,
-              ),
-              'sodium': _getNutrient(
-                (s) => s.sodium,
-                widget.initialFood.sodium,
-              ),
-              'fiber': _getNutrient((s) => s.fiber, widget.initialFood.fiber),
-              'sugar': _getNutrient((s) => s.sugar, widget.initialFood.sugar),
-              'potassium': _getNutrient(
-                (s) => s.potassium,
-                widget.initialFood.potassium,
-              ),
-              'vitaminA': _getNutrient(
-                (s) => s.vitaminA,
-                widget.initialFood.vitaminA,
-              ),
-              'vitaminC': _getNutrient(
-                (s) => s.vitaminC,
-                widget.initialFood.vitaminC,
-              ),
-              'calcium': _getNutrient(
-                (s) => s.calcium,
-                widget.initialFood.calcium,
-              ),
-              'iron': _getNutrient((s) => s.iron, widget.initialFood.iron),
-            }
-          : {},
+      fullNutritionMap: {
+        'calories': calories,
+        'protein': protein,
+        'carbs': carbs,
+        'fat': fat,
+        'saturatedFat': _getNutrient(widget.initialFood.saturatedFat),
+        'polyunsaturatedFat': _getNutrient(widget.initialFood.polyunsaturatedFat),
+        'monounsaturatedFat': _getNutrient(widget.initialFood.monounsaturatedFat),
+        'cholesterol': _getNutrient(widget.initialFood.cholesterol),
+        'sodium': _getNutrient(widget.initialFood.sodium),
+        'fiber': _getNutrient(widget.initialFood.fiber),
+        'sugar': _getNutrient(widget.initialFood.sugar),
+        'potassium': _getNutrient(widget.initialFood.potassium),
+        'vitaminA': _getNutrient(widget.initialFood.vitaminA),
+        'vitaminC': _getNutrient(widget.initialFood.vitaminC),
+        'calcium': _getNutrient(widget.initialFood.calcium),
+        'iron': _getNutrient(widget.initialFood.iron),
+      },
     );
 
     ref.read(homeViewModelProvider.notifier).logMeal(meal);
@@ -199,41 +148,25 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Color textPrimary =
+    final theme = Theme.of(context);
+    final textPrimary =
         theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
-    final Color textSecondary =
+    final textSecondary =
         theme.textTheme.bodyMedium?.color ??
         theme.colorScheme.onSurface.withValues(alpha: 0.7);
-    final Color proteinAccent = theme.colorScheme.error;
-    final Color carbsAccent = theme.colorScheme.secondary;
-    final Color fatsAccent = theme.colorScheme.primary;
+    final proteinAccent = theme.colorScheme.error;
+    final carbsAccent = theme.colorScheme.secondary;
+    final fatsAccent = theme.colorScheme.primary;
 
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
+    final ingredients = widget.initialFood.aliases
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
 
-    final cals = _getNutrient(
-      (s) => s.calories,
-      widget.initialFood.calories,
-    ).round();
-    final protein = _getNutrient(
-      (s) => s.protein,
-      widget.initialFood.protein,
-    ).round();
-    final carbs = _getNutrient(
-      (s) => s.carbs,
-      widget.initialFood.carbs,
-    ).round();
-    final fat = _getNutrient((s) => s.fat, widget.initialFood.fat).round();
-    final servings = _detailedFood?.servings ?? const <FatSecretServing>[];
-    final selectedServingIndex =
-        (_selectedServing != null && servings.isNotEmpty)
-        ? servings.indexWhere((serving) => serving.id == _selectedServing!.id)
-        : 0;
+    final calories = _getNutrient(widget.initialFood.calories).round();
+    final protein = _getNutrient(widget.initialFood.protein).round();
+    final carbs = _getNutrient(widget.initialFood.carbs).round();
+    final fat = _getNutrient(widget.initialFood.fat).round();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -249,12 +182,6 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
           icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.more_vert, color: textPrimary),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -273,8 +200,9 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                         borderRadius: BorderRadius.circular(20),
                         color:
                             theme.inputDecorationTheme.fillColor ??
-                            theme.colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.45),
+                            theme.colorScheme.surfaceContainerHighest.withValues(
+                              alpha: 0.45,
+                            ),
                       ),
                       child: Image.file(
                         File(widget.imagePath!),
@@ -292,117 +220,95 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                     ),
                   if (widget.imagePath != null && widget.imagePath!.isNotEmpty)
                     const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _detailedFood?.name ?? widget.initialFood.name,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
+                  Text(
+                    widget.initialFood.name,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
+                  ),
+                  if (ingredients.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Ingredients',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: ingredients
+                          .map(
+                            (name) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.cardColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: theme.dividerColor),
+                              ),
+                              child: Text(
+                                name,
+                                style: TextStyle(color: textPrimary),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  Text(
+                    'Serving Size',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedServing,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor:
+                          theme.inputDecorationTheme.fillColor ?? theme.cardColor,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                    ),
+                    items: _servingOptions
+                        .map(
+                          (option) => DropdownMenuItem<String>(
+                            value: option,
+                            child: Text(option),
                           ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.bookmark_border, size: 28),
-                        onPressed: () {},
-                      ),
-                    ],
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() {
+                        _selectedServing = value;
+                        _servingMultiplier = _getServingMultiplier(value);
+                      });
+                    },
                   ),
                   const SizedBox(height: 24),
-                  if (servings.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Serving Size',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<int>(
-                          initialValue: selectedServingIndex < 0
-                              ? 0
-                              : selectedServingIndex,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor:
-                                theme.inputDecorationTheme.fillColor ??
-                                theme.cardColor,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: theme.dividerColor),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: theme.dividerColor),
-                            ),
-                          ),
-                          items: List<DropdownMenuItem<int>>.generate(
-                            servings.length,
-                            (index) {
-                              final serving = servings[index];
-                              return DropdownMenuItem<int>(
-                                value: index,
-                                child: Text(
-                                  serving.description,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            },
-                          ),
-                          onChanged: (index) {
-                            if (index == null) return;
-                            setState(() {
-                              _selectedServing = servings[index];
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Serving Size',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Text(
-                            widget.initialFood.unit,
-                            style: TextStyle(
-                              color: theme.colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -492,7 +398,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '$cals',
+                              '$calories',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -549,83 +455,62 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                   const SizedBox(height: 16),
                   _buildFactRow(
                     'Saturated Fat',
-                    _getNutrient(
-                      (s) => s.saturatedFat,
-                      widget.initialFood.saturatedFat,
-                    ),
+                    _getNutrient(widget.initialFood.saturatedFat),
                     'g',
                   ),
                   _buildFactRow(
                     'Polyunsaturated Fat',
-                    _getNutrient(
-                      (s) => s.polyunsaturatedFat,
-                      widget.initialFood.polyunsaturatedFat,
-                    ),
+                    _getNutrient(widget.initialFood.polyunsaturatedFat),
                     'g',
                   ),
                   _buildFactRow(
                     'Monounsaturated Fat',
-                    _getNutrient(
-                      (s) => s.monounsaturatedFat,
-                      widget.initialFood.monounsaturatedFat,
-                    ),
+                    _getNutrient(widget.initialFood.monounsaturatedFat),
                     'g',
                   ),
                   _buildFactRow(
                     'Cholesterol',
-                    _getNutrient(
-                      (s) => s.cholesterol,
-                      widget.initialFood.cholesterol,
-                    ),
+                    _getNutrient(widget.initialFood.cholesterol),
                     'mg',
                   ),
                   _buildFactRow(
                     'Sodium',
-                    _getNutrient((s) => s.sodium, widget.initialFood.sodium),
+                    _getNutrient(widget.initialFood.sodium),
                     'mg',
                   ),
                   _buildFactRow(
                     'Fiber',
-                    _getNutrient((s) => s.fiber, widget.initialFood.fiber),
+                    _getNutrient(widget.initialFood.fiber),
                     'g',
                   ),
                   _buildFactRow(
                     'Sugar',
-                    _getNutrient((s) => s.sugar, widget.initialFood.sugar),
+                    _getNutrient(widget.initialFood.sugar),
                     'g',
                   ),
                   _buildFactRow(
                     'Potassium',
-                    _getNutrient(
-                      (s) => s.potassium,
-                      widget.initialFood.potassium,
-                    ),
+                    _getNutrient(widget.initialFood.potassium),
                     'mg',
                   ),
                   _buildFactRow(
                     'Vitamin A',
-                    _getNutrient(
-                      (s) => s.vitaminA,
-                      widget.initialFood.vitaminA,
-                    ),
+                    _getNutrient(widget.initialFood.vitaminA),
                     'mcg',
                   ),
                   _buildFactRow(
                     'Vitamin C',
-                    _getNutrient(
-                      (s) => s.vitaminC,
-                      widget.initialFood.vitaminC,
-                    ),
+                    _getNutrient(widget.initialFood.vitaminC),
                     'mg',
                   ),
                   _buildFactRow(
                     'Calcium',
-                    _getNutrient((s) => s.calcium, widget.initialFood.calcium),
+                    _getNutrient(widget.initialFood.calcium),
                     'mg',
                   ),
                   _buildFactRow(
                     'Iron',
-                    _getNutrient((s) => s.iron, widget.initialFood.iron),
+                    _getNutrient(widget.initialFood.iron),
                     'mg',
                   ),
                 ],
@@ -690,10 +575,10 @@ class _MacroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Color textPrimary =
+    final theme = Theme.of(context);
+    final textPrimary =
         theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
-    final Color textSecondary =
+    final textSecondary =
         theme.textTheme.bodyMedium?.color ??
         theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
@@ -726,12 +611,6 @@ class _MacroCard extends StatelessWidget {
                   fontWeight: FontWeight.normal,
                 ),
               ),
-              const Spacer(),
-              Icon(
-                Icons.edit,
-                size: 12,
-                color: textSecondary.withValues(alpha: 0.5),
-              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -757,8 +636,8 @@ class _FactRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Color textPrimary =
+    final theme = Theme.of(context);
+    final textPrimary =
         theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
 
     return Container(

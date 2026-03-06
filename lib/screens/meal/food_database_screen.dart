@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/models/food_model.dart';
@@ -38,6 +36,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
 
   List<Food> _searchResults = [];
   bool _isLoading = false;
+  bool _hasSearched = false;
   Timer? _debounce;
 
   final List<String> _tabs = ['All', 'My Meals', 'My Foods', 'Saved Food'];
@@ -79,43 +78,36 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
       setState(() {
         _searchResults = [];
         _isLoading = false;
+        _hasSearched = false;
       });
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _hasSearched = true;
+    });
 
     _debounce = Timer(const Duration(milliseconds: 500), () async {
       try {
-        if (FirebaseAuth.instance.currentUser == null) {
-          await FirebaseAuth.instance.signInAnonymously();
-        }
-
         final results = await _foodService.searchFoods(query);
         if (!mounted) return;
         setState(() {
           _searchResults = results;
           _isLoading = false;
+          _hasSearched = true;
         });
       } catch (error) {
         debugPrint('Search error: $error');
         if (!mounted) return;
-        setState(() => _isLoading = false);
-
-        String message = 'Search failed. Please try again.';
-        if (error is FirebaseFunctionsException) {
-          if (error.code == 'unauthenticated' ||
-              error.code == 'permission-denied') {
-            message = 'Session issue detected. Please try searching again.';
-          } else {
-            message =
-                'Function Error [${error.code}]: ${error.message ?? 'Unknown error'}';
-          }
-        }
+        setState(() {
+          _isLoading = false;
+          _hasSearched = true;
+        });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
+            content: Text('Search failed. Please try again.'),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -320,7 +312,9 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.search,
+                                      _hasSearched
+                                          ? Icons.search_off
+                                          : Icons.search,
                                       size: 64,
                                       color: textSecondary.withValues(
                                         alpha: 0.5,
@@ -328,14 +322,18 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
-                                      'Search for food',
+                                      _hasSearched
+                                          ? 'No results, add manually?'
+                                          : 'Search for food',
                                       style: AppTextStyles.h3.copyWith(
                                         color: textSecondary,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'e.g. Peanut Butter, Chicken, Rice',
+                                      _hasSearched
+                                          ? 'Try another term or use Add Manual below.'
+                                          : 'e.g. Apple, Chicken Biryani, Rice',
                                       style: AppTextStyles.body.copyWith(
                                         color: textSecondary,
                                       ),
@@ -353,72 +351,56 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                               itemCount: _searchResults.length,
                               itemBuilder: (context, index) {
                                 final food = _searchResults[index];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: InkWell(
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    side: BorderSide(
+                                      color: theme.dividerColor.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                    ),
+                                  ),
+                                  child: ListTile(
                                     onTap: () => _onFoodTap(food),
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: theme.cardColor,
-                                        borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: theme.shadowColor.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 6,
+                                    ),
+                                    leading: CircleAvatar(
+                                      backgroundColor: theme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      child: Text(
+                                        food.name.isNotEmpty
+                                            ? food.name[0].toUpperCase()
+                                            : '?',
+                                        style: TextStyle(
+                                          color: textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  food.name,
-                                                  style: AppTextStyles.h3
-                                                      .copyWith(fontSize: 16),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons
-                                                          .local_fire_department,
-                                                      size: 14,
-                                                      color: textSecondary,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      '${food.calories.toInt()} cal - ${food.unit}',
-                                                      style:
-                                                          AppTextStyles.label,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  theme.scaffoldBackgroundColor,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.add,
-                                              color: theme.colorScheme.primary,
-                                            ),
-                                          ),
-                                        ],
+                                    ),
+                                    title: Text(
+                                      food.name,
+                                      style: AppTextStyles.h3.copyWith(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
                                       ),
+                                    ),
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        '${food.calories.toInt()} cal - ${food.unit}',
+                                        style: AppTextStyles.label.copyWith(
+                                          color: textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                    trailing: Icon(
+                                      Icons.add_circle_outline,
+                                      color: theme.colorScheme.primary,
                                     ),
                                   ),
                                 );
