@@ -42,7 +42,10 @@ class ProgressPhotoCard extends StatelessWidget {
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text('Track your visual progress!', style: AppTextStyles.bodyMedium),
+                child: Text(
+                  'Track your Visual Progress!',
+                  style: AppTextStyles.bodyMedium,
+                ),
               ),
             )
           else
@@ -65,11 +68,17 @@ class ProgressPhotoCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                             color: AppColors.background,
                             image: photo.imageUrl.isNotEmpty
-                                ? DecorationImage(image: NetworkImage(photo.imageUrl), fit: BoxFit.cover)
+                                ? DecorationImage(
+                                    image: NetworkImage(photo.imageUrl),
+                                    fit: BoxFit.cover,
+                                  )
                                 : null,
                           ),
                           child: photo.imageUrl.isEmpty
-                              ? Icon(Icons.image, color: AppColors.secondaryText)
+                              ? Icon(
+                                  Icons.image,
+                                  color: AppColors.secondaryText,
+                                )
                               : null,
                         ),
                         const SizedBox(height: 4),

@@ -130,9 +130,7 @@ class FoodService {
     return query
         .toLowerCase()
         .split(RegExp(r'[^a-z0-9]+'))
-        .where(
-          (token) => token.length >= 2 && !_queryStopWords.contains(token),
-        )
+        .where((token) => token.length >= 2 && !_queryStopWords.contains(token))
         .toList();
   }
 
@@ -192,9 +190,9 @@ class FoodService {
     }
 
     if (unit == null) {
-      final qtyMatch = RegExp(r'^(\d+(?:\.\d+)?)\s+(.+)$').firstMatch(
-        remaining,
-      );
+      final qtyMatch = RegExp(
+        r'^(\d+(?:\.\d+)?)\s+(.+)$',
+      ).firstMatch(remaining);
       if (qtyMatch != null) {
         quantity = _toDouble(qtyMatch.group(1));
         remaining = (qtyMatch.group(2) ?? '').trim();
@@ -279,8 +277,7 @@ class FoodService {
   }
 
   double _energyKcal100g(Map<String, dynamic> nutriments) {
-    final kcal100 =
-        _toDouble(nutriments['energy-kcal_100g']) > 0
+    final kcal100 = _toDouble(nutriments['energy-kcal_100g']) > 0
         ? _toDouble(nutriments['energy-kcal_100g'])
         : _toDouble(nutriments['energy_kcal_100g']);
     if (kcal100 > 0) return kcal100;
@@ -326,7 +323,8 @@ class FoodService {
     }
 
     if (inferredPieceWeight > 0) {
-      if (parsed.quantity == 1) return '1 piece (${inferredPieceWeight.toInt()}g)';
+      if (parsed.quantity == 1)
+        return '1 piece (${inferredPieceWeight.toInt()}g)';
       return '${_formatQuantity(parsed.quantity)} pieces';
     }
 
@@ -490,16 +488,15 @@ class FoodService {
         .map((product) => Map<String, dynamic>.from(product))
         .toList();
 
-    final scored = products
-        .where((product) => !_isLikelyJunkProduct(product, parsed))
-        .map(
-          (product) => (
-            product: product,
-            score: _relevanceScore(product, parsed),
-          ),
-        )
-        .toList()
-      ..sort((a, b) => b.score.compareTo(a.score));
+    final scored =
+        products
+            .where((product) => !_isLikelyJunkProduct(product, parsed))
+            .map(
+              (product) =>
+                  (product: product, score: _relevanceScore(product, parsed)),
+            )
+            .toList()
+          ..sort((a, b) => b.score.compareTo(a.score));
 
     final seenNames = <String>{};
     final resultFoods = <Food>[];

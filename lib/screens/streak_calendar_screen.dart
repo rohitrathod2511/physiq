@@ -149,7 +149,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Total Score",
+              "Streak",
               style: AppTextStyles.heading2.copyWith(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
