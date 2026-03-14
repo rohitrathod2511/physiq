@@ -10,6 +10,7 @@ import 'package:physiq/viewmodels/home_viewmodel.dart';
 
 class MealPreviewScreen extends ConsumerStatefulWidget {
   final Food initialFood;
+  final Meal? meal;
   final double initialQuantity;
   final bool isSelectionMode;
   final String? imagePath;
@@ -17,6 +18,7 @@ class MealPreviewScreen extends ConsumerStatefulWidget {
   const MealPreviewScreen({
     super.key,
     required this.initialFood,
+    this.meal,
     this.initialQuantity = 1.0,
     this.isSelectionMode = false,
     this.imagePath,
@@ -94,6 +96,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final carbs = _getNutrient(widget.initialFood.carbs);
     final fat = _getNutrient(widget.initialFood.fat);
 
+    if (widget.meal != null) {
+      await AiFoodService().logMeal(user.uid, widget.meal!.id);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
     if (widget.isSelectionMode) {
       final item = MealItem(
         foodId: widget.initialFood.id,
@@ -158,10 +166,15 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final carbsAccent = theme.colorScheme.secondary;
     final fatsAccent = theme.colorScheme.primary;
 
-    final ingredients = widget.initialFood.aliases
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
+    final mealIngredients = widget.meal?.ingredients ?? [];
+    final hasMealIngredients = mealIngredients.isNotEmpty;
+
+    final displayIngredients = hasMealIngredients
+        ? mealIngredients.map((i) => "${i.name} (${i.amount})").toList()
+        : widget.initialFood.aliases
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
 
     final calories = _getNutrient(widget.initialFood.calories).round();
     final protein = _getNutrient(widget.initialFood.protein).round();
@@ -191,7 +204,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.imagePath != null && widget.imagePath!.isNotEmpty)
+                  if ((widget.imagePath != null && widget.imagePath!.isNotEmpty) || (widget.meal?.imageUrl.isNotEmpty ?? false))
                     Container(
                       width: double.infinity,
                       height: 220,
@@ -204,31 +217,45 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                               alpha: 0.45,
                             ),
                       ),
-                      child: Image.file(
-                        File(widget.imagePath!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Icon(
-                              Icons.image_not_supported_outlined,
-                              color: textSecondary,
-                              size: 36,
-                            ),
-                          );
-                        },
-                      ),
+                      child: widget.imagePath != null && widget.imagePath!.isNotEmpty 
+                        ? Image.file(
+                            File(widget.imagePath!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Icon(
+                                  Icons.image_not_supported_outlined,
+                                  color: textSecondary,
+                                  size: 36,
+                                ),
+                              );
+                            },
+                          )
+                        : Image.network(
+                            widget.meal!.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Icon(
+                                  Icons.image_not_supported_outlined,
+                                  color: textSecondary,
+                                  size: 36,
+                                ),
+                              );
+                            },
+                          ),
                     ),
-                  if (widget.imagePath != null && widget.imagePath!.isNotEmpty)
+                  if ((widget.imagePath != null && widget.imagePath!.isNotEmpty) || (widget.meal?.imageUrl.isNotEmpty ?? false))
                     const SizedBox(height: 20),
                   Text(
-                    widget.initialFood.name,
+                    widget.meal?.title ?? widget.initialFood.name,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: textPrimary,
                     ),
                   ),
-                  if (ingredients.isNotEmpty) ...[
+                  if (displayIngredients.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text(
                       'Ingredients',
@@ -242,7 +269,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: ingredients
+                      children: displayIngredients
                           .map(
                             (name) => Container(
                               padding: const EdgeInsets.symmetric(
@@ -536,7 +563,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                   ),
                 ),
                 child: Text(
-                  widget.isSelectionMode ? 'Add' : 'Save',
+                  widget.isSelectionMode ? 'Add' : (widget.meal != null ? 'Done' : 'Save'),
                   style: TextStyle(
                     color: theme.colorScheme.onPrimary,
                     fontSize: 16,

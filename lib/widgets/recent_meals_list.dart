@@ -23,7 +23,7 @@ class RecentMealsList extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 12.0),
-          child: Text('Recently uploaded', style: AppTextStyles.heading2),
+          child: Text("Today's logs", style: AppTextStyles.heading2),
         ),
 
         if (!hasLogs)

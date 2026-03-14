@@ -1,15 +1,13 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:physiq/screens/meal/meal_logging_flows.dart';
+import 'package:physiq/models/food_model.dart';
+import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/screens/meal/meal_preview_screen.dart';
-import 'package:physiq/services/food_service.dart';
+import 'package:physiq/services/ai_food_service.dart';
 
-/// Camera flow:
-/// - Scan/Gallery: ML Kit on-device object detection + Open Food Facts nutrition
-/// - Barcode: Open Food Facts barcode lookup
 class SnapMealScreen extends ConsumerStatefulWidget {
   const SnapMealScreen({super.key});
 
@@ -22,34 +20,12 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
   List<CameraDescription> _cameras = [];
   bool _isCameraInitialized = false;
   bool _isProcessing = false;
-  final FoodService _foodService = FoodService();
-  late final ObjectDetector _objectDetector;
-
-  static const List<String> _foodKeywords = [
-    'apple',
-    'rice',
-    'chicken',
-    'dal',
-    'bread',
-    'maggi',
-    'banana',
-    'veggies',
-    'vegetable',
-    'meat',
-    'juice',
-    'food',
-  ];
+  String _currentStep = '';
+  final AiFoodService _aiFoodService = AiFoodService();
 
   @override
   void initState() {
     super.initState();
-    _objectDetector = ObjectDetector(
-      options: ObjectDetectorOptions(
-        mode: DetectionMode.single,
-        classifyObjects: true,
-        multipleObjects: true,
-      ),
-    );
     WidgetsBinding.instance.addObserver(this);
     _initCamera();
   }
@@ -75,7 +51,6 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _objectDetector.close();
     _controller?.dispose();
     super.dispose();
   }
@@ -90,98 +65,85 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
     }
   }
 
-  bool _isFoodLabel(String label) {
-    final normalized = label.trim().toLowerCase();
-    if (normalized.isEmpty) return false;
-    return _foodKeywords.any(normalized.contains);
-  }
+  Future<void> _processImage(File file) async {
+    setState(() {
+      _isProcessing = true;
+      _currentStep = 'Uploading image...';
+    });
 
-  Future<List<String>> _detectFoodLabels(String imagePath) async {
-    final inputImage = InputImage.fromFilePath(imagePath);
-    final detectedObjects = await _objectDetector.processImage(inputImage);
-    final labels = <String>{};
-
-    for (final detectedObject in detectedObjects) {
-      for (final label in detectedObject.labels) {
-        final text = label.text.trim().toLowerCase();
-        if (_isFoodLabel(text)) {
-          labels.add(text);
-        }
-      }
-    }
-
-    return labels.toList();
-  }
-
-  Future<void> _openMealPreviewFromImage(
-    XFile imageFile, {
-    String source = 'camera',
-  }) async {
-    var loadingShown = false;
     try {
-      if (mounted) {
-        showLoading(context, source == 'gallery' ? 'Detecting...' : 'Scanning...');
-        loadingShown = true;
-      }
-
-      final labels = await _detectFoodLabels(imageFile.path);
-      final recognition = await _foodService.getMealNutritionFromLabels(labels);
+      final meal = await _aiFoodService.processMealImage(file, (step) {
+        if (mounted) setState(() => _currentStep = step);
+      });
 
       if (!mounted) return;
-      if (loadingShown) {
-        closeLoading(context);
-        loadingShown = false;
-      }
 
-      if (recognition == null) {
+      if (meal == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No food detected. Try another image, barcode, or Type search.',
-            ),
-          ),
+          const SnackBar(content: Text('Failed to process meal.')),
         );
         return;
       }
+
+      // Create a dummy Food object for backward compatibility with MealPreviewScreen
+      final dummyFood = Food(
+        id: meal.id,
+        name: meal.title,
+        category: 'AI Scanned',
+        unit: meal.container,
+        baseWeightG: 100,
+        calories: 0, // Placeholder
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        source: 'gemini_vision',
+        aliases: meal.ingredients.map((i) => "${i.name} (${i.amount})").toList(),
+      );
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => MealPreviewScreen(
-            initialFood: recognition.meal,
-            imagePath: imageFile.path,
+            initialFood: dummyFood,
+            meal: meal,
+            imagePath: file.path,
           ),
         ),
       );
     } catch (e) {
-      if (mounted && loadingShown) {
-        closeLoading(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
-      rethrow;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _currentStep = '';
+        });
+      }
     }
   }
 
   Future<void> _onSnap() async {
     if (_controller == null || !_controller!.value.isInitialized || _isProcessing) return;
 
-    setState(() => _isProcessing = true);
-
     try {
       final imageFile = await _controller!.takePicture();
-      await _openMealPreviewFromImage(imageFile, source: 'camera');
+      await _processImage(File(imageFile.path));
     } catch (e) {
       if (mounted) {
-        String msg = 'Scan failed: $e';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
+          SnackBar(content: Text('Scan failed: $e')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   Future<void> _pickGallery() async {
+    if (_isProcessing) return;
+    
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
@@ -191,19 +153,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
     );
     if (picked == null) return;
 
-    setState(() => _isProcessing = true);
-    try {
-      await _openMealPreviewFromImage(picked, source: 'gallery');
-    } catch (e) {
-      if (mounted) {
-        String msg = 'Gallery scan failed: $e';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
-    }
+    await _processImage(File(picked.path));
   }
 
   @override
@@ -255,40 +205,48 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
                   colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  const SizedBox(width: 48), // Placeholder for balance
-                  GestureDetector(
-                    onTap: _onSnap,
-                    child: Container(
-                      height: 84,
-                      width: 84,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                        color: Colors.white.withValues(alpha: 0.2),
+              child: _isProcessing 
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: Colors.white),
+                      const SizedBox(height: 16),
+                      Text(
+                        _currentStep,
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
                       ),
-                      child: _isProcessing
-                          ? const Padding(
-                              padding: EdgeInsets.all(22),
-                              child: CircularProgressIndicator(color: Colors.white),
-                            )
-                          : Container(
-                              margin: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                              ),
+                      const SizedBox(height: 20),
+                    ],
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      const SizedBox(width: 48), // Placeholder for balance
+                      GestureDetector(
+                        onTap: _onSnap,
+                        child: Container(
+                          height: 84,
+                          width: 84,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                          child: Container(
+                            margin: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
                             ),
-                    ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.photo_library_outlined, color: Colors.white, size: 32),
+                        onPressed: _pickGallery,
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.photo_library_outlined, color: Colors.white, size: 32),
-                    onPressed: _pickGallery,
-                  ),
-                ],
-              ),
             ),
           ),
         ],

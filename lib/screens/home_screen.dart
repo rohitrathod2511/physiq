@@ -12,6 +12,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:physiq/models/exercise_log_model.dart';
 
 
+import 'package:physiq/widgets/home/recently_uploaded_list.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -130,8 +132,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       children: List.generate(2, (index) => _buildDot(index, context)),
                     ),
                     const SizedBox(height: 8),
+                    // Recently Uploaded List (Horizontal AI Scans)
+                    const RecentlyUploadedList(),
+                    const SizedBox(height: 12),
                     // Recent Workouts List
-                    // Recently Uploaded List (Merged)
+                    // Recently Uploaded List (Merged Daily Logs)
                     RecentMealsList(logs: combinedLogs),
                     // Extra padding at bottom for scrolling
                     const SizedBox(height: 80),
