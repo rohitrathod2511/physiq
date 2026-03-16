@@ -2,6 +2,8 @@ import * as admin from 'firebase-admin';
 import axios from 'axios';
 import * as logger from 'firebase-functions/logger';
 import { defineSecret } from 'firebase-functions/params';
+import * as functions from 'firebase-functions';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
 
 if (!admin.apps.length) {
@@ -12,6 +14,7 @@ const db = admin.firestore();
 
 const FATSECRET_CLIENT_ID = defineSecret('FATSECRET_CLIENT_ID');
 const FATSECRET_CLIENT_SECRET = defineSecret('FATSECRET_CLIENT_SECRET');
+const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
 const REGION = 'us-central1';
 const FATSECRET_TOKEN_URL = 'https://oauth.fatsecret.com/connect/token';
@@ -29,6 +32,10 @@ const FATSECRET_SCOPE_IMAGE_RECOGNITION = 'image-recognition';
 const FOOD_CACHE_COLLECTION = 'foods_cache';
 const FOOD_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 const TOKEN_REFRESH_BUFFER_MS = 60 * 1000; // refresh 1 minute early
+
+// Retrieve Gemini API Key from environment configuration (supporting both v1 config and v2 secrets)
+const GEMINI_KEY = (functions as any).config().gemini?.key || GEMINI_API_KEY.value();
+const genAI = GEMINI_KEY ? new GoogleGenerativeAI(GEMINI_KEY) : null;
 
 interface CachedToken {
     token: string;
@@ -87,7 +94,7 @@ const cachedTokens = new Map<string, CachedToken>();
 const callableOptions = {
     region: REGION,
     invoker: 'public' as const,
-    secrets: [FATSECRET_CLIENT_ID, FATSECRET_CLIENT_SECRET],
+    secrets: [FATSECRET_CLIENT_ID, FATSECRET_CLIENT_SECRET, GEMINI_API_KEY],
 };
 
 function toNumber(value: unknown): number {
@@ -754,6 +761,80 @@ export const searchFood = onCall<SearchFoodRequest>(callableOptions, async (requ
             };
         }
         throw toHttpsError('searchFood', error);
+    }
+});
+
+export const analyzeMealImage = onCall<{ imageB64: string }>(callableOptions, async (request) => {
+    logAuthContext('analyzeMealImage', request);
+
+    const imageB64 = request.data?.imageB64;
+    if (!imageB64) {
+        throw new HttpsError('invalid-argument', 'Image data is required (base64).');
+    }
+
+    if (!genAI) {
+        throw new HttpsError('failed-precondition', 'Gemini API key is not configured in Cloud Functions.');
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json",
+            }
+        });
+
+        const systemPrompt = `
+You are a highly accurate food recognition AI used in a nutrition tracking mobile application.
+Your task is to analyze the food in the image and extract a clear structured description of the meal.
+
+Rules:
+1. Identify the main meal title.
+2. Identify all visible food ingredients in the meal.
+3. Estimate realistic serving amounts based on visual size.
+4. Identify the container type (plate, bowl, glass, cup, tray, etc.).
+5. If multiple foods exist, list them separately.
+6. Do NOT estimate calories or nutrition.
+7. Return structured JSON only.
+
+Important:
+• Be visually accurate.
+• Do not hallucinate ingredients that are not visible.
+• If unsure, estimate conservatively.
+
+Output JSON format:
+{
+ "meal_title": "short descriptive name of the meal",
+ "serving_container": "plate | bowl | glass | cup | tray | other",
+ "items":[
+  {
+   "ingredient": "ingredient name",
+   "estimated_amount": "amount estimate",
+   "serving_size": "description of serving"
+  }
+ ]
+}
+Return ONLY JSON.
+`;
+
+        const result = await model.generateContent([
+            systemPrompt,
+            {
+                inlineData: {
+                    mimeType: "image/jpeg",
+                    data: imageB64
+                }
+            }
+        ]);
+
+        const response = result.response;
+        const text = response.text();
+        
+        // Return the parsed JSON
+        return JSON.parse(text);
+    } catch (error) {
+        logger.error('Gemini analysis failed', error);
+        throw new HttpsError('internal', 'Failed to analyze meal image.');
     }
 });
 
