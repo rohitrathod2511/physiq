@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -67,50 +68,66 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
   }
 
   Future<void> _processImage(File file) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final mealId = DateTime.now().millisecondsSinceEpoch.toString();
+    final nav = Navigator.of(context);
+    final scaffoldMsg = ScaffoldMessenger.of(context);
+
     setState(() {
       _isProcessing = true;
       _currentStep = 'Uploading image...';
     });
 
+    // STEP 3: Create temporary loading meal card
+    final loadingMeal = Meal(
+      id: mealId,
+      imageUrl: file.path, 
+      title: 'Analyzing meal...',
+      container: 'plate',
+      ingredients: [],
+      createdAt: DateTime.now(),
+      logged: false,
+    );
+
     try {
-      final meal = await _aiFoodService.processMealImage(file, (step) {
-        if (mounted) setState(() => _currentStep = step);
-      });
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('meals')
+          .doc(mealId)
+          .set(loadingMeal.toJson());
+    } catch (e) {
+      debugPrint('Failed to save loading card: $e');
+    }
 
-      if (!mounted) return;
+    if (mounted) {
+      nav.pop(); // Close scanner, return to Home for the seamless loading card
+    }
 
+    // Process using AI service in background
+    try {
+      final meal = await _aiFoodService.processAndEnrichMealAsync(user.uid, mealId, file);
+      
       if (meal == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to process meal.')),
-        );
+        scaffoldMsg.showSnackBar(const SnackBar(content: Text('Failed to process meal.')));
         return;
       }
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      // START BACKGROUND ENRICHMENT
-      // We don't await this so the screen opens immediately
-      _aiFoodService.enrichMeal(user.uid, meal).then((enrichedMeal) {
-        debugPrint('Meal enrichment complete for ${meal.id}');
-      }).catchError((e) {
-        debugPrint('Meal enrichment failed: $e');
-      });
-
-      // Sum up Gemini's nutrition estimates from all ingredients
-      double totalCalories = 0;
-      double totalProtein = 0;
-      double totalCarbs = 0;
-      double totalFat = 0;
+      // STEP 6: Total calculation
+      double totalCalories = 0.0;
+      double totalProtein = 0.0;
+      double totalCarbs = 0.0;
+      double totalFat = 0.0;
 
       for (final ingredient in meal.ingredients) {
-        totalCalories += ingredient.caloriesEstimate;
-        totalProtein += ingredient.proteinEstimate;
-        totalCarbs += ingredient.carbsEstimate;
-        totalFat += ingredient.fatEstimate;
+        totalCalories += (ingredient.caloriesEstimate as num?)?.toDouble() ?? 0.0;
+        totalProtein += (ingredient.proteinEstimate as num?)?.toDouble() ?? 0.0;
+        totalCarbs += (ingredient.carbsEstimate as num?)?.toDouble() ?? 0.0;
+        totalFat += (ingredient.fatEstimate as num?)?.toDouble() ?? 0.0;
       }
 
-      // Create a Food object populated with Gemini's estimates
       final dummyFood = Food(
         id: meal.id,
         name: meal.title,
@@ -125,8 +142,8 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
         aliases: meal.ingredients.map((i) => "${i.name} (${i.amount})").toList(),
       );
 
-      Navigator.pushReplacement(
-        context,
+      // STEP 8: Navigate to Preview Screen after calculation
+      nav.push(
         MaterialPageRoute(
           builder: (_) => MealPreviewScreen(
             initialFood: dummyFood,
@@ -136,18 +153,8 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
         ),
       );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-          _currentStep = '';
-        });
-      }
+      debugPrint('Error: $e');
+      scaffoldMsg.showSnackBar(SnackBar(content: Text('Scan failed: $e')));
     }
   }
 

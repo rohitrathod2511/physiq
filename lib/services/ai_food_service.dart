@@ -5,8 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/services/cloud_functions_client.dart';
-import 'package:uuid/uuid.dart';
-
 class AiFoodService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -66,6 +64,133 @@ class AiFoodService {
       print('Error processing meal image: $e');
       // Instead of crashing, return a fallback meal
       return _buildFallbackMeal();
+    }
+  }
+
+  Future<Meal?> processAndEnrichMealAsync(String userId, String mealId, File imageFile) async {
+    try {
+      // 1. Upload image
+      String imageUrl = '';
+      try {
+        final storageRef = _storage.ref().child('meal_images/$userId/$mealId.jpg');
+        final uploadTask = await storageRef.putFile(imageFile);
+        imageUrl = await uploadTask.ref.getDownloadURL();
+      } catch (e) {
+        print('Image upload failed (non-fatal): $e');
+      }
+
+      // 2. Analyze meal with Gemini
+      final base64Image = base64Encode(await imageFile.readAsBytes());
+      Map<String, dynamic> jsonResponse;
+      try {
+        jsonResponse = await _cloudFunctions.recognizeMealImage(base64Image);
+      } catch (e) {
+        print('Gemini analysis failed, using fallback: $e');
+        jsonResponse = _buildFallbackResponse();
+      }
+
+      // 3. Parse Gemini response safely
+      final initialMeal = _parseGeminiResponse(
+        mealId: mealId,
+        imageUrl: imageUrl, 
+        jsonResponse: jsonResponse,
+      );
+
+      // 4. Enrich and Update 
+      final enrichedIngredients = <MealIngredient>[];
+
+      for (final ingredient in initialMeal.ingredients) {
+        try {
+          final nutritionData = await _cloudFunctions.enrichMealItem(ingredient.name);
+          if (nutritionData != null) {
+            final optionsRaw = nutritionData['servingOptions'] ?? nutritionData['serving_options'] ?? [];
+            final options = (optionsRaw as List).map((o) => ServingOption.fromJson(Map<String, dynamic>.from(o))).toList();
+            
+            final nutriments = nutritionData['nutritionPer100g'] ?? nutritionData['nutrition_per_100g'];
+            final Map<String, double> nutMap = {};
+            if (nutriments is Map) {
+              nutMap['calories'] = _safeDouble(nutriments['calories'] ?? nutriments['energy']);
+              nutMap['protein'] = _safeDouble(nutriments['protein']);
+              nutMap['carbs'] = _safeDouble(nutriments['carbs']);
+              nutMap['fat'] = _safeDouble(nutriments['fat']);
+            }
+
+            double cal = _safeDouble(ingredient.caloriesEstimate);
+            double prot = _safeDouble(ingredient.proteinEstimate);
+            double carb = _safeDouble(ingredient.carbsEstimate);
+            double fat = _safeDouble(ingredient.fatEstimate);
+            double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
+
+            if (nutMap.containsKey('calories') && estimatedGrams > 0) {
+              final scale = estimatedGrams / 100.0;
+              cal = _safeDouble(nutMap['calories']! * scale);
+              prot = _safeDouble((nutMap['protein'] ?? 0) * scale);
+              carb = _safeDouble((nutMap['carbs'] ?? 0) * scale);
+              fat = _safeDouble((nutMap['fat'] ?? 0) * scale);
+            }
+
+            enrichedIngredients.add(MealIngredient(
+              name: _safeString(nutritionData['name'], ingredient.name),
+              amount: ingredient.amount,
+              servingSize: ingredient.servingSize,
+              caloriesEstimate: cal,
+              proteinEstimate: prot,
+              carbsEstimate: carb,
+              fatEstimate: fat,
+              servingOptions: options,
+              nutritionPer100g: nutMap,
+              source: _safeString(nutritionData['source'], 'enriched'),
+              fdcId: nutritionData['fdcId']?.toString() ?? nutritionData['fdc_id']?.toString(),
+              estimatedGrams: estimatedGrams,
+            ));
+          } else {
+             // Fallback
+             enrichedIngredients.add(MealIngredient(
+               name: ingredient.name,
+               amount: ingredient.amount,
+               servingSize: ingredient.servingSize,
+               caloriesEstimate: 0.0,
+               proteinEstimate: 0.0,
+               carbsEstimate: 0.0,
+               fatEstimate: 0.0,
+               source: 'safe_fallback',
+               estimatedGrams: _safeDouble(ingredient.estimatedGrams),
+            ));
+          }
+        } catch (e) {
+             enrichedIngredients.add(MealIngredient(
+               name: ingredient.name,
+               amount: ingredient.amount,
+               servingSize: ingredient.servingSize,
+               caloriesEstimate: 0.0,
+               proteinEstimate: 0.0,
+               carbsEstimate: 0.0,
+               fatEstimate: 0.0,
+               source: 'safe_fallback',
+               estimatedGrams: _safeDouble(ingredient.estimatedGrams),
+            ));
+        }
+      }
+
+      final enrichedMeal = Meal(
+        id: initialMeal.id,
+        imageUrl: imageUrl.isNotEmpty ? imageUrl : initialMeal.imageUrl,
+        title: initialMeal.title,
+        container: initialMeal.container,
+        ingredients: enrichedIngredients,
+        createdAt: initialMeal.createdAt,
+        bookmarked: initialMeal.bookmarked,
+        logged: initialMeal.logged,
+      );
+
+      // UPDATE LOADING CARD
+      await _saveMealToFirestore(userId, enrichedMeal);
+
+      return enrichedMeal;
+
+    } catch(e) {
+      print('Process and enrich error: $e');
+      return null;
     }
   }
 
@@ -277,11 +402,31 @@ class AiFoodService {
             estimatedGrams: ingredient.estimatedGrams,
           ));
         } else {
-          enrichedIngredients.add(ingredient);
+          enrichedIngredients.add(MealIngredient(
+            name: ingredient.name,
+            amount: ingredient.amount,
+            servingSize: ingredient.servingSize,
+            caloriesEstimate: 0.0,
+            proteinEstimate: 0.0,
+            carbsEstimate: 0.0,
+            fatEstimate: 0.0,
+            source: 'safe_fallback',
+            estimatedGrams: _safeDouble(ingredient.estimatedGrams),
+          ));
         }
       } catch (e) {
         print('Error enriching ingredient ${ingredient.name}: $e');
-        enrichedIngredients.add(ingredient);
+        enrichedIngredients.add(MealIngredient(
+            name: ingredient.name,
+            amount: ingredient.amount,
+            servingSize: ingredient.servingSize,
+            caloriesEstimate: 0.0,
+            proteinEstimate: 0.0,
+            carbsEstimate: 0.0,
+            fatEstimate: 0.0,
+            source: 'safe_fallback',
+            estimatedGrams: _safeDouble(ingredient.estimatedGrams),
+        ));
       }
     }
 
