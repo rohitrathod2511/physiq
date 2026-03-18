@@ -40,8 +40,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final combinedLogs = <dynamic>[];
     if (homeState.recentMeals != null) {
       final filteredMeals = homeState.recentMeals!.where((m) {
-        final ts = (m['timestamp'] as Timestamp).toDate();
-        return DateUtils.isSameDay(ts, homeState.selectedDate);
+        final ts = m['timestamp'] as Timestamp?;
+        final ca = m['created_at'] as Timestamp?;
+        final date = (ts ?? ca)?.toDate();
+        if (date == null) return false;
+        return DateUtils.isSameDay(date, homeState.selectedDate);
       });
       combinedLogs.addAll(filteredMeals);
     }
@@ -131,10 +134,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(2, (index) => _buildDot(index, context)),
                     ),
-                    const SizedBox(height: 8),
-                    // Recently Uploaded List (Horizontal AI Scans)
-                    const RecentlyUploadedList(),
-                    const SizedBox(height: 12),
                     // Recent Workouts List
                     // Recently Uploaded List (Merged Daily Logs)
                     RecentMealsList(logs: combinedLogs),

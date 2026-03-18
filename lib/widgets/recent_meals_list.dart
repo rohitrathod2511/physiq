@@ -6,6 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:physiq/models/exercise_log_model.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
+import 'package:physiq/models/meal_model.dart';
+import 'package:physiq/models/food_model.dart';
+import 'package:physiq/screens/meal/meal_preview_screen.dart';
 
 class RecentMealsList extends ConsumerWidget {
   final List<dynamic>? logs;
@@ -93,14 +96,17 @@ class RecentMealsList extends ConsumerWidget {
                 DateTime timestamp = DateTime.now();
                 if (item['timestamp'] is Timestamp) {
                   timestamp = (item['timestamp'] as Timestamp).toDate();
+                } else if (item['created_at'] is Timestamp) {
+                   timestamp = (item['created_at'] as Timestamp).toDate();
                 }
+
                 return _buildDismissible(
                   context,
                   ref,
                   id,
                   timestamp,
                   true,
-                  _buildMealCard(item),
+                  _buildMealCard(context, item),
                 );
               }
               return const SizedBox.shrink();
@@ -199,119 +205,177 @@ class RecentMealsList extends ConsumerWidget {
     );
   }
 
-  Widget _buildMealCard(Map<String, dynamic> meal) {
-    final name = meal['name'] ?? 'Meal';
-    final calories = meal['calories'] ?? 0;
-    final protein = meal['proteinG'] ?? 0;
-    final carbs = meal['carbsG'] ?? 0;
-    final fat = meal['fatG'] ?? 0;
-    final imageUrl = meal['imageUrl'] as String?;
-    final source = meal['source'] as String? ?? '';
+  Widget _buildMealCard(BuildContext context, Map<String, dynamic> mealData) {
+    final id = mealData['id'] as String? ?? '';
+    final name = mealData['name'] ?? mealData['meal_title'] ?? 'Meal';
+    final protein = (mealData['proteinG'] ?? 0.0);
+    final carbs = (mealData['carbsG'] ?? 0.0);
+    final fat = (mealData['fatG'] ?? 0.0);
+    final calories = (mealData['calories'] ?? 0.0);
+    final imageUrl = (mealData['imageUrl'] ?? mealData['image_url']) as String?;
 
-    // Only show image for Snap Meal items
-    final bool showImage = source == 'snap';
+    // Unlogged scans have 'ingredients' field from AI scans
+    final bool isUnloggedScan = mealData['ingredients'] != null && mealData['proteinG'] == null;
+    
+    // Dynamic stats for unlogged scans
+    double displayP = protein;
+    double displayC = carbs;
+    double displayF = fat;
+    double displayCal = calories;
+
+    if (isUnloggedScan) {
+      final ingredients = mealData['ingredients'] as List;
+      for (var i in ingredients) {
+        displayCal += (i['calories_estimate'] ?? i['calories'] ?? 0.0);
+        displayP += (i['protein_estimate'] ?? i['protein'] ?? 0.0);
+        displayC += (i['carbs_estimate'] ?? i['carbs'] ?? 0.0);
+        displayF += (i['fat_estimate'] ?? i['fat'] ?? 0.0);
+      }
+    }
+
+    // Show image if imageUrl is present
+    final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
 
     // Time Formatting
     String timeStr = '';
-    if (meal['timestamp'] is Timestamp) {
-      timeStr = DateFormat(
-        'h:mm a',
-      ).format((meal['timestamp'] as Timestamp).toDate());
-    } else if (meal['timestamp'] is String) {
-      // Try parsing ISO8601 if strictly string, but assuming Timestamp from Firestore
-      timeStr = '';
+    final rawTs = mealData['timestamp'] ?? mealData['created_at'];
+    if (rawTs is Timestamp) {
+      timeStr = DateFormat('h:mm a').format(rawTs.toDate());
     }
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(AppRadii.bigCard),
-        boxShadow: [AppShadows.card],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image container only for Snap Meal
-          if (showImage) ...[
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(16),
+    return InkWell(
+      onTap: () {
+        if (onMealTap != null) {
+          onMealTap!(id);
+        } else {
+           // Direct navigation to preview screen
+           if (isUnloggedScan) {
+             final meal = Meal.fromJson(mealData, id);
+             // initialFood is required, so we provide one from the meal title
+             final dummyFood = Food(
+               id: meal.id,
+               name: meal.title,
+               category: 'AI Scan',
+               unit: 'serving',
+               baseWeightG: 100,
+               calories: displayCal,
+               protein: displayP,
+               carbs: displayC,
+               fat: displayF,
+             );
+             Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(
+               meal: meal,
+               initialFood: dummyFood,
+             )));
+           } else {
+             // Create a dummy Food object for preview
+             final dummyFood = Food(
+               id: id,
+               name: name,
+               category: 'Logged',
+               unit: 'serving',
+               baseWeightG: 100,
+               calories: displayCal,
+               protein: displayP,
+               carbs: displayC,
+               fat: displayF,
+             );
+             Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(initialFood: dummyFood)));
+           }
+        }
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey[100]!),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (hasImage) ...[
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[100]!),
+                ),
+                clipBehavior: Clip.hardEdge,
+                child: imageUrl!.startsWith('http')
+                    ? Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image))
+                    : Image.file(File(imageUrl), fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image)),
               ),
-              clipBehavior: Clip.hardEdge,
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.file(
-                      File(imageUrl),
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, o, s) =>
-                          const Icon(Icons.broken_image, color: Colors.grey),
-                    )
-                  : const Icon(Icons.fastfood, color: Colors.grey, size: 32),
-            ),
-            const SizedBox(width: 16),
-          ],
-          // Details - Automatically expands to full width when image is hidden
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        name,
-                        style: AppTextStyles.bodyBold.copyWith(fontSize: 16),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 16),
+            ] else ...[
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.fastfood, color: Colors.grey),
+              ),
+              const SizedBox(width: 16),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    if (timeStr.isNotEmpty)
-                      Text(timeStr, style: AppTextStyles.smallLabel),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$calories kcal',
-                  style: AppTextStyles.label.copyWith(
-                    color: AppColors.primaryText,
-                    fontWeight: FontWeight.w700,
+                      if (timeStr.isNotEmpty)
+                        Text(timeStr, style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildMacroChip(
-                      'P',
-                      '${protein}g',
-                      Colors.purple.shade100,
-                      Colors.purple.shade700,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildMacroChip(
-                      'C',
-                      '${carbs}g',
-                      Colors.orange.shade100,
-                      Colors.orange.shade700,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildMacroChip(
-                      'F',
-                      '${fat}g',
-                      Colors.blue.shade100,
-                      Colors.blue.shade700,
-                    ),
-                  ],
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        '${displayCal.round()} kcal',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                      ),
+                      if (mealData['logged'] == false) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                          child: const Text('UNLOGGED', style: TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildMacroChip('P', '${displayP.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE57373)),
+                      const SizedBox(width: 8),
+                      _buildMacroChip('C', '${displayC.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFFB74D)),
+                      const SizedBox(width: 8),
+                      _buildMacroChip('F', '${displayF.round()}g', const Color(0xFFE3F2FD), const Color(0xFF64B5F6)),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

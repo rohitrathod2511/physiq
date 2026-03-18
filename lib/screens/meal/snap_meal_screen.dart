@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -84,6 +85,17 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
         );
         return;
       }
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // START BACKGROUND ENRICHMENT
+      // We don't await this so the screen opens immediately
+      _aiFoodService.enrichMeal(user.uid, meal).then((enrichedMeal) {
+        debugPrint('Meal enrichment complete for ${meal.id}');
+      }).catchError((e) {
+        debugPrint('Meal enrichment failed: $e');
+      });
 
       // Sum up Gemini's nutrition estimates from all ingredients
       double totalCalories = 0;

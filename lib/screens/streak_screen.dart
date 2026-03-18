@@ -43,7 +43,7 @@ class StreakScreen extends ConsumerWidget {
                 Text('$safeStreak', style: numberStyle),
                 const SizedBox(height: 4),
                 Text(
-                  'day streak',
+                  'Day Streak',
                   style: textTheme.titleMedium?.copyWith(
                     color: colorScheme.onSurface,
                   ),

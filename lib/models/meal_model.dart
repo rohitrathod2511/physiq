@@ -37,6 +37,9 @@ class MealIngredient {
   final double fatEstimate;
   final List<ServingOption> servingOptions;
   final Map<String, double>? nutritionPer100g;
+  final String source;
+  final String? fdcId;
+  final double estimatedGrams;
 
   MealIngredient({
     required this.name,
@@ -48,6 +51,9 @@ class MealIngredient {
     this.fatEstimate = 0,
     this.servingOptions = const [],
     this.nutritionPer100g,
+    this.source = 'gemini_estimate',
+    this.fdcId,
+    this.estimatedGrams = 100,
   });
 
   factory MealIngredient.fromJson(Map<String, dynamic> json) {
@@ -76,6 +82,9 @@ class MealIngredient {
       fatEstimate: _num(json['fat_estimate'] ?? json['fat']),
       servingOptions: options,
       nutritionPer100g: nutritionMap,
+      source: _str(json['source'], 'gemini_estimate'),
+      fdcId: _strOrNull(json['fdc_id'] ?? json['fdcId']),
+      estimatedGrams: _num(json['estimated_grams'] ?? json['estimatedGrams']),
     );
   }
 
@@ -90,7 +99,17 @@ class MealIngredient {
       'fat_estimate': fatEstimate,
       'serving_options': servingOptions.map((o) => o.toJson()).toList(),
       'nutrition_per_100g': nutritionPer100g,
+      'source': source,
+      'fdc_id': fdcId,
+      'estimated_grams': estimatedGrams,
     };
+  }
+
+  static String? _strOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    if (value is num) return value.toString();
+    return null;
   }
 
   static String _str(dynamic value, String fallback) {
@@ -164,10 +183,10 @@ class MealModel {
   final String id;
   final String userId;
   final String name;
-  final int calories;
-  final int proteinG;
-  final int carbsG;
-  final int fatG;
+  final double calories;
+  final double proteinG;
+  final double carbsG;
+  final double fatG;
   final DateTime timestamp;
   final String? imageUrl;
   final String source;
@@ -192,38 +211,90 @@ class MealModel {
   });
 
   Map<String, dynamic> toMap() {
+    final normalizedNutrition = _normalizeDynamicMap(fullNutritionMap);
+
     return {
       'id': id,
       'userId': userId,
       'name': name,
-      'calories': calories,
-      'proteinG': proteinG,
-      'carbsG': carbsG,
-      'fatG': fatG,
+      'calories': _safeDouble(calories),
+      'proteinG': _safeDouble(proteinG),
+      'carbsG': _safeDouble(carbsG),
+      'fatG': _safeDouble(fatG),
+      'protein': _safeDouble(proteinG),
+      'carbs': _safeDouble(carbsG),
+      'fat': _safeDouble(fatG),
+      'fats': _safeDouble(fatG),
       'timestamp': Timestamp.fromDate(timestamp),
       'imageUrl': imageUrl,
       'source': source,
       'servingDescription': servingDescription,
-      'servingAmount': servingAmount,
-      'fullNutritionMap': fullNutritionMap,
+      'servingAmount': servingAmount == null ? null : _safeDouble(servingAmount),
+      'fullNutritionMap': normalizedNutrition,
     };
   }
 
   factory MealModel.fromMap(Map<String, dynamic> map, String id) {
     return MealModel(
       id: id,
-      userId: map['userId'] ?? '',
-      name: map['name'] ?? '',
-      calories: (map['calories'] ?? 0).toInt(),
-      proteinG: (map['proteinG'] ?? 0).toInt(),
-      carbsG: (map['carbsG'] ?? 0).toInt(),
-      fatG: (map['fatG'] ?? 0).toInt(),
-      timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      userId: _safeString(map['userId']),
+      name: _safeString(map['name']),
+      calories: _safeDouble(map['calories']),
+      proteinG: _safeDouble(map['proteinG'] ?? map['protein']),
+      carbsG: _safeDouble(map['carbsG'] ?? map['carbs']),
+      fatG: _safeDouble(map['fatG'] ?? map['fat'] ?? map['fats']),
+      timestamp: _safeDateTime(map['timestamp'] ?? map['createdAt'] ?? map['created_at']),
       imageUrl: map['imageUrl'],
-      source: map['source'] ?? 'internal',
+      source: _safeString(map['source'], 'internal'),
       servingDescription: map['servingDescription'],
-      servingAmount: (map['servingAmount'] ?? 0).toDouble(),
-      fullNutritionMap: map['fullNutritionMap'],
+      servingAmount: map['servingAmount'] == null ? null : _safeDouble(map['servingAmount']),
+      fullNutritionMap: _normalizeDynamicMap(map['fullNutritionMap']),
     );
+  }
+
+  static String _safeString(dynamic value, [String fallback = '']) {
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    return fallback;
+  }
+
+  static double _safeDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? 0.0;
+    return 0.0;
+  }
+
+  static DateTime _safeDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    return DateTime.now();
+  }
+
+  static Map<String, dynamic>? _normalizeDynamicMap(dynamic value) {
+    if (value is! Map) return null;
+
+    final normalized = <String, dynamic>{};
+    for (final entry in value.entries) {
+      normalized[entry.key.toString()] = _normalizeDynamicValue(entry.value);
+    }
+    return normalized;
+  }
+
+  static dynamic _normalizeDynamicValue(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _normalizeDynamicValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_normalizeDynamicValue).toList();
+    }
+    return value;
   }
 }

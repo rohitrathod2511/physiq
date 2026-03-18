@@ -112,6 +112,8 @@ class AiFoodService {
           proteinEstimate: _safeDouble(map['protein_estimate']),
           carbsEstimate: _safeDouble(map['carbs_estimate']),
           fatEstimate: _safeDouble(map['fat_estimate']),
+          source: _safeString(map['source'], 'gemini_estimate'),
+          estimatedGrams: _safeDouble(map['estimated_grams'] ?? map['estimatedGrams']),
         ));
       }
 
@@ -125,6 +127,8 @@ class AiFoodService {
           proteinEstimate: 8,
           carbsEstimate: 25,
           fatEstimate: 8,
+          source: 'gemini_fallback',
+          estimatedGrams: 100,
         ));
       }
 
@@ -221,5 +225,83 @@ class AiFoodService {
         .collection('meals')
         .doc(mealId)
         .update({'logged': true});
+  }
+
+  /// Asynchronously enriches each ingredient in a meal with detailed USDA/OFF data.
+  /// Updates Firestore once all items are processed.
+  Future<Meal> enrichMeal(String userId, Meal meal) async {
+    final enrichedIngredients = <MealIngredient>[];
+
+    for (final ingredient in meal.ingredients) {
+      try {
+        final nutritionData = await _cloudFunctions.enrichMealItem(ingredient.name);
+        if (nutritionData != null) {
+          final optionsRaw = nutritionData['servingOptions'] ?? nutritionData['serving_options'] ?? [];
+          final options = (optionsRaw as List).map((o) => ServingOption.fromJson(Map<String, dynamic>.from(o))).toList();
+          
+          final nutriments = nutritionData['nutritionPer100g'] ?? nutritionData['nutrition_per_100g'];
+          final Map<String, double> nutMap = {};
+          if (nutriments is Map) {
+            nutMap['calories'] = _safeDouble(nutriments['calories'] ?? nutriments['energy']);
+            nutMap['protein'] = _safeDouble(nutriments['protein']);
+            nutMap['carbs'] = _safeDouble(nutriments['carbs']);
+            nutMap['fat'] = _safeDouble(nutriments['fat']);
+          }
+
+          // Recalculate estimates based on nutrition data and Gemini's gram estimate
+          double calories = ingredient.caloriesEstimate;
+          double protein = ingredient.proteinEstimate;
+          double carbs = ingredient.carbsEstimate;
+          double fat = ingredient.fatEstimate;
+
+          if (nutMap.containsKey('calories') && ingredient.estimatedGrams > 0) {
+            final scale = ingredient.estimatedGrams / 100.0;
+            calories = nutMap['calories']! * scale;
+            protein = (nutMap['protein'] ?? 0) * scale;
+            carbs = (nutMap['carbs'] ?? 0) * scale;
+            fat = (nutMap['fat'] ?? 0) * scale;
+          }
+
+          enrichedIngredients.add(MealIngredient(
+            name: _safeString(nutritionData['name'], ingredient.name),
+            amount: ingredient.amount,
+            servingSize: ingredient.servingSize,
+            caloriesEstimate: calories,
+            proteinEstimate: protein,
+            carbsEstimate: carbs,
+            fatEstimate: fat,
+            servingOptions: options,
+            nutritionPer100g: nutMap,
+            source: _safeString(nutritionData['source'], 'enriched'),
+            fdcId: nutritionData['fdcId']?.toString() ?? nutritionData['fdc_id']?.toString(),
+            estimatedGrams: ingredient.estimatedGrams,
+          ));
+        } else {
+          enrichedIngredients.add(ingredient);
+        }
+      } catch (e) {
+        print('Error enriching ingredient ${ingredient.name}: $e');
+        enrichedIngredients.add(ingredient);
+      }
+    }
+
+    final enrichedMeal = Meal(
+      id: meal.id,
+      imageUrl: meal.imageUrl,
+      title: meal.title,
+      container: meal.container,
+      ingredients: enrichedIngredients,
+      createdAt: meal.createdAt,
+      bookmarked: meal.bookmarked,
+      logged: meal.logged,
+    );
+
+    try {
+      await _saveMealToFirestore(userId, enrichedMeal);
+    } catch (e) {
+      print('Failed to save enriched meal to Firestore: $e');
+    }
+
+    return enrichedMeal;
   }
 }

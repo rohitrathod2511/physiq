@@ -902,83 +902,36 @@ export const searchBarcode = onCall<SearchBarcodeRequest>(callableOptions, async
 // Gemini-powered meal image recognition
 // ---------------------------------------------------------------------------
 
-const GEMINI_MEAL_PROMPT = `You are a precise food identification AI for a nutrition tracking app.
+const GEMINI_MEAL_PROMPT = `You are a professional nutritionist and food recognition expert.
+Analyze the given meal image carefully.
 
-TASK: Analyze the food image and identify EVERY distinct food item visible.
+Your task:
+1. Identify ALL food items present in the image.
+2. Be specific (e.g., "chapati", "dal tadka", "jeera rice", not "food").
+3. Estimate realistic serving size for each item (in grams or common units).
+4. Detect multiple items if present.
+5. Provide approximate calories and macros (protein, carbs, fat) for each item as a fallback.
 
 STRICT RULES:
-1. Identify ALL separate food items — do NOT group them as one "meal".
-2. Use SPECIFIC food names (e.g., "Roti" not "bread", "Dal Tadka" not "lentil soup", "Jeera Rice" not "rice").
-3. For each item, estimate the serving size in GRAMS as a number. Use realistic portions:
-   - 1 roti/chapati ≈ 40g
-   - 1 cup cooked rice ≈ 180g
-   - 1 bowl dal ≈ 200g
-   - 1 cup sabzi ≈ 150g
-   - 1 glass milk ≈ 250g
-   - 1 egg ≈ 50g
-   - 1 banana ≈ 120g
-   - 1 apple ≈ 180g
-   - 1 slice bread ≈ 30g
-   - 1 cup salad ≈ 100g
-   - 1 chicken breast ≈ 170g
-   - 1 bowl yogurt/curd ≈ 150g
-4. Estimate approximate calories and macros per item based on your nutritional knowledge.
-5. Choose a short descriptive meal title.
-6. Identify the container: plate, bowl, glass, cup, tray, lunchbox, or other.
+- Return ONLY valid JSON.
+- No explanation.
+- No markdown formatting or extra text.
+- Use realistic Indian food naming when applicable.
+- If unsure, provide your best professional estimate.
 
-CRITICAL:
-- Be visually accurate. Do NOT hallucinate items that are not clearly visible.
-- If you see 3 items, return 3 items. Never merge them.
-- Return ONLY valid JSON matching the exact schema below. No markdown, no explanation.
-
-JSON SCHEMA:
+JSON FORMAT:
 {
-  "meal_title": "string - short descriptive name like 'Dal Rice with Roti' or 'Chicken Salad'",
-  "serving_container": "string - one of: plate, bowl, glass, cup, tray, lunchbox, other",
+  "mealName": "string - descriptive name",
   "items": [
     {
-      "ingredient": "string - specific food name",
-      "estimated_amount": "string - human readable like '2 pieces' or '1 bowl'",
-      "serving_size": "string - weight in grams like '80g' or '200g'",
-      "calories_estimate": 0,
-      "protein_estimate": 0,
-      "carbs_estimate": 0,
-      "fat_estimate": 0
-    }
-  ]
-}
-
-EXAMPLE for an image containing roti, dal, and rice:
-{
-  "meal_title": "Dal Rice with Roti",
-  "serving_container": "plate",
-  "items": [
-    {
-      "ingredient": "Roti",
-      "estimated_amount": "2 pieces",
-      "serving_size": "80g",
-      "calories_estimate": 208,
-      "protein_estimate": 6,
-      "carbs_estimate": 36,
-      "fat_estimate": 4
-    },
-    {
-      "ingredient": "Dal Tadka",
-      "estimated_amount": "1 bowl",
-      "serving_size": "200g",
-      "calories_estimate": 180,
-      "protein_estimate": 10,
-      "carbs_estimate": 28,
-      "fat_estimate": 4
-    },
-    {
-      "ingredient": "Jeera Rice",
-      "estimated_amount": "1 serving",
-      "serving_size": "180g",
-      "calories_estimate": 220,
-      "protein_estimate": 4,
-      "carbs_estimate": 46,
-      "fat_estimate": 2
+      "name": "string",
+      "quantity": number,
+      "servingSize": "string (e.g., '2 pieces', '1 bowl')",
+      "estimatedGrams": number,
+      "calories": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number
     }
   ]
 }`;
@@ -993,13 +946,17 @@ interface GeminiMealItem {
     protein_estimate?: number;
     carbs_estimate?: number;
     fat_estimate?: number;
+    estimated_grams?: number;
+    // Alternative names from Gemini output
+    servingSize?: string;
+    estimatedGrams?: number;
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
 }
 
-interface GeminiMealResponse {
-    meal_title?: string;
-    serving_container?: string;
-    items?: GeminiMealItem[];
-}
+
 
 function buildFallbackMealResponse(): Record<string, unknown> {
     return {
@@ -1025,19 +982,21 @@ function validateAndNormalizeMealResponse(parsed: unknown): Record<string, unkno
         return buildFallbackMealResponse();
     }
 
-    const data = parsed as GeminiMealResponse;
+    const data = parsed as any;
 
     const mealTitle =
-        typeof data.meal_title === 'string' && data.meal_title.trim().length > 0
-            ? data.meal_title.trim()
-            : 'Detected Meal';
+        (typeof data.mealName === 'string' && data.mealName.trim().length > 0)
+            ? data.mealName.trim()
+            : (typeof data.meal_title === 'string' && data.meal_title.trim().length > 0)
+                ? data.meal_title.trim()
+                : 'Detected Meal';
 
     const servingContainer =
         typeof data.serving_container === 'string' && data.serving_container.trim().length > 0
             ? data.serving_container.trim().toLowerCase()
             : 'plate';
 
-    const rawItems = Array.isArray(data.items) ? data.items : [];
+    const rawItems = (Array.isArray(data.items) ? data.items : []) as GeminiMealItem[];
 
     if (rawItems.length === 0) {
         logger.warn('Gemini returned zero items, using fallback');
@@ -1050,23 +1009,27 @@ function validateAndNormalizeMealResponse(parsed: unknown): Record<string, unkno
         if (!item || typeof item !== 'object') continue;
 
         const ingredientName =
-            (typeof item.ingredient === 'string' && item.ingredient.trim().length > 0
-                ? item.ingredient.trim()
-                : typeof item.name === 'string' && item.name.trim().length > 0
+            (typeof item.name === 'string' && item.name.trim().length > 0
                 ? item.name.trim()
+                : typeof item.ingredient === 'string' && item.ingredient.trim().length > 0
+                ? item.ingredient.trim()
                 : null);
 
         if (!ingredientName) continue;
 
         const estimatedAmount =
-            typeof item.estimated_amount === 'string' && item.estimated_amount.trim().length > 0
+            typeof item.servingSize === 'string' && item.servingSize.trim().length > 0
+                ? item.servingSize.trim()
+                : typeof item.estimated_amount === 'string' && item.estimated_amount.trim().length > 0
                 ? item.estimated_amount.trim()
                 : typeof item.amount === 'string' && item.amount.trim().length > 0
                 ? item.amount.trim()
                 : '1 serving';
 
         const servingSize =
-            typeof item.serving_size === 'string' && item.serving_size.trim().length > 0
+            typeof item.estimatedGrams === 'number'
+                ? `${item.estimatedGrams}g`
+                : typeof item.serving_size === 'string' && item.serving_size.trim().length > 0
                 ? item.serving_size.trim()
                 : '100g';
 
@@ -1074,10 +1037,11 @@ function validateAndNormalizeMealResponse(parsed: unknown): Record<string, unkno
             ingredient: ingredientName,
             estimated_amount: estimatedAmount,
             serving_size: servingSize,
-            calories_estimate: toNumber(item.calories_estimate) || 100,
-            protein_estimate: toNumber(item.protein_estimate) || 3,
-            carbs_estimate: toNumber(item.carbs_estimate) || 15,
-            fat_estimate: toNumber(item.fat_estimate) || 3,
+            calories_estimate: toNumber(item.calories ?? item.calories_estimate) || 100,
+            protein_estimate: toNumber(item.protein ?? item.protein_estimate) || 3,
+            carbs_estimate: toNumber(item.carbs ?? item.carbs_estimate) || 15,
+            fat_estimate: toNumber(item.fat ?? item.fat_estimate) || 3,
+            estimated_grams: toNumber(item.estimated_grams ?? item.estimatedGrams) || 100,
         });
     }
 
@@ -1140,19 +1104,24 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
 
             const responseText = result.response.text();
 
-            logger.info('recognizeMealImage raw response', {
-                responseLength: responseText.length,
-                responsePreview: responseText.substring(0, 500),
-            });
+            logger.info('RAW GEMINI RESPONSE:', { responseText });
 
-            // Attempt to parse JSON — strip markdown fences if present
+            // Attempt to parse JSON — strip markdown fences and any leading/trailing garbage
             let cleanedText = responseText.trim();
-            if (cleanedText.startsWith('```')) {
-                // Remove ```json ... ``` or ``` ... ```
+            
+            // Remove ```json blocks or any ``` blocks
+            if (cleanedText.includes('```')) {
                 cleanedText = cleanedText
-                    .replace(/^```(?:json)?\s*\n?/i, '')
-                    .replace(/\n?```\s*$/i, '')
+                    .replace(/```json/gi, '')
+                    .replace(/```/g, '')
                     .trim();
+            }
+
+            // If there's still extra text before the first '{' or after the last '}'
+            const firstBrace = cleanedText.indexOf('{');
+            const lastBrace = cleanedText.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
             }
 
             let parsed: unknown;
@@ -1169,51 +1138,9 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
             const validated = validateAndNormalizeMealResponse(parsed);
             const items = validated.items as any[];
 
-            logger.info('recognizeMealImage: enriching items with USDA/OFF data', { itemCount: items.length });
-
-            const enrichedItems = await Promise.all(items.map(async (item) => {
-                const query = item.ingredient;
-                
-                // Try USDA first
-                let nutritionData = await fetchFoodFromUSDA(query);
-                
-                // Fallback to OFF
-                if (!nutritionData) {
-                    logger.info(`USDA failed for "${query}", trying OFF fallback`);
-                    nutritionData = await fetchFoodFromOFF(query);
-                }
-
-                if (nutritionData) {
-                    logger.info(`Enriched ${query} from ${nutritionData.source}`);
-                    return {
-                        ...item,
-                        ingredient: nutritionData.name, // potentially more accurate name
-                        calories_estimate: nutritionData.nutritionPer100g.calories,
-                        protein_estimate: nutritionData.nutritionPer100g.protein,
-                        carbs_estimate: nutritionData.nutritionPer100g.carbs,
-                        fat_estimate: nutritionData.nutritionPer100g.fat,
-                        serving_options: nutritionData.servingOptions,
-                        nutrition_per_100g: nutritionData.nutritionPer100g,
-                        source: nutritionData.source
-                    };
-                }
-
-                logger.info(`No enrichment found for "${query}", using Gemini estimates`);
-                return {
-                    ...item,
-                    serving_options: [
-                        { label: item.serving_size || '1 serving', grams: 100 },
-                        { label: '100g', grams: 100 }
-                    ],
-                    source: 'gemini_estimate'
-                };
-            }));
-
-            validated.items = enrichedItems;
-
-            logger.info('recognizeMealImage finalized', {
+            logger.info('recognizeMealImage finalized (Gemini only)', {
                 mealTitle: validated.meal_title,
-                itemCount: enrichedItems.length,
+                itemCount: items.length,
             });
 
             return validated;
@@ -1226,5 +1153,34 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
             // Return fallback instead of crashing
             return buildFallbackMealResponse();
         }
+    }
+);
+
+export const enrichMealItem = onCall<{ ingredient: string }>(
+    callableOptions,
+    async (request) => {
+        const query = (request.data as any)?.ingredient?.trim();
+        if (!query) {
+            throw new HttpsError('invalid-argument', 'ingredient is required.');
+        }
+
+        logger.info('enrichMealItem request', { query });
+
+        // Try USDA first
+        let nutritionData = await fetchFoodFromUSDA(query);
+        
+        // Fallback to OFF
+        if (!nutritionData) {
+            logger.info(`USDA failed for "${query}", trying OFF fallback`);
+            nutritionData = await fetchFoodFromOFF(query);
+        }
+
+        if (nutritionData) {
+            logger.info(`Enriched ${query} from ${nutritionData.source}`);
+            return nutritionData;
+        }
+
+        logger.warn(`No enrichment found for "${query}"`);
+        return null;
     }
 );

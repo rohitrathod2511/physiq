@@ -21,6 +21,15 @@ class CustomMeal {
   }
 
   factory CustomMeal.fromJson(Map<String, dynamic> json, String id) {
+    final rawNutrition = json['total_nutrition'];
+    final nutrition = <String, double>{};
+
+    if (rawNutrition is Map) {
+      for (final entry in rawNutrition.entries) {
+        nutrition[entry.key.toString()] = _safeDouble(entry.value);
+      }
+    }
+
     return CustomMeal(
       id: id,
       name: json['name'] ?? 'Unnamed Meal',
@@ -28,8 +37,14 @@ class CustomMeal {
               ?.map((e) => CustomMealItem.fromJson(e))
               .toList() ??
           [],
-      totalNutrition: Map<String, double>.from(json['total_nutrition'] ?? {}),
+      totalNutrition: nutrition,
     );
+  }
+
+  static double _safeDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? 0.0;
+    return 0.0;
   }
 }
 
@@ -59,7 +74,7 @@ class CustomMealItem {
     return CustomMealItem(
       foodId: json['foodId'] ?? '',
       foodName: json['foodName'] ?? 'Unknown Food',
-      quantity: (json['quantity'] ?? 0).toDouble(),
+      quantity: CustomMeal._safeDouble(json['quantity']),
       unit: json['unit'] ?? '',
     );
   }

@@ -132,6 +132,30 @@ class ExerciseService {
             .toList());
   }
 
+  Stream<List<ExerciseLog>> getLogsForDate(String userId, DateTime date) {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('exerciseLogs')
+        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('timestamp', isLessThan: Timestamp.fromDate(end))
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ExerciseLog.fromMap(doc.data()))
+              .where(
+                (log) =>
+                    log.type != ExerciseType.manual &&
+                    log.name != 'Manual Entry',
+              )
+              .toList(),
+        );
+  }
+
   Future<void> deleteExercise(String uid, String logId, DateTime date) async {
     try {
       final logRef = _firestore

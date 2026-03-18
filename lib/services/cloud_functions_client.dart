@@ -78,4 +78,16 @@ class CloudFunctionsClient {
       return null;
     }
   }
+
+  Future<Map<String, dynamic>?> enrichMealItem(String ingredient) async {
+    try {
+      final result = await _functions.httpsCallable('enrichMealItem').call({
+        'ingredient': ingredient,
+      });
+      if (result.data == null) return null;
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      return null;
+    }
+  }
 }

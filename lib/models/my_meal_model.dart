@@ -25,12 +25,12 @@ class MealItem {
     return MealItem(
       foodId: map['foodId'] ?? '',
       foodName: map['foodName'] ?? '',
-      quantity: (map['quantity'] ?? 0).toDouble(),
+      quantity: _safeDouble(map['quantity']),
       servingLabel: map['servingLabel'] ?? '',
-      calories: (map['calories'] ?? 0).toDouble(),
-      protein: (map['protein'] ?? 0).toDouble(),
-      carbs: (map['carbs'] ?? 0).toDouble(),
-      fat: (map['fat'] ?? 0).toDouble(),
+      calories: _safeDouble(map['calories']),
+      protein: _safeDouble(map['protein']),
+      carbs: _safeDouble(map['carbs']),
+      fat: _safeDouble(map['fat']),
     );
   }
 
@@ -45,6 +45,12 @@ class MealItem {
       'carbs': carbs,
       'fat': fat,
     };
+  }
+
+  static double _safeDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? 0.0;
+    return 0.0;
   }
 }
 
@@ -74,10 +80,10 @@ class MyMeal {
     return MyMeal(
       id: doc.id,
       name: data['name'] ?? '',
-      totalCalories: (data['totalCalories'] ?? 0).toDouble(),
-      totalProtein: (data['totalProtein'] ?? 0).toDouble(),
-      totalCarbs: (data['totalCarbs'] ?? 0).toDouble(),
-      totalFat: (data['totalFat'] ?? 0).toDouble(),
+      totalCalories: MealItem._safeDouble(data['totalCalories']),
+      totalProtein: MealItem._safeDouble(data['totalProtein']),
+      totalCarbs: MealItem._safeDouble(data['totalCarbs']),
+      totalFat: MealItem._safeDouble(data['totalFat']),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       items: (data['items'] as List<dynamic>?)
               ?.map((e) => MealItem.fromMap(e as Map<String, dynamic>))

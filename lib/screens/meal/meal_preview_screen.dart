@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/models/meal_model.dart';
-import 'package:physiq/models/my_meal_model.dart';
 import 'package:physiq/services/ai_food_service.dart';
 import 'package:physiq/services/food_service.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
+import 'package:physiq/widgets/macro_icons.dart';
+import 'package:intl/intl.dart';
 
 class MealPreviewScreen extends ConsumerStatefulWidget {
   final Food initialFood;
@@ -32,755 +36,605 @@ class MealPreviewScreen extends ConsumerStatefulWidget {
 
 class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   late double _quantity;
-  late Map<String, double> _servingMultipliers;
   late List<String> _servingOptions;
   late String _selectedServing;
   late double _servingMultiplier;
   late Food _food;
   bool _isLoadingDetails = false;
+  Meal? _currentMeal;
+  StreamSubscription? _mealSubscription;
 
   @override
   void initState() {
     super.initState();
     _quantity = widget.initialQuantity;
     _food = widget.initialFood;
+    _currentMeal = widget.meal;
 
-    if (_food.isPartial && _food.fdcId != null) {
-      _fetchFullDetails();
-    } else {
-      _initServingData();
+    _initServingData();
+
+    if (_currentMeal != null) {
+      _listenToMealUpdates();
     }
   }
 
-  Future<void> _fetchFullDetails() async {
-    setState(() {
-      _isLoadingDetails = true;
-    });
-
-    try {
-      final fullFood = await FoodService().getFoodDetails(_food.fdcId!);
-      if (fullFood != null && mounted) {
-        setState(() {
-          _food = fullFood;
-          _isLoadingDetails = false;
-          _initServingData();
-        });
-        return;
-      }
-    } catch (e) {
-      debugPrint('Error fetching full details: $e');
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoadingDetails = false;
-        _initServingData();
-      });
-    }
+  @override
+  void dispose() {
+    _mealSubscription?.cancel();
+    super.dispose();
   }
 
   void _initServingData() {
-    _servingMultipliers = _buildServingMultipliers(_food);
-    _servingOptions = _servingMultipliers.keys.toList();
-
-    final preferred = _food.unit.trim();
-    _selectedServing = preferred.isNotEmpty && _servingOptions.contains(preferred)
-        ? preferred
-        : _servingOptions.first;
-    _servingMultiplier = _getServingMultiplier(_selectedServing);
+    _servingOptions = ['1 serving', '100g'];
+    _selectedServing = '1 serving';
+    _servingMultiplier = 1.0;
   }
 
-  Map<String, double> _buildServingMultipliers(Food food) {
-    final multipliers = <String, double>{};
+  void _listenToMealUpdates() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-    // USDA Serving Options (TASK 4)
-    if (food.servingOptions.isNotEmpty) {
-      for (final option in food.servingOptions) {
-        // USDA data is per 100g, so multiplier is grams / 100
-        multipliers[option.label] = option.grams / 100.0;
+    _mealSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('meals')
+        .doc(_currentMeal!.id)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists && mounted) {
+        final updatedMeal = Meal.fromSnapshot(snapshot);
+        setState(() {
+          _currentMeal = updatedMeal;
+          _updateFoodFromMeal(updatedMeal);
+        });
       }
-    }
+    });
+  }
 
-    // Default 100g option
-    if (!multipliers.containsKey('100g')) {
-      multipliers['100g'] = 1.0;
-    }
+  void _updateFoodFromMeal(Meal meal) {
+    double totalCalories = 0;
+    double totalProtein = 0;
+    double totalCarbs = 0;
+    double totalFat = 0;
+    
+    double totalFiber = 0;
+    double totalSugar = 0;
+    double totalSodium = 0;
+    double totalCholesterol = 0;
+    double totalCalcium = 0;
+    double totalIron = 0;
+    double totalPotassium = 0;
 
-    // Legacy fallback
-    if (multipliers.length <= 1) {
-      final baseWeight = food.baseWeightG > 0 ? food.baseWeightG : 100.0;
-      final baseLabel = food.unit.trim().isEmpty ? 'serving' : food.unit.trim();
+    for (var ingredient in meal.ingredients) {
+      totalCalories += ingredient.caloriesEstimate;
+      totalProtein += ingredient.proteinEstimate;
+      totalCarbs += ingredient.carbsEstimate;
+      totalFat += ingredient.fatEstimate;
       
-      final normalized = baseLabel.toLowerCase().replaceAll(' ', '');
-      if (normalized != '100g') {
-        multipliers[baseLabel] = baseWeight / 100.0;
+      if (ingredient.nutritionPer100g != null && ingredient.estimatedGrams > 0) {
+        final scale = ingredient.estimatedGrams / 100.0;
+        totalFiber += (ingredient.nutritionPer100g!['fiber'] ?? 0) * scale;
+        totalSugar += (ingredient.nutritionPer100g!['sugar'] ?? 0) * scale;
+        totalSodium += (ingredient.nutritionPer100g!['sodium'] ?? 0) * scale;
+        totalCholesterol += (ingredient.nutritionPer100g!['cholesterol'] ?? 0) * scale;
+        totalCalcium += (ingredient.nutritionPer100g!['calcium'] ?? 0) * scale;
+        totalIron += (ingredient.nutritionPer100g!['iron'] ?? 0) * scale;
+        totalPotassium += (ingredient.nutritionPer100g!['potassium'] ?? 0) * scale;
       }
     }
 
-    return multipliers;
-  }
-
-  double _getServingMultiplier(String servingLabel) {
-    return _servingMultipliers[servingLabel] ?? 1.0;
+    setState(() {
+      _food = _food.copyWith(
+        calories: totalCalories,
+        protein: totalProtein,
+        carbs: totalCarbs,
+        fat: totalFat,
+        fiber: totalFiber,
+        sugar: totalSugar,
+        sodium: totalSodium,
+        cholesterol: totalCholesterol,
+        calcium: totalCalcium,
+        iron: totalIron,
+        potassium: totalPotassium,
+      );
+    });
   }
 
   void _updateQuantity(double delta) {
     setState(() {
-      _quantity = (_quantity + delta).clamp(0.1, 99.0);
+      _quantity = (_quantity + delta).clamp(0.5, 10.0);
     });
   }
 
-  double _selectedScale() {
-    return _servingMultiplier * _quantity;
-  }
-
   double _getNutrient(double? baseValue) {
-    return (baseValue ?? 0) * _selectedScale();
+    return (baseValue ?? 0.0) * _quantity * _servingMultiplier;
   }
 
   Future<void> _saveMeal() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final calories = _getNutrient(_food.calories);
-    final protein = _getNutrient(_food.protein);
-    final carbs = _getNutrient(_food.carbs);
-    final fat = _getNutrient(_food.fat);
-
-    if (widget.meal != null) {
-      await AiFoodService().logMeal(user.uid, widget.meal!.id);
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      return;
-    }
-
-    if (widget.isSelectionMode) {
-      final item = MealItem(
-        foodId: _food.id,
-        foodName: _food.name,
-        quantity: _quantity,
-        servingLabel: _selectedServing,
-        calories: calories,
-        protein: protein,
-        carbs: carbs,
-        fat: fat,
-      );
-      Navigator.pop(context, item);
-      return;
-    }
-
-    final meal = MealModel(
-      id: '',
+    final mealModel = MealModel(
+      id: _currentMeal?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       userId: user.uid,
-      name: _food.name,
-      calories: calories.round(),
-      proteinG: protein.round(),
-      carbsG: carbs.round(),
-      fatG: fat.round(),
+      name: _currentMeal?.title ?? _food.name,
+      calories: _getNutrient(_food.calories),
+      proteinG: _getNutrient(_food.protein),
+      carbsG: _getNutrient(_food.carbs),
+      fatG: _getNutrient(_food.fat),
       timestamp: DateTime.now(),
-      imageUrl: widget.imagePath,
-      source: _food.source,
-      servingDescription: _selectedServing,
+      imageUrl: _currentMeal?.imageUrl,
+      source: _currentMeal != null
+          ? 'snap_meal'
+          : (_food.source.isNotEmpty ? _food.source : 'food_database'),
       servingAmount: _quantity,
+      servingDescription: _selectedServing,
       fullNutritionMap: {
-        'calories': calories,
-        'protein': protein,
-        'carbs': carbs,
-        'fat': fat,
-        'saturatedFat': _getNutrient(_food.saturatedFat),
-        'polyunsaturatedFat': _getNutrient(_food.polyunsaturatedFat),
-        'monounsaturatedFat': _getNutrient(_food.monounsaturatedFat),
-        'cholesterol': _getNutrient(_food.cholesterol),
-        'sodium': _getNutrient(_food.sodium),
         'fiber': _getNutrient(_food.fiber),
         'sugar': _getNutrient(_food.sugar),
-        'potassium': _getNutrient(_food.potassium),
-        'vitaminA': _getNutrient(_food.vitaminA),
-        'vitaminC': _getNutrient(_food.vitaminC),
+        'sodium': _getNutrient(_food.sodium),
+        'cholesterol': _getNutrient(_food.cholesterol),
         'calcium': _getNutrient(_food.calcium),
         'iron': _getNutrient(_food.iron),
+        'potassium': _getNutrient(_food.potassium),
       },
     );
 
-    ref.read(homeViewModelProvider.notifier).logMeal(meal);
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
+    await ref.read(homeViewModelProvider.notifier).logMeal(mealModel);
 
-  Widget _buildSourceBadge(String source, ThemeData theme) {
-    String label = 'USDA';
-    Color color = Colors.green;
-
-    if (source.toLowerCase().contains('open_food_facts') || source.toLowerCase().contains('off')) {
-      label = 'OFF';
-      color = Colors.orange;
-    } else if (source.toLowerCase().contains('gemini') || source.toLowerCase().contains('estimate')) {
-      label = 'AI';
-      color = Colors.blue;
+    if (mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final textPrimary =
-        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
-    final textSecondary =
-        theme.textTheme.bodyMedium?.color ??
-        theme.colorScheme.onSurface.withOpacity(0.7);
-    final proteinAccent = theme.colorScheme.error;
-    final carbsAccent = theme.colorScheme.secondary;
-    final fatsAccent = theme.colorScheme.primary;
-
-    final mealIngredients = widget.meal?.ingredients ?? [];
-    final hasMealIngredients = mealIngredients.isNotEmpty;
-
-    final displayIngredients = hasMealIngredients
-        ? mealIngredients.map((i) => "${i.name} (${i.amount})").toList()
-        : _food.aliases
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+    final textPrimary = Colors.black;
+    final textSecondary = Colors.grey[600]!;
 
     final calories = _getNutrient(_food.calories).round();
     final protein = _getNutrient(_food.protein).round();
     final carbs = _getNutrient(_food.carbs).round();
     final fat = _getNutrient(_food.fat).round();
 
-    if (_isLoadingDetails) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: const Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          _buildHeroImage(context),
+          _buildContentSheet(context, theme, textPrimary, textSecondary, calories, protein, carbs, fat),
+          _buildTopNavButtons(context),
+          _buildBottomActions(context, theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroImage(BuildContext context) {
+    if ((widget.imagePath == null || widget.imagePath!.isEmpty) && (_currentMeal?.imageUrl.isEmpty ?? true)) {
+      return Container(
+        height: 380,
+        color: Colors.grey[200],
+        child: const Center(child: Icon(Icons.image_not_supported_outlined, size: 50)),
       );
     }
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'Nutrition',
-          style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if ((widget.imagePath != null && widget.imagePath!.isNotEmpty) || (widget.meal?.imageUrl.isNotEmpty ?? false))
-                    Container(
-                      width: double.infinity,
-                      height: 220,
-                      clipBehavior: Clip.hardEdge,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color:
-                            theme.inputDecorationTheme.fillColor ??
-                            theme.colorScheme.surfaceContainerHighest.withOpacity(
-                              0.45,
-                            ),
-                      ),
-                      child: widget.imagePath != null && widget.imagePath!.isNotEmpty 
-                        ? Image.file(
-                            File(widget.imagePath!),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Icon(
-                                  Icons.image_not_supported_outlined,
-                                  color: textSecondary,
-                                  size: 36,
-                                ),
-                              );
-                            },
-                          )
-                        : Image.network(
-                            widget.meal!.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Icon(
-                                  Icons.image_not_supported_outlined,
-                                  color: textSecondary,
-                                  size: 36,
-                                ),
-                              );
-                            },
-                          ),
-                    ),
-                  if ((widget.imagePath != null && widget.imagePath!.isNotEmpty) || (widget.meal?.imageUrl.isNotEmpty ?? false))
-                    const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.meal?.title ?? _food.name,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
-                          ),
-                        ),
-                      ),
-                      _buildSourceBadge(_food.source, theme),
-                    ],
+    return SizedBox(
+      height: 380,
+      width: double.infinity,
+      child: widget.imagePath != null && widget.imagePath!.isNotEmpty
+          ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
+          : Image.network(_currentMeal!.imageUrl, fit: BoxFit.cover),
+    );
+  }
+
+  Widget _buildTopNavButtons(BuildContext context) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            color: Colors.black.withOpacity(0.05),
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, bottom: 12, left: 16, right: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                    child: const Icon(Icons.close, color: Colors.white, size: 22),
                   ),
-                  if (displayIngredients.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      'Ingredients',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: textPrimary,
-                      ),
+                ),
+                const Text(
+                  'Meal Details',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                      child: const Icon(Icons.favorite_border, color: Colors.white, size: 20),
                     ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: displayIngredients
-                          .map(
-                            (name) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.cardColor,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: theme.dividerColor),
-                              ),
-                              child: Text(
-                                name,
-                                style: TextStyle(color: textPrimary),
-                              ),
-                            ),
-                          )
-                          .toList(),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                      child: const Icon(Icons.share_outlined, color: Colors.white, size: 20),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  Text(
-                    'Serving Size',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedServing,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor:
-                          theme.inputDecorationTheme.fillColor ?? theme.cardColor,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: theme.dividerColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: theme.dividerColor),
-                      ),
-                    ),
-                    items: _servingOptions
-                        .map(
-                          (option) => DropdownMenuItem<String>(
-                            value: option,
-                            child: Text(option),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() {
-                        _selectedServing = value;
-                        _servingMultiplier = _getServingMultiplier(value);
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Serving Amount',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimary,
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: theme.dividerColor),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove),
-                              onPressed: () => _updateQuantity(-0.5),
-                              constraints: const BoxConstraints(
-                                minWidth: 40,
-                                minHeight: 40,
-                              ),
-                              padding: EdgeInsets.zero,
-                            ),
-                            Container(
-                              width: 50,
-                              alignment: Alignment.center,
-                              child: Text(
-                                _quantity % 1 == 0
-                                    ? _quantity.toInt().toString()
-                                    : _quantity.toStringAsFixed(1),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: textPrimary,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.add),
-                              onPressed: () => _updateQuantity(0.5),
-                              constraints: const BoxConstraints(
-                                minWidth: 40,
-                                minHeight: 40,
-                              ),
-                              padding: EdgeInsets.zero,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: theme.cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: theme.dividerColor),
-                    ),
-                    child: Row(
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentSheet(
+    BuildContext context,
+    ThemeData theme,
+    Color textPrimary,
+    Color textSecondary,
+    int totalCalories,
+    int protein,
+    int carbs,
+    int fat,
+  ) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        children: [
+          const SizedBox(height: 320),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 140),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(32),
+                topRight: Radius.circular(32),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildBookmarkAndTime(theme, textSecondary),
+                const SizedBox(height: 20),
+                _buildTitleAndQuantityRow(textPrimary, theme),
+                const SizedBox(height: 24),
+                _buildEnrichmentStatus(theme),
+                const SizedBox(height: 12),
+                _buildCaloriesCard(totalCalories, textPrimary, textSecondary, theme),
+                const SizedBox(height: 16),
+                _buildMacrosRow(protein, carbs, fat, theme),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle)),
+                    const SizedBox(width: 4),
+                    Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey[300], shape: BoxShape.circle)),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Ingredients', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('+ Add more', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildIngredientsList(),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookmarkAndTime(ThemeData theme, Color textSecondary) {
+    final timeStr = DateFormat('hh:mm a').format(_currentMeal?.createdAt ?? DateTime.now());
+    return Row(
+      children: [
+        const Icon(Icons.bookmark_border, color: Colors.black, size: 24),
+        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            timeStr,
+            style: TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTitleAndQuantityRow(Color textPrimary, ThemeData theme) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            _currentMeal?.title ?? _food.name,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textPrimary, height: 1.2),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove, size: 20),
+                onPressed: () => _updateQuantity(-1),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 40),
+              ),
+              Text(
+                _quantity.toInt().toString(),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add, size: 20),
+                onPressed: () => _updateQuantity(1),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 40),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCaloriesCard(int calories, Color textPrimary, Color textSecondary, ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey[100]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F9),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.local_fire_department, color: Colors.black, size: 24),
+          ),
+          const SizedBox(width: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Calories', style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              Text('$calories', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMacrosRow(int protein, int carbs, int fat, ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MacroItem(
+            label: 'Protein',
+            value: '${protein}g',
+            icon: const FishIcon(color: Color(0xFFE57373), size: 20),
+            iconBg: const Color(0xFFFFEBEE),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _MacroItem(
+            label: 'Carbs',
+            value: '${carbs}g',
+            icon: const WheatIcon(color: Color(0xFFFFB74D), size: 20),
+            iconBg: const Color(0xFFFFF3E0),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _MacroItem(
+            label: 'Fats',
+            value: '${fat}g',
+            icon: const AvocadoIcon(color: Color(0xFF64B5F6), size: 18),
+            iconBg: const Color(0xFFE3F2FD),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIngredientsList() {
+    if (_currentMeal == null || _currentMeal!.ingredients.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: const Color(0xFFF7F7F9), borderRadius: BorderRadius.circular(20)),
+        child: const Text('Detecting ingredients...', style: TextStyle(color: Colors.grey)),
+      );
+    }
+
+    return Column(
+      children: _currentMeal!.ingredients.map((item) => Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F9),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.secondaryContainer,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.local_fire_department,
-                            color: theme.colorScheme.onSecondaryContainer,
-                          ),
+                        TextSpan(
+                          text: item.name,
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Calories',
-                              style: TextStyle(
-                                color: textSecondary,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '$calories',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: textPrimary,
-                              ),
-                            ),
-                          ],
+                        TextSpan(
+                          text: ' • ${item.caloriesEstimate.round()} cal, ${item.amount}',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 14),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MacroCard(
-                          label: 'Protein',
-                          value: '${protein}g',
-                          icon: Icons.restaurant,
-                          color: proteinAccent,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _MacroCard(
-                          label: 'Carbs',
-                          value: '${carbs}g',
-                          icon: Icons.grain,
-                          color: carbsAccent,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _MacroCard(
-                          label: 'Fats',
-                          value: '${fat}g',
-                          icon: Icons.water_drop,
-                          color: fatsAccent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Other nutrition facts',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFactRow(
-                    'Saturated Fat',
-                    _getNutrient(widget.initialFood.saturatedFat),
-                    'g',
-                  ),
-                  _buildFactRow(
-                    'Polyunsaturated Fat',
-                    _getNutrient(widget.initialFood.polyunsaturatedFat),
-                    'g',
-                  ),
-                  _buildFactRow(
-                    'Monounsaturated Fat',
-                    _getNutrient(widget.initialFood.monounsaturatedFat),
-                    'g',
-                  ),
-                  _buildFactRow(
-                    'Cholesterol',
-                    _getNutrient(widget.initialFood.cholesterol),
-                    'mg',
-                  ),
-                  _buildFactRow(
-                    'Sodium',
-                    _getNutrient(widget.initialFood.sodium),
-                    'mg',
-                  ),
-                  _buildFactRow(
-                    'Fiber',
-                    _getNutrient(widget.initialFood.fiber),
-                    'g',
-                  ),
-                  _buildFactRow(
-                    'Sugar',
-                    _getNutrient(widget.initialFood.sugar),
-                    'g',
-                  ),
-                  _buildFactRow(
-                    'Potassium',
-                    _getNutrient(widget.initialFood.potassium),
-                    'mg',
-                  ),
-                  _buildFactRow(
-                    'Vitamin A',
-                    _getNutrient(widget.initialFood.vitaminA),
-                    'mcg',
-                  ),
-                  _buildFactRow(
-                    'Vitamin C',
-                    _getNutrient(widget.initialFood.vitaminC),
-                    'mg',
-                  ),
-                  _buildFactRow(
-                    'Calcium',
-                    _getNutrient(widget.initialFood.calcium),
-                    'mg',
-                  ),
-                  _buildFactRow(
-                    'Iron',
-                    _getNutrient(widget.initialFood.iron),
-                    'mg',
-                  ),
-                ],
-              ),
+                ),
+                if (item.source == 'usda' || item.source == 'off')
+                  const Icon(Icons.verified, color: Colors.green, size: 20),
+              ],
             ),
+          )).toList(),
+    );
+  }
+
+  Widget _buildEnrichmentStatus(ThemeData theme) {
+    if (_currentMeal == null) return const SizedBox.shrink();
+    final total = _currentMeal!.ingredients.length;
+    final enriched = _currentMeal!.ingredients.where((i) => i.source != 'gemini_estimate' && i.source != 'gemini_fallback').length;
+    if (enriched == total && total > 0) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 14, height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
           ),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              border: Border(top: BorderSide(color: theme.dividerColor)),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _saveMeal,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                child: Text(
-                  widget.isSelectionMode ? 'Add' : (widget.meal != null ? 'Done' : 'Save'),
-                  style: TextStyle(
-                    color: theme.colorScheme.onPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+          const SizedBox(width: 8),
+          Text(
+            'Verifying nutrition ($enriched/$total)...',
+            style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFactRow(String label, double value, String unit) {
-    if (value == 0) return _FactRow(label, '0$unit');
-    return _FactRow(
-      label,
-      '${value < 1 ? value.toStringAsFixed(1) : value.round()}$unit',
+  Widget _buildBottomActions(BuildContext context, ThemeData theme) {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.auto_awesome, size: 18),
+                label: const Text('Fix Results', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  side: const BorderSide(color: Colors.black),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton(
+                onPressed: _saveMeal,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                child: const Text('Done', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _MacroCard extends StatelessWidget {
+class _MacroItem extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
-  final Color color;
+  final Widget icon;
+  final Color iconBg;
 
-  const _MacroCard({
+  const _MacroItem({
     required this.label,
     required this.value,
     required this.icon,
-    required this.color,
+    required this.iconBg,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textPrimary =
-        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
-    final textSecondary =
-        theme.textTheme.bodyMedium?.color ??
-        theme.colorScheme.onSurface.withValues(alpha: 0.7);
-
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.12),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F1F1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
+                child: icon,
               ),
+              const SizedBox(width: 8),
+              Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FactRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _FactRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textPrimary =
-        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.45)),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontSize: 14, color: textPrimary)),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: textPrimary,
-            ),
-          ),
+          const SizedBox(height: 12),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
         ],
       ),
     );

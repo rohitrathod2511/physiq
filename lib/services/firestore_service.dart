@@ -142,28 +142,28 @@ class FirestoreService {
 
         // 1. Calculate Meal Totals via FOLD
         final meals = mealsSnap.docs.map((d) => d.data()).toList();
-        final int totalCalories = meals.fold(
-          0,
-          (sum, m) => sum + _toIntSafe(m['calories']),
+        final double totalCalories = meals.fold(
+          0.0,
+          (sum, m) => sum + _toDoubleSafe(m['calories']),
         );
-        final int totalProtein = meals.fold(
-          0,
-          (sum, m) => sum + _toIntSafe(m['proteinG']),
+        final double totalProtein = meals.fold(
+          0.0,
+          (sum, m) => sum + _toDoubleSafe(m['proteinG'] ?? m['protein']),
         );
-        final int totalCarbs = meals.fold(
-          0,
-          (sum, m) => sum + _toIntSafe(m['carbsG']),
+        final double totalCarbs = meals.fold(
+          0.0,
+          (sum, m) => sum + _toDoubleSafe(m['carbsG'] ?? m['carbs']),
         );
-        final int totalFat = meals.fold(
-          0,
-          (sum, m) => sum + _toIntSafe(m['fatG']),
+        final double totalFat = meals.fold(
+          0.0,
+          (sum, m) => sum + _toDoubleSafe(m['fatG'] ?? m['fat'] ?? m['fats']),
         );
 
         // 2. Calculate Burn Calories via FOLD
         final exercises = exercisesSnap.docs.map((d) => d.data()).toList();
-        final int totalBurn = exercises.fold(
-          0,
-          (sum, e) => sum + _toIntSafe(e['calories']),
+        final double totalBurn = exercises.fold(
+          0.0,
+          (sum, e) => sum + _toDoubleSafe(e['calories']),
         );
 
         // 3. Get Water and other summary data
@@ -199,17 +199,16 @@ class FirestoreService {
   ) async {
     try {
       final batch = _firestore.batch();
-
-      // 1. Add meal to meals subcollection
       final mealRef = _firestore
           .collection('users')
           .doc(uid)
           .collection('meals')
           .doc();
+      final normalizedMeal = _normalizeMealDocument(mealData, mealRef.id, date);
+
+      // 1. Add meal to meals subcollection
       batch.set(mealRef, {
-        ...mealData,
-        'id': mealRef.id, // Ensure ID is saved
-        'timestamp': Timestamp.fromDate(date), // Ensure timestamp is set
+        ...normalizedMeal,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -227,12 +226,10 @@ class FirestoreService {
       // Firestore set with merge and increment works fine if doc exists or not (counters start at 0).
       batch.set(summaryRef, {
         'date': dateId,
-        'calories': FieldValue.increment(mealData['calories'] ?? 0),
-        'protein': FieldValue.increment(
-          mealData['proteinG'] ?? 0,
-        ), // Note: Mapping 'proteinG' to 'protein' to match usage
-        'carbs': FieldValue.increment(mealData['carbsG'] ?? 0),
-        'fat': FieldValue.increment(mealData['fatG'] ?? 0),
+        'calories': FieldValue.increment(normalizedMeal['calories'] as double),
+        'protein': FieldValue.increment(normalizedMeal['proteinG'] as double),
+        'carbs': FieldValue.increment(normalizedMeal['carbsG'] as double),
+        'fat': FieldValue.increment(normalizedMeal['fatG'] as double),
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -250,25 +247,58 @@ class FirestoreService {
   Future<List<Map<String, dynamic>>> fetchRecentMeals(
     String uid, {
     int limit = 10,
+    DateTime? date,
   }) async {
     try {
-      final snap = await _firestore
+      Query<Map<String, dynamic>> query = _firestore
           .collection('users')
           .doc(uid)
-          .collection('meals')
+          .collection('meals');
+
+      if (date != null) {
+        final start = DateTime(date.year, date.month, date.day);
+        final end = start.add(const Duration(days: 1));
+        query = query
+            .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+            .where('timestamp', isLessThan: Timestamp.fromDate(end));
+      }
+
+      final snap = await query
           .orderBy('timestamp', descending: true)
           .limit(limit)
           .get();
 
-      return snap.docs.map((d) {
-        final m = Map<String, dynamic>.from(d.data());
-        m['id'] = d.id;
-        return m;
-      }).toList();
+      return snap.docs
+          .map((d) => _normalizeMealDocument(d.data(), d.id))
+          .toList();
     } catch (e) {
       print('fetchRecentMeals error: $e');
       return <Map<String, dynamic>>[];
     }
+  }
+
+  Stream<List<Map<String, dynamic>>> streamMealsForDate(
+    String uid,
+    DateTime date, {
+    int limit = 50,
+  }) {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('meals')
+        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('timestamp', isLessThan: Timestamp.fromDate(end))
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => _normalizeMealDocument(doc.data(), doc.id))
+              .toList(),
+        );
   }
 
   // ----------------------------
@@ -285,7 +315,7 @@ class FirestoreService {
           .get();
 
       if (!mealDoc.exists) return;
-      final mealData = mealDoc.data()!;
+      final mealData = _normalizeMealDocument(mealDoc.data()!, mealId);
 
       final batch = _firestore.batch();
 
@@ -303,10 +333,10 @@ class FirestoreService {
           .doc(dateId);
 
       batch.set(summaryRef, {
-        'calories': FieldValue.increment(-(mealData['calories'] ?? 0)),
-        'protein': FieldValue.increment(-(mealData['proteinG'] ?? 0)),
-        'carbs': FieldValue.increment(-(mealData['carbsG'] ?? 0)),
-        'fat': FieldValue.increment(-(mealData['fatG'] ?? 0)),
+        'calories': FieldValue.increment(-_toDoubleSafe(mealData['calories'])),
+        'protein': FieldValue.increment(-_toDoubleSafe(mealData['proteinG'])),
+        'carbs': FieldValue.increment(-_toDoubleSafe(mealData['carbsG'])),
+        'fat': FieldValue.increment(-_toDoubleSafe(mealData['fatG'])),
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -396,10 +426,10 @@ class FirestoreService {
       for (var doc in snap.docs) {
         final d = doc.data();
         // Check activity (Calories, Water, Steps)
-        if (_toIntSafe(d['calories']) > 0 ||
-            _toIntSafe(d['caloriesConsumed']) > 0 ||
-            _toIntSafe(d['waterConsumed']) > 0 ||
-            _toIntSafe(d['steps']) > 0) {
+        if (_toDoubleSafe(d['calories']) > 0 ||
+            _toDoubleSafe(d['caloriesConsumed']) > 0 ||
+            _toDoubleSafe(d['waterConsumed']) > 0 ||
+            _toDoubleSafe(d['steps']) > 0) {
           activeDates.add(doc.id);
         }
       }
@@ -430,11 +460,89 @@ class FirestoreService {
     }
   }
 
+  static double _toDoubleSafe(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
   static int _toIntSafe(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;
     if (value is double) return value.toInt();
     if (value is String) return int.tryParse(value) ?? 0;
     return 0;
+  }
+
+  static Map<String, dynamic> _normalizeMealDocument(
+    Map<String, dynamic> mealData,
+    String id, [
+    DateTime? fallbackDate,
+  ]) {
+    final timestamp =
+        _toDateTimeSafe(
+          mealData['timestamp'] ??
+              mealData['createdAt'] ??
+              mealData['created_at'],
+        ) ??
+        fallbackDate ??
+        DateTime.now();
+    final imageUrl = _toNullableString(
+      mealData['imageUrl'] ?? mealData['image_url'],
+    );
+
+    return {
+      ...mealData,
+      'id': id,
+      'name': _toNullableString(mealData['name'] ?? mealData['meal_title']) ??
+          'Meal',
+      'calories': _toDoubleSafe(mealData['calories']),
+      'proteinG': _toDoubleSafe(mealData['proteinG'] ?? mealData['protein']),
+      'carbsG': _toDoubleSafe(mealData['carbsG'] ?? mealData['carbs']),
+      'fatG': _toDoubleSafe(
+        mealData['fatG'] ?? mealData['fat'] ?? mealData['fats'],
+      ),
+      'protein': _toDoubleSafe(mealData['protein'] ?? mealData['proteinG']),
+      'carbs': _toDoubleSafe(mealData['carbs'] ?? mealData['carbsG']),
+      'fat': _toDoubleSafe(
+        mealData['fat'] ?? mealData['fatG'] ?? mealData['fats'],
+      ),
+      'fats': _toDoubleSafe(
+        mealData['fats'] ?? mealData['fat'] ?? mealData['fatG'],
+      ),
+      'timestamp': Timestamp.fromDate(timestamp),
+      'imageUrl': imageUrl,
+      'createdAt': mealData['createdAt'] ?? Timestamp.fromDate(timestamp),
+      'fullNutritionMap': _normalizeDynamicValue(mealData['fullNutritionMap']),
+    };
+  }
+
+  static DateTime? _toDateTimeSafe(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  static String? _toNullableString(dynamic value) {
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    return null;
+  }
+
+  static dynamic _normalizeDynamicValue(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) =>
+            MapEntry(key.toString(), _normalizeDynamicValue(nestedValue)),
+      );
+    }
+    if (value is List) {
+      return value.map(_normalizeDynamicValue).toList();
+    }
+    return value;
   }
 }

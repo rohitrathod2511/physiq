@@ -81,30 +81,68 @@ class Food {
       name: data['name'] ?? '',
       category: data['category'] ?? 'General',
       unit: data['unit'] ?? '1 unit',
-      baseWeightG: (data['base_weight_g'] ?? data['baseWeightG'] ?? (nutrition100.isNotEmpty ? 100.0 : 0.0)).toDouble(),
-      calories: (nutrition['calories'] ?? nutrition100['calories'] ?? 0).toDouble(),
-      protein: (nutrition['protein'] ?? nutrition100['protein'] ?? 0).toDouble(),
-      carbs: (nutrition['carbs'] ?? nutrition100['carbs'] ?? 0).toDouble(),
-      fat: (nutrition['fat'] ?? nutrition100['fat'] ?? 0).toDouble(),
+      baseWeightG: _safeDouble(
+        data['base_weight_g'] ??
+            data['baseWeightG'] ??
+            (nutrition100.isNotEmpty ? 100.0 : 0.0),
+      ),
+      calories: _safeDouble(nutrition['calories'] ?? nutrition100['calories']),
+      protein: _safeDouble(nutrition['protein'] ?? nutrition100['protein']),
+      carbs: _safeDouble(nutrition['carbs'] ?? nutrition100['carbs']),
+      fat: _safeDouble(nutrition['fat'] ?? nutrition100['fat']),
       aliases: List<String>.from(data['aliases'] ?? []),
       isIndian: data['isIndian'] ?? false,
       source: data['source'] ?? 'internal',
       fdcId: data['fdcId']?.toString(),
       isPartial: data['isPartial'] ?? false,
       servingOptions: options,
-      saturatedFat: (nutrition['saturatedFat'] ?? nutrition['saturated_fat'] ?? nutrition100['saturatedFat'])?.toDouble(),
-      polyunsaturatedFat: (nutrition['polyunsaturatedFat'] ?? nutrition['polyunsaturated_fat'] ?? nutrition100['polyunsaturatedFat'])?.toDouble(),
-      monounsaturatedFat: (nutrition['monounsaturatedFat'] ?? nutrition['monounsaturated_fat'] ?? nutrition100['monounsaturatedFat'])?.toDouble(),
-      cholesterol: (nutrition['cholesterol'] ?? nutrition100['cholesterol'])?.toDouble(),
-      sodium: (nutrition['sodium'] ?? nutrition100['sodium'] ?? nutrition100['sodium_mg'])?.toDouble(),
-      fiber: (nutrition['fiber'] ?? nutrition['dietary_fiber'] ?? nutrition100['fiber'])?.toDouble(),
-      sugar: (nutrition['sugar'] ?? nutrition['sugars'] ?? nutrition100['sugar'])?.toDouble(),
-      vitaminD: (nutrition['vitaminD'] ?? nutrition['vitamin_d'])?.toDouble(),
-      calcium: (nutrition['calcium'] ?? nutrition100['calcium'])?.toDouble(),
-      iron: (nutrition['iron'] ?? nutrition100['iron'])?.toDouble(),
-      potassium: (nutrition['potassium'] ?? nutrition100['potassium'])?.toDouble(),
-      vitaminA: (nutrition['vitaminA'] ?? nutrition['vitamin_a'])?.toDouble(),
-      vitaminC: (nutrition['vitaminC'] ?? nutrition['vitamin_c'])?.toDouble(),
+      saturatedFat: _safeNullableDouble(
+        nutrition['saturatedFat'] ??
+            nutrition['saturated_fat'] ??
+            nutrition100['saturatedFat'],
+      ),
+      polyunsaturatedFat: _safeNullableDouble(
+        nutrition['polyunsaturatedFat'] ??
+            nutrition['polyunsaturated_fat'] ??
+            nutrition100['polyunsaturatedFat'],
+      ),
+      monounsaturatedFat: _safeNullableDouble(
+        nutrition['monounsaturatedFat'] ??
+            nutrition['monounsaturated_fat'] ??
+            nutrition100['monounsaturatedFat'],
+      ),
+      cholesterol: _safeNullableDouble(
+        nutrition['cholesterol'] ?? nutrition100['cholesterol'],
+      ),
+      sodium: _safeNullableDouble(
+        nutrition['sodium'] ??
+            nutrition100['sodium'] ??
+            nutrition100['sodium_mg'],
+      ),
+      fiber: _safeNullableDouble(
+        nutrition['fiber'] ?? nutrition['dietary_fiber'] ?? nutrition100['fiber'],
+      ),
+      sugar: _safeNullableDouble(
+        nutrition['sugar'] ?? nutrition['sugars'] ?? nutrition100['sugar'],
+      ),
+      vitaminD: _safeNullableDouble(
+        nutrition['vitaminD'] ?? nutrition['vitamin_d'],
+      ),
+      calcium: _safeNullableDouble(
+        nutrition['calcium'] ?? nutrition100['calcium'],
+      ),
+      iron: _safeNullableDouble(
+        nutrition['iron'] ?? nutrition100['iron'],
+      ),
+      potassium: _safeNullableDouble(
+        nutrition['potassium'] ?? nutrition100['potassium'],
+      ),
+      vitaminA: _safeNullableDouble(
+        nutrition['vitaminA'] ?? nutrition['vitamin_a'],
+      ),
+      vitaminC: _safeNullableDouble(
+        nutrition['vitaminC'] ?? nutrition['vitamin_c'],
+      ),
     );
   }
 
@@ -141,5 +179,78 @@ class Food {
       'isIndian': isIndian,
       'source': source,
     };
+  }
+
+  Food copyWith({
+    String? id,
+    String? name,
+    String? category,
+    String? unit,
+    double? baseWeightG,
+    double? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
+    List<String>? aliases,
+    bool? isIndian,
+    String? source,
+    String? fdcId,
+    bool? isPartial,
+    List<ServingOption>? servingOptions,
+    double? saturatedFat,
+    double? polyunsaturatedFat,
+    double? monounsaturatedFat,
+    double? cholesterol,
+    double? sodium,
+    double? fiber,
+    double? sugar,
+    double? vitaminD,
+    double? calcium,
+    double? iron,
+    double? potassium,
+    double? vitaminA,
+    double? vitaminC,
+  }) {
+    return Food(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      unit: unit ?? this.unit,
+      baseWeightG: baseWeightG ?? this.baseWeightG,
+      calories: calories ?? this.calories,
+      protein: protein ?? this.protein,
+      carbs: carbs ?? this.carbs,
+      fat: fat ?? this.fat,
+      aliases: aliases ?? this.aliases,
+      isIndian: isIndian ?? this.isIndian,
+      source: source ?? this.source,
+      fdcId: fdcId ?? this.fdcId,
+      isPartial: isPartial ?? this.isPartial,
+      servingOptions: servingOptions ?? this.servingOptions,
+      saturatedFat: saturatedFat ?? this.saturatedFat,
+      polyunsaturatedFat: polyunsaturatedFat ?? this.polyunsaturatedFat,
+      monounsaturatedFat: monounsaturatedFat ?? this.monounsaturatedFat,
+      cholesterol: cholesterol ?? this.cholesterol,
+      sodium: sodium ?? this.sodium,
+      fiber: fiber ?? this.fiber,
+      sugar: sugar ?? this.sugar,
+      vitaminD: vitaminD ?? this.vitaminD,
+      calcium: calcium ?? this.calcium,
+      iron: iron ?? this.iron,
+      potassium: potassium ?? this.potassium,
+      vitaminA: vitaminA ?? this.vitaminA,
+      vitaminC: vitaminC ?? this.vitaminC,
+    );
+  }
+
+  static double _safeDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? 0.0;
+    return 0.0;
+  }
+
+  static double? _safeNullableDouble(dynamic value) {
+    if (value == null) return null;
+    return _safeDouble(value);
   }
 }

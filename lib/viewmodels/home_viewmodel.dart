@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,6 +24,10 @@ class HomeViewModel extends StateNotifier<HomeState> {
   final FirestoreService _firestoreService;
   final UserRepository _userRepository;
   final ExerciseService _exerciseService;
+  StreamSubscription<Map<String, dynamic>>? _dailySummarySubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _recentMealsSubscription;
+  StreamSubscription<List<ExerciseLog>>? _recentWorkoutsSubscription;
+  StreamSubscription<dynamic>? _userSubscription;
 
   HomeViewModel(
     this._firestoreService,
@@ -52,19 +58,15 @@ class HomeViewModel extends StateNotifier<HomeState> {
 
   void _init(String uid) {
     fetchDailySummary(state.selectedDate, uid);
-    fetchRecentMeals(uid);
+    fetchRecentMeals(uid, date: state.selectedDate);
+    fetchRecentWorkouts(uid, date: state.selectedDate);
 
     // Listen to user profile for currentPlan
-    _userRepository.streamUser(uid).listen((user) {
+    _userSubscription?.cancel();
+    _userSubscription = _userRepository.streamUser(uid).listen((user) {
       if (user != null && user.currentPlan != null) {
         state = state.copyWith(currentPlan: user.currentPlan);
       }
-    });
-
-    // Listen to Recent Workouts
-    _exerciseService.getRecentLogs(uid).listen((logs) {
-      state = state.copyWith(recentWorkouts: logs);
-      fetchStreak(uid);
     });
 
     // Fetch Streak
@@ -98,18 +100,35 @@ class HomeViewModel extends StateNotifier<HomeState> {
     state = state.copyWith(selectedDate: date);
     if (uid != null) {
       fetchDailySummary(date, uid);
+      fetchRecentMeals(uid, date: date);
+      fetchRecentWorkouts(uid, date: date);
     }
   }
 
   void fetchDailySummary(DateTime date, String uid) {
-    _firestoreService.streamDailySummary(uid, date).listen((data) {
+    _dailySummarySubscription?.cancel();
+    _dailySummarySubscription = _firestoreService
+        .streamDailySummary(uid, date)
+        .listen((data) {
       state = state.copyWith(dailySummary: data);
     });
   }
 
-  void fetchRecentMeals(String uid) {
-    _firestoreService.fetchRecentMeals(uid).then((data) {
+  void fetchRecentMeals(String uid, {DateTime? date}) {
+    _recentMealsSubscription?.cancel();
+    _recentMealsSubscription = _firestoreService
+        .streamMealsForDate(uid, date ?? state.selectedDate)
+        .listen((data) {
       state = state.copyWith(recentMeals: data);
+    });
+  }
+
+  void fetchRecentWorkouts(String uid, {DateTime? date}) {
+    _recentWorkoutsSubscription?.cancel();
+    _recentWorkoutsSubscription = _exerciseService
+        .getLogsForDate(uid, date ?? state.selectedDate)
+        .listen((logs) {
+      state = state.copyWith(recentWorkouts: logs);
     });
   }
 
@@ -161,24 +180,27 @@ class HomeViewModel extends StateNotifier<HomeState> {
     List<ExerciseLog> exercises,
   ) {
     // 1. Use FOLD for Meals (Macros)
-    final int totalCalories = meals.fold(
-      0,
-      (sum, m) => sum + _toIntSafe(m['calories']),
+    final double totalCalories = meals.fold(
+      0.0,
+      (sum, m) => sum + _toDoubleSafe(m['calories']),
     );
-    final int totalProtein = meals.fold(
-      0,
-      (sum, m) => sum + _toIntSafe(m['proteinG']),
+    final double totalProtein = meals.fold(
+      0.0,
+      (sum, m) => sum + _toDoubleSafe(m['proteinG'] ?? m['protein']),
     );
-    final int totalCarbs = meals.fold(
-      0,
-      (sum, m) => sum + _toIntSafe(m['carbsG']),
+    final double totalCarbs = meals.fold(
+      0.0,
+      (sum, m) => sum + _toDoubleSafe(m['carbsG'] ?? m['carbs']),
     );
-    final int totalFat = meals.fold(0, (sum, m) => sum + _toIntSafe(m['fatG']));
+    final double totalFat = meals.fold(
+      0.0,
+      (sum, m) => sum + _toDoubleSafe(m['fatG'] ?? m['fat'] ?? m['fats']),
+    );
 
     // 2. Use FOLD for Exercises (Burn)
-    final int totalBurn = exercises.fold(
-      0,
-      (sum, e) => sum + e.calories.toInt(),
+    final double totalBurn = exercises.fold(
+      0.0,
+      (sum, e) => sum + e.calories,
     );
 
     final updatedSummary = Map<String, dynamic>.from(state.dailySummary ?? {});
@@ -192,12 +214,10 @@ class HomeViewModel extends StateNotifier<HomeState> {
     state = state.copyWith(dailySummary: updatedSummary);
   }
 
-  int _toIntSafe(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    if (value is double) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? 0;
-    return 0;
+  double _toDoubleSafe(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? 0.0;
+    return 0.0;
   }
 
   void updateCurrentPlan(Map<String, dynamic> plan) {
@@ -217,12 +237,6 @@ class HomeViewModel extends StateNotifier<HomeState> {
     if (uid == null) return;
 
     await _firestoreService.logMeal(uid, meal.toMap(), meal.timestamp);
-
-    // Refresh recent meals
-    fetchRecentMeals(uid);
-    // Refresh daily summary (will trigger stream listener or new fetch)
-    fetchDailySummary(state.selectedDate, uid);
-    // Refresh streak
     fetchStreak(uid);
   }
 
@@ -234,6 +248,15 @@ class HomeViewModel extends StateNotifier<HomeState> {
   Future<void> deleteExercise(String logId, DateTime date) async {
     deleteExerciseLocally(logId);
     await deleteExerciseFirebase(logId, date);
+  }
+
+  @override
+  void dispose() {
+    _dailySummarySubscription?.cancel();
+    _recentMealsSubscription?.cancel();
+    _recentWorkoutsSubscription?.cancel();
+    _userSubscription?.cancel();
+    super.dispose();
   }
 }
 
