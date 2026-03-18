@@ -6,8 +6,8 @@ import 'package:physiq/models/food_model.dart';
 import 'package:physiq/screens/food/my_foods_screen.dart';
 import 'package:physiq/screens/food/saved_scans_screen.dart';
 import 'package:physiq/screens/meal/add_manual_screen.dart';
+import 'package:physiq/screens/meal/food_nutrition_screen.dart';
 import 'package:physiq/screens/meal/meal_logging_flows.dart';
-import 'package:physiq/screens/meal/meal_preview_screen.dart';
 import 'package:physiq/screens/meal/my_meals_screen.dart';
 import 'package:physiq/services/food_service.dart';
 import 'package:physiq/theme/design_system.dart';
@@ -120,9 +120,8 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MealPreviewScreen(
-          initialFood: food,
-          isSelectionMode: widget.isSelectionMode,
+        builder: (context) => FoodNutritionScreen(
+          food: food,
         ),
       ),
     );

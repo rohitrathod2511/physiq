@@ -5,67 +5,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/services/cloud_functions_client.dart';
+import 'package:uuid/uuid.dart';
+
 class AiFoodService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final CloudFunctionsClient _cloudFunctions = CloudFunctionsClient();
+  final _uuid = const Uuid();
 
-  Future<Meal?> processMealImage(File imageFile, Function(String) onProgress) async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception('User not authenticated');
-
-      final mealId = const Uuid().v4();
-
-      // Step 1: Upload image
-      onProgress('Uploading image...');
-      String imageUrl = '';
-      try {
-        final storageRef = _storage.ref().child('meal_images/${user.uid}/$mealId.jpg');
-        final uploadTask = await storageRef.putFile(imageFile);
-        imageUrl = await uploadTask.ref.getDownloadURL();
-      } catch (e) {
-        print('Image upload failed (non-fatal): $e');
-        // Continue even if upload fails — image URL is optional
-      }
-
-      // Step 2: Analyze meal with Gemini
-      onProgress('Analyzing meal...');
-      final base64Image = base64Encode(await imageFile.readAsBytes());
-
-      Map<String, dynamic> jsonResponse;
-      try {
-        jsonResponse = await _cloudFunctions.recognizeMealImage(base64Image);
-      } catch (e) {
-        print('Gemini analysis failed, using fallback: $e');
-        jsonResponse = _buildFallbackResponse();
-      }
-
-      // Step 3: Parse the response safely
-      onProgress('Detecting ingredients...');
-      final meal = _parseGeminiResponse(
-        mealId: mealId,
-        imageUrl: imageUrl,
-        jsonResponse: jsonResponse,
-      );
-
-      // Step 4: Save to Firestore
-      onProgress('Preparing meal preview...');
-      try {
-        await _saveMealToFirestore(user.uid, meal);
-      } catch (e) {
-        print('Firestore save failed (non-fatal): $e');
-        // Continue — the meal data is still usable for preview
-      }
-
-      return meal;
-    } catch (e) {
-      print('Error processing meal image: $e');
-      // Instead of crashing, return a fallback meal
-      return _buildFallbackMeal();
-    }
-  }
 
   Future<Meal?> processAndEnrichMealAsync(String userId, String mealId, File imageFile) async {
     try {
@@ -293,7 +241,7 @@ class AiFoodService {
   /// Builds a fallback Meal object when everything else fails.
   Meal _buildFallbackMeal() {
     return Meal(
-      id: const Uuid().v4(),
+      id: _uuid.v4(),
       imageUrl: '',
       title: 'Scanned Meal',
       container: 'plate',

@@ -165,8 +165,8 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       timestamp: DateTime.now(),
       imageUrl: _currentMeal?.imageUrl,
       source: _currentMeal != null
-          ? 'snap_meal'
-          : (_food.source.isNotEmpty ? _food.source : 'food_database'),
+          ? 'snap'
+          : (_food.source.isNotEmpty ? _food.source : 'database'),
       servingAmount: _quantity,
       servingDescription: _selectedServing,
       fullNutritionMap: {
@@ -184,6 +184,44 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+  
+  Future<void> _deleteMeal() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _currentMeal == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Meal'),
+        content: const Text('Are you sure you want to delete this meal?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // 1. Delete from HomeViewModel (handles Today's Log recalculation)
+      await ref.read(homeViewModelProvider.notifier).deleteMeal(_currentMeal!.id, _currentMeal!.createdAt);
+      
+      // 2. Also ensure raw scan is deleted if it exists separately
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('meals')
+          .doc(_currentMeal!.id)
+          .delete();
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('Delete failed: $e');
     }
   }
 
@@ -234,45 +272,43 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       top: 0,
       left: 0,
       right: 0,
-      child: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            color: Colors.black.withOpacity(0.05),
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, bottom: 12, left: 16, right: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: Colors.white, size: 22),
+      child: Container(
+        color: Colors.transparent,
+        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, bottom: 12, left: 16, right: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), shape: BoxShape.circle),
+                child: const Icon(Icons.close, color: Colors.white, size: 22),
+              ),
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'delete') _deleteMeal();
+              },
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), shape: BoxShape.circle),
+                child: const Icon(Icons.more_vert, color: Colors.white, size: 22),
+              ),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete Meal', style: TextStyle(color: Colors.red)),
+                    ],
                   ),
-                ),
-                const Text(
-                  'Meal Details',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                      child: const Icon(Icons.favorite_border, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                      child: const Icon(Icons.share_outlined, color: Colors.white, size: 20),
-                    ),
-                  ],
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -315,21 +351,11 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                 _buildCaloriesCard(totalCalories, textPrimary, textSecondary, theme),
                 const SizedBox(height: 16),
                 _buildMacrosRow(protein, carbs, fat, theme),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle)),
-                    const SizedBox(width: 4),
-                    Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey[300], shape: BoxShape.circle)),
-                  ],
-                ),
                 const SizedBox(height: 32),
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Ingredients', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    Text('+ Add more', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+                    Text('Ingredients', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -560,37 +586,16 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
           color: Colors.white,
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.auto_awesome, size: 18),
-                label: const Text('Fix Results', style: TextStyle(fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Colors.black),
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: _saveMeal,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-                child: const Text('Done', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
+        child: ElevatedButton(
+          onPressed: _saveMeal,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          ),
+          child: const Text('Done', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
         ),
       ),
     );

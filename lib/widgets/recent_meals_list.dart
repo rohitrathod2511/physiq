@@ -9,6 +9,7 @@ import 'package:physiq/viewmodels/home_viewmodel.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/screens/meal/meal_preview_screen.dart';
+import 'package:physiq/screens/meal/food_nutrition_screen.dart';
 
 class RecentMealsList extends ConsumerWidget {
   final List<dynamic>? logs;
@@ -235,6 +236,8 @@ class RecentMealsList extends ConsumerWidget {
 
     // Show image if imageUrl is present
     final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
+    final sourceType = mealData['source'] as String? ?? 'snap';
+    final bool isDatabaseMeal = sourceType == 'database';
 
     // Time Formatting
     String timeStr = '';
@@ -250,38 +253,85 @@ class RecentMealsList extends ConsumerWidget {
         } else {
            // Direct navigation to preview screen
            if (isUnloggedScan) {
-             final meal = Meal.fromJson(mealData, id);
-             // initialFood is required, so we provide one from the meal title
-             final dummyFood = Food(
-               id: meal.id,
-               name: meal.title,
-               category: 'AI Scan',
-               unit: 'serving',
-               baseWeightG: 100,
-               calories: displayCal,
-               protein: displayP,
-               carbs: displayC,
-               fat: displayF,
-             );
-             Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(
-               meal: meal,
-               initialFood: dummyFood,
-             )));
-           } else {
-             // Create a dummy Food object for preview
-             final dummyFood = Food(
-               id: id,
-               name: name,
-               category: 'Logged',
-               unit: 'serving',
-               baseWeightG: 100,
-               calories: displayCal,
-               protein: displayP,
-               carbs: displayC,
-               fat: displayF,
-             );
-             Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(initialFood: dummyFood)));
-           }
+              final meal = Meal.fromJson(mealData, id);
+              // initialFood is required, so we provide one from the meal title
+              final dummyFood = Food(
+                id: meal.id,
+                name: meal.title,
+                category: 'AI Scan',
+                unit: 'serving',
+                baseWeightG: 100,
+                calories: displayCal,
+                protein: displayP,
+                carbs: displayC,
+                fat: displayF,
+                source: 'snap',
+              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(
+                meal: meal,
+                initialFood: dummyFood,
+              )));
+            } else {
+              final source = mealData['source'] as String? ?? 'snap';
+              final servingAmount = (mealData['servingAmount'] as num?)?.toDouble() ?? 1.0;
+              final servingDescription = mealData['servingDescription'] as String? ?? 'serving';
+              
+              if (source == 'database') {
+                // Reconstruct full Food object from the logged data
+                final nutrition = mealData['fullNutritionMap'] as Map<String, dynamic>? ?? {};
+                
+                // For 'database' logs, 'calories', 'proteinG' etc are TOTALS for the logged amount.
+                // FoodNutritionScreen calculates nutrients based on servingAmount.
+                // So we need to provide PER-UNIT values to the Food object.
+                double unitScaler = servingAmount > 0 ? (1.0 / servingAmount) : 1.0;
+
+                final food = Food(
+                  id: id,
+                  name: name,
+                  category: 'Logged',
+                  unit: servingDescription,
+                  baseWeightG: 100,
+                  calories: displayCal * unitScaler,
+                  protein: displayP * unitScaler,
+                  carbs: displayC * unitScaler,
+                  fat: displayF * unitScaler,
+                  saturatedFat: (nutrition['saturatedFat'] as num?)?.toDouble() != null ? (nutrition['saturatedFat'] as num).toDouble() * unitScaler : null,
+                  polyunsaturatedFat: (nutrition['polyunsaturatedFat'] as num?)?.toDouble() != null ? (nutrition['polyunsaturatedFat'] as num).toDouble() * unitScaler : null,
+                  monounsaturatedFat: (nutrition['monounsaturatedFat'] as num?)?.toDouble() != null ? (nutrition['monounsaturatedFat'] as num).toDouble() * unitScaler : null,
+                  cholesterol: (nutrition['cholesterol'] as num?)?.toDouble() != null ? (nutrition['cholesterol'] as num).toDouble() * unitScaler : null,
+                  sodium: (nutrition['sodium'] as num?)?.toDouble() != null ? (nutrition['sodium'] as num).toDouble() * unitScaler : null,
+                  fiber: (nutrition['fiber'] as num?)?.toDouble() != null ? (nutrition['fiber'] as num).toDouble() * unitScaler : null,
+                  sugar: (nutrition['sugar'] as num?)?.toDouble() != null ? (nutrition['sugar'] as num).toDouble() * unitScaler : null,
+                  potassium: (nutrition['potassium'] as num?)?.toDouble() != null ? (nutrition['potassium'] as num).toDouble() * unitScaler : null,
+                  vitaminA: (nutrition['vitaminA'] as num?)?.toDouble() != null ? (nutrition['vitaminA'] as num).toDouble() * unitScaler : null,
+                  vitaminC: (nutrition['vitaminC'] as num?)?.toDouble() != null ? (nutrition['vitaminC'] as num).toDouble() * unitScaler : null,
+                  calcium: (nutrition['calcium'] as num?)?.toDouble() != null ? (nutrition['calcium'] as num).toDouble() * unitScaler : null,
+                  iron: (nutrition['iron'] as num?)?.toDouble() != null ? (nutrition['iron'] as num).toDouble() * unitScaler : null,
+                  source: 'database',
+                );
+
+                Navigator.push(context, MaterialPageRoute(builder: (_) => FoodNutritionScreen(
+                  food: food,
+                  servingAmount: servingAmount,
+                  servingUnit: servingDescription,
+                )));
+              } else {
+                // Snap Meal or other -> MealPreviewScreen
+                final dummyFood = Food(
+                  id: id,
+                  name: name,
+                  category: 'Logged',
+                  unit: servingDescription,
+                  baseWeightG: 100,
+                  calories: displayCal,
+                  protein: displayP,
+                  carbs: displayC,
+                  fat: displayF,
+                  source: source,
+                );
+                Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(initialFood: dummyFood)));
+              }
+            }
         }
       },
       borderRadius: BorderRadius.circular(20),
@@ -297,32 +347,34 @@ class RecentMealsList extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (hasImage) ...[
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey[100]!),
+            if (!isDatabaseMeal) ...[
+              if (hasImage) ...[
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[100]!),
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: imageUrl!.startsWith('http')
+                      ? Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image))
+                      : Image.file(File(imageUrl), fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image)),
                 ),
-                clipBehavior: Clip.hardEdge,
-                child: imageUrl!.startsWith('http')
-                    ? Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image))
-                    : Image.file(File(imageUrl), fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image)),
-              ),
-              const SizedBox(width: 16),
-            ] else ...[
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(16),
+                const SizedBox(width: 16),
+              ] else ...[
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.fastfood, color: Colors.grey),
                 ),
-                child: const Icon(Icons.fastfood, color: Colors.grey),
-              ),
-              const SizedBox(width: 16),
+                const SizedBox(width: 16),
+              ],
             ],
             Expanded(
               child: Column(
