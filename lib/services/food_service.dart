@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-
-import '../models/food_model.dart';
+import 'package:physiq/models/food_model.dart';
+import 'package:physiq/services/cloud_functions_client.dart';
 
 class MealRecognitionResult {
   final Food meal;
@@ -89,6 +89,7 @@ class FoodService {
       'product_name,product_name_en,brands,code,serving_size,serving_quantity,nutriments,popularity_key,image_front_small_url';
 
   final http.Client _client;
+  final CloudFunctionsClient _functions = CloudFunctionsClient();
 
   FoodService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -323,8 +324,9 @@ class FoodService {
     }
 
     if (inferredPieceWeight > 0) {
-      if (parsed.quantity == 1)
+      if (parsed.quantity == 1) {
         return '1 piece (${inferredPieceWeight.toInt()}g)';
+      }
       return '${_formatQuantity(parsed.quantity)} pieces';
     }
 
@@ -465,97 +467,143 @@ class FoodService {
     final parsed = _parseInput(userInput);
     if (parsed.query.isEmpty) return [];
 
+    // TASK 4: Try USDA Search first
+    try {
+      final usdaResults = await _functions.searchFoodUSDA(parsed.query);
+      if (usdaResults.isNotEmpty) {
+        final List<Food> foods = [];
+        for (final item in usdaResults) {
+          final map = Map<String, dynamic>.from(item);
+          foods.add(Food(
+            id: 'usda_${map['fdcId']}',
+            fdcId: map['fdcId'].toString(),
+            name: map['description'] ?? 'Unknown',
+            category: map['brandOwner'] ?? map['brandName'] ?? 'USDA',
+            unit: '100g',
+            baseWeightG: 100,
+            calories: 0, // Nutrient details fetched on selection
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            source: 'usda',
+            isPartial: true,
+          ));
+        }
+        return foods;
+      }
+    } catch (e) {
+      debugPrint('USDA Search failed, falling back: $e');
+    }
+
+    // Fallback to Open Food Facts
     final encodedQuery = Uri.encodeComponent(parsed.query);
     final url =
         '$_searchBaseUrl?search_terms=$encodedQuery&search_simple=1&action=process&json=1&page_size=50&sort_by=popularity_key&fields=$_offFields';
     debugPrint('OFF search URL: $url');
 
-    final response = await _client.get(Uri.parse(url), headers: _headers);
-    debugPrint('OFF search status: ${response.statusCode}');
+    try {
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      debugPrint('OFF search status: ${response.statusCode}');
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Open Food Facts search failed: ${response.statusCode}');
-    }
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          final productsRaw = decoded['products'];
+          if (productsRaw is List) {
+            final products = productsRaw
+                .whereType<Map>()
+                .map((product) => Map<String, dynamic>.from(product))
+                .toList();
 
-    final decoded = jsonDecode(response.body);
-    if (decoded is! Map<String, dynamic>) return [];
+            final scored =
+                products
+                    .where((product) => !_isLikelyJunkProduct(product, parsed))
+                    .map(
+                      (product) =>
+                          (product: product, score: _relevanceScore(product, parsed)),
+                    )
+                    .toList()
+                  ..sort((a, b) => b.score.compareTo(a.score));
 
-    final productsRaw = decoded['products'];
-    if (productsRaw is! List) return [];
+            final seenNames = <String>{};
+            final resultFoods = <Food>[];
 
-    final products = productsRaw
-        .whereType<Map>()
-        .map((product) => Map<String, dynamic>.from(product))
-        .toList();
+            void collectFoods(int minScore) {
+              for (final entry in scored) {
+                if (entry.score < minScore) continue;
 
-    final scored =
-        products
-            .where((product) => !_isLikelyJunkProduct(product, parsed))
-            .map(
-              (product) =>
-                  (product: product, score: _relevanceScore(product, parsed)),
-            )
-            .toList()
-          ..sort((a, b) => b.score.compareTo(a.score));
+                final mappedFood = _mapProductToFood(entry.product, parsed);
+                final normalizedName = _normalizeText(mappedFood.name);
+                if (normalizedName.isEmpty || normalizedName == 'unknown food') {
+                  continue;
+                }
+                if (seenNames.contains(normalizedName)) continue;
 
-    final seenNames = <String>{};
-    final resultFoods = <Food>[];
+                seenNames.add(normalizedName);
+                resultFoods.add(mappedFood);
 
-    void collectFoods(int minScore) {
-      for (final entry in scored) {
-        if (entry.score < minScore) continue;
+                if (resultFoods.length >= 10) break;
+              }
+            }
 
-        final mappedFood = _mapProductToFood(entry.product, parsed);
-        final normalizedName = _normalizeText(mappedFood.name);
-        if (normalizedName.isEmpty || normalizedName == 'unknown food') {
-          continue;
+            collectFoods(4);
+            if (resultFoods.isEmpty) {
+              collectFoods(-5);
+            }
+
+            return resultFoods;
+          }
         }
-        if (seenNames.contains(normalizedName)) continue;
-
-        seenNames.add(normalizedName);
-        resultFoods.add(mappedFood);
-
-        if (resultFoods.length >= 10) break;
       }
+    } catch (e) {
+      debugPrint('OFF Search failed: $e');
     }
 
-    collectFoods(4);
-    if (resultFoods.isEmpty) {
-      collectFoods(-5);
-    }
-
-    return resultFoods;
+    return [];
   }
 
   Future<List<Food>> searchByBarcode(String barcode) async {
-    final code = barcode.trim();
-    if (code.isEmpty) return [];
+    if (barcode.trim().isEmpty) return [];
 
-    final url = '$_barcodeBaseUrl/$code.json';
-    debugPrint('OFF barcode URL: $url');
-    final response = await _client.get(Uri.parse(url), headers: _headers);
-    debugPrint('OFF barcode status: ${response.statusCode}');
+    try {
+      final url = Uri.parse('$_barcodeBaseUrl/$barcode.json?fields=$_offFields');
+      final response = await _client.get(url, headers: _headers);
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        'Open Food Facts barcode lookup failed: ${response.statusCode}',
-      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 1 && data['product'] != null) {
+          final product = data['product'];
+          return [Food.fromJson(product, 'off_${product['code']}')];
+        }
+      }
+    } catch (e) {
+       debugPrint('Barcode search failed: $e');
     }
-
-    final decoded = jsonDecode(response.body);
-    if (decoded is! Map<String, dynamic>) return [];
-    final product = decoded['product'];
-    if (product is! Map) return [];
-
-    final parsed = _parseInput('1 serving');
-    return [_mapProductToFood(Map<String, dynamic>.from(product), parsed)];
+    return [];
   }
 
   Future<Food?> getFoodById(String id) async {
+    // If it's a USDA ID, we need to fetch details
+    if (id.startsWith('usda_')) {
+      final fdcId = id.substring(5);
+      return getFoodDetails(fdcId);
+    }
+
     final code = id.startsWith('off_') ? id.substring(4) : id;
     if (code.isEmpty) return null;
     final results = await searchByBarcode(code);
     return results.isEmpty ? null : results.first;
+  }
+
+  Future<Food?> getFoodDetails(String fdcId) async {
+    try {
+      final details = await _functions.getFoodDetailsUSDA(fdcId);
+      if (details == null) return null;
+      return Food.fromJson(details, fdcId);
+    } catch (e) {
+      debugPrint('Error fetching USDA details: $e');
+      return null;
+    }
   }
 
   Food _getMealNutrition(
@@ -594,9 +642,8 @@ class FoodService {
         .toSet()
         .toList();
 
-    final labelsForTitle = detectedLabels.isNotEmpty
-        ? detectedLabels
-        : ingredients;
+    final labelsForTitle =
+        detectedLabels.isNotEmpty ? detectedLabels : ingredients;
     final title = labelsForTitle.isEmpty
         ? 'Detected Meal'
         : 'Detected Meal: ${labelsForTitle.join(', ')}';

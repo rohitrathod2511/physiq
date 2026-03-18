@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:http/http.dart' as http;
 
 class CloudFunctionsClient {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  static const String _baseUrl = 'https://us-central1-physiq-5811f.cloudfunctions.net';
 
   Future<void> generateCanonicalPlan({
     required String uid,
@@ -31,5 +34,48 @@ class CloudFunctionsClient {
       'uid': uid,
     });
     return Map<String, dynamic>.from(result.data);
+  }
+
+  Future<Map<String, dynamic>> recognizeMealImage(String imageB64) async {
+    final result = await _functions.httpsCallable('recognizeMealImage').call({
+      'imageB64': imageB64,
+    });
+    return Map<String, dynamic>.from(result.data);
+  }
+
+  // MODERN HTTPS REQUEST (onRequest) Task 2
+  Future<List<dynamic>> searchFoodUSDA(String query) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/searchFoodUSDA'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'query': query}),
+      );
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // MODERN HTTPS REQUEST (onRequest) Task 3
+  Future<Map<String, dynamic>?> getFoodDetailsUSDA(String fdcId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/getFoodDetailsUSDA'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'fdcId': fdcId}),
+      );
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 }

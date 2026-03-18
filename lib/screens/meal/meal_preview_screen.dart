@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/models/my_meal_model.dart';
+import 'package:physiq/services/ai_food_service.dart';
+import 'package:physiq/services/food_service.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
 
 class MealPreviewScreen extends ConsumerStatefulWidget {
@@ -34,15 +36,54 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   late List<String> _servingOptions;
   late String _selectedServing;
   late double _servingMultiplier;
+  late Food _food;
+  bool _isLoadingDetails = false;
 
   @override
   void initState() {
     super.initState();
     _quantity = widget.initialQuantity;
-    _servingMultipliers = _buildServingMultipliers(widget.initialFood);
+    _food = widget.initialFood;
+
+    if (_food.isPartial && _food.fdcId != null) {
+      _fetchFullDetails();
+    } else {
+      _initServingData();
+    }
+  }
+
+  Future<void> _fetchFullDetails() async {
+    setState(() {
+      _isLoadingDetails = true;
+    });
+
+    try {
+      final fullFood = await FoodService().getFoodDetails(_food.fdcId!);
+      if (fullFood != null && mounted) {
+        setState(() {
+          _food = fullFood;
+          _isLoadingDetails = false;
+          _initServingData();
+        });
+        return;
+      }
+    } catch (e) {
+      debugPrint('Error fetching full details: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoadingDetails = false;
+        _initServingData();
+      });
+    }
+  }
+
+  void _initServingData() {
+    _servingMultipliers = _buildServingMultipliers(_food);
     _servingOptions = _servingMultipliers.keys.toList();
 
-    final preferred = widget.initialFood.unit.trim();
+    final preferred = _food.unit.trim();
     _selectedServing = preferred.isNotEmpty && _servingOptions.contains(preferred)
         ? preferred
         : _servingOptions.first;
@@ -51,21 +92,31 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
   Map<String, double> _buildServingMultipliers(Food food) {
     final multipliers = <String, double>{};
-    final baseWeight = food.baseWeightG > 0 ? food.baseWeightG : 100.0;
-    final baseLabel = food.unit.trim().isEmpty ? 'serving' : food.unit.trim();
 
-    multipliers['100g'] = 100.0 / baseWeight;
+    // USDA Serving Options (TASK 4)
+    if (food.servingOptions.isNotEmpty) {
+      for (final option in food.servingOptions) {
+        // USDA data is per 100g, so multiplier is grams / 100
+        multipliers[option.label] = option.grams / 100.0;
+      }
+    }
 
-    final normalized = baseLabel.toLowerCase().replaceAll(' ', '');
-    if (normalized != '100g') {
-      multipliers[baseLabel] = 1.0;
-    } else {
+    // Default 100g option
+    if (!multipliers.containsKey('100g')) {
       multipliers['100g'] = 1.0;
     }
 
-    if (multipliers.isEmpty) {
-      multipliers['100g'] = 1.0;
+    // Legacy fallback
+    if (multipliers.length <= 1) {
+      final baseWeight = food.baseWeightG > 0 ? food.baseWeightG : 100.0;
+      final baseLabel = food.unit.trim().isEmpty ? 'serving' : food.unit.trim();
+      
+      final normalized = baseLabel.toLowerCase().replaceAll(' ', '');
+      if (normalized != '100g') {
+        multipliers[baseLabel] = baseWeight / 100.0;
+      }
     }
+
     return multipliers;
   }
 
@@ -91,10 +142,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final calories = _getNutrient(widget.initialFood.calories);
-    final protein = _getNutrient(widget.initialFood.protein);
-    final carbs = _getNutrient(widget.initialFood.carbs);
-    final fat = _getNutrient(widget.initialFood.fat);
+    final calories = _getNutrient(_food.calories);
+    final protein = _getNutrient(_food.protein);
+    final carbs = _getNutrient(_food.carbs);
+    final fat = _getNutrient(_food.fat);
 
     if (widget.meal != null) {
       await AiFoodService().logMeal(user.uid, widget.meal!.id);
@@ -104,8 +155,8 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
     if (widget.isSelectionMode) {
       final item = MealItem(
-        foodId: widget.initialFood.id,
-        foodName: widget.initialFood.name,
+        foodId: _food.id,
+        foodName: _food.name,
         quantity: _quantity,
         servingLabel: _selectedServing,
         calories: calories,
@@ -120,14 +171,14 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final meal = MealModel(
       id: '',
       userId: user.uid,
-      name: widget.initialFood.name,
+      name: _food.name,
       calories: calories.round(),
       proteinG: protein.round(),
       carbsG: carbs.round(),
       fatG: fat.round(),
       timestamp: DateTime.now(),
       imageUrl: widget.imagePath,
-      source: widget.initialFood.source,
+      source: _food.source,
       servingDescription: _selectedServing,
       servingAmount: _quantity,
       fullNutritionMap: {
@@ -135,23 +186,53 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
         'protein': protein,
         'carbs': carbs,
         'fat': fat,
-        'saturatedFat': _getNutrient(widget.initialFood.saturatedFat),
-        'polyunsaturatedFat': _getNutrient(widget.initialFood.polyunsaturatedFat),
-        'monounsaturatedFat': _getNutrient(widget.initialFood.monounsaturatedFat),
-        'cholesterol': _getNutrient(widget.initialFood.cholesterol),
-        'sodium': _getNutrient(widget.initialFood.sodium),
-        'fiber': _getNutrient(widget.initialFood.fiber),
-        'sugar': _getNutrient(widget.initialFood.sugar),
-        'potassium': _getNutrient(widget.initialFood.potassium),
-        'vitaminA': _getNutrient(widget.initialFood.vitaminA),
-        'vitaminC': _getNutrient(widget.initialFood.vitaminC),
-        'calcium': _getNutrient(widget.initialFood.calcium),
-        'iron': _getNutrient(widget.initialFood.iron),
+        'saturatedFat': _getNutrient(_food.saturatedFat),
+        'polyunsaturatedFat': _getNutrient(_food.polyunsaturatedFat),
+        'monounsaturatedFat': _getNutrient(_food.monounsaturatedFat),
+        'cholesterol': _getNutrient(_food.cholesterol),
+        'sodium': _getNutrient(_food.sodium),
+        'fiber': _getNutrient(_food.fiber),
+        'sugar': _getNutrient(_food.sugar),
+        'potassium': _getNutrient(_food.potassium),
+        'vitaminA': _getNutrient(_food.vitaminA),
+        'vitaminC': _getNutrient(_food.vitaminC),
+        'calcium': _getNutrient(_food.calcium),
+        'iron': _getNutrient(_food.iron),
       },
     );
 
     ref.read(homeViewModelProvider.notifier).logMeal(meal);
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Widget _buildSourceBadge(String source, ThemeData theme) {
+    String label = 'USDA';
+    Color color = Colors.green;
+
+    if (source.toLowerCase().contains('open_food_facts') || source.toLowerCase().contains('off')) {
+      label = 'OFF';
+      color = Colors.orange;
+    } else if (source.toLowerCase().contains('gemini') || source.toLowerCase().contains('estimate')) {
+      label = 'AI';
+      color = Colors.blue;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 
   @override
@@ -161,7 +242,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
         theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
     final textSecondary =
         theme.textTheme.bodyMedium?.color ??
-        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+        theme.colorScheme.onSurface.withOpacity(0.7);
     final proteinAccent = theme.colorScheme.error;
     final carbsAccent = theme.colorScheme.secondary;
     final fatsAccent = theme.colorScheme.primary;
@@ -171,15 +252,22 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
     final displayIngredients = hasMealIngredients
         ? mealIngredients.map((i) => "${i.name} (${i.amount})").toList()
-        : widget.initialFood.aliases
+        : _food.aliases
             .map((e) => e.trim())
             .where((e) => e.isNotEmpty)
             .toList();
 
-    final calories = _getNutrient(widget.initialFood.calories).round();
-    final protein = _getNutrient(widget.initialFood.protein).round();
-    final carbs = _getNutrient(widget.initialFood.carbs).round();
-    final fat = _getNutrient(widget.initialFood.fat).round();
+    final calories = _getNutrient(_food.calories).round();
+    final protein = _getNutrient(_food.protein).round();
+    final carbs = _getNutrient(_food.carbs).round();
+    final fat = _getNutrient(_food.fat).round();
+
+    if (_isLoadingDetails) {
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -213,8 +301,8 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                         borderRadius: BorderRadius.circular(20),
                         color:
                             theme.inputDecorationTheme.fillColor ??
-                            theme.colorScheme.surfaceContainerHighest.withValues(
-                              alpha: 0.45,
+                            theme.colorScheme.surfaceContainerHighest.withOpacity(
+                              0.45,
                             ),
                       ),
                       child: widget.imagePath != null && widget.imagePath!.isNotEmpty 
@@ -247,13 +335,20 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                     ),
                   if ((widget.imagePath != null && widget.imagePath!.isNotEmpty) || (widget.meal?.imageUrl.isNotEmpty ?? false))
                     const SizedBox(height: 20),
-                  Text(
-                    widget.meal?.title ?? widget.initialFood.name,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.meal?.title ?? _food.name,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
+                        ),
+                      ),
+                      _buildSourceBadge(_food.source, theme),
+                    ],
                   ),
                   if (displayIngredients.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -301,7 +396,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedServing,
+                    value: _selectedServing,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor:

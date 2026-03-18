@@ -85,17 +85,30 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
         return;
       }
 
-      // Create a dummy Food object for backward compatibility with MealPreviewScreen
+      // Sum up Gemini's nutrition estimates from all ingredients
+      double totalCalories = 0;
+      double totalProtein = 0;
+      double totalCarbs = 0;
+      double totalFat = 0;
+
+      for (final ingredient in meal.ingredients) {
+        totalCalories += ingredient.caloriesEstimate;
+        totalProtein += ingredient.proteinEstimate;
+        totalCarbs += ingredient.carbsEstimate;
+        totalFat += ingredient.fatEstimate;
+      }
+
+      // Create a Food object populated with Gemini's estimates
       final dummyFood = Food(
         id: meal.id,
         name: meal.title,
         category: 'AI Scanned',
         unit: meal.container,
         baseWeightG: 100,
-        calories: 0, // Placeholder
-        protein: 0,
-        carbs: 0,
-        fat: 0,
+        calories: totalCalories,
+        protein: totalProtein,
+        carbs: totalCarbs,
+        fat: totalFat,
         source: 'gemini_vision',
         aliases: meal.ingredients.map((i) => "${i.name} (${i.amount})").toList(),
       );

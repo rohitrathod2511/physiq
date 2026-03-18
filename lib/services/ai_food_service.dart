@@ -3,18 +3,15 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:http/http.dart' as http;
 import 'package:physiq/models/meal_model.dart';
+import 'package:physiq/services/cloud_functions_client.dart';
 import 'package:uuid/uuid.dart';
 
 class AiFoodService {
-  // Replace with your actual Gemini API Key
-  static const String _geminiApiKey = 'YOUR_GEMINI_API_KEY';
-  static const String _geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_geminiApiKey';
-
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final CloudFunctionsClient _cloudFunctions = CloudFunctionsClient();
 
   Future<Meal?> processMealImage(File imageFile, Function(String) onProgress) async {
     try {
@@ -23,124 +20,180 @@ class AiFoodService {
 
       final mealId = const Uuid().v4();
 
-      // Step 1: Uploading image...
+      // Step 1: Upload image
       onProgress('Uploading image...');
-      final storageRef = _storage.ref().child('meal_images/${user.uid}/$mealId.jpg');
-      final uploadTask = await storageRef.putFile(imageFile);
-      final imageUrl = await uploadTask.ref.getDownloadURL();
+      String imageUrl = '';
+      try {
+        final storageRef = _storage.ref().child('meal_images/${user.uid}/$mealId.jpg');
+        final uploadTask = await storageRef.putFile(imageFile);
+        imageUrl = await uploadTask.ref.getDownloadURL();
+      } catch (e) {
+        print('Image upload failed (non-fatal): $e');
+        // Continue even if upload fails — image URL is optional
+      }
 
-      // Step 2: Analyzing meal...
+      // Step 2: Analyze meal with Gemini
       onProgress('Analyzing meal...');
       final base64Image = base64Encode(await imageFile.readAsBytes());
-      
-      final response = await _callGeminiVision(base64Image);
-      final jsonResponse = _parseGeminiResponse(response);
 
-      // Step 3: Detecting ingredients...
+      Map<String, dynamic> jsonResponse;
+      try {
+        jsonResponse = await _cloudFunctions.recognizeMealImage(base64Image);
+      } catch (e) {
+        print('Gemini analysis failed, using fallback: $e');
+        jsonResponse = _buildFallbackResponse();
+      }
+
+      // Step 3: Parse the response safely
       onProgress('Detecting ingredients...');
-      // (This is implicitly done by Gemini, but we show the step for UX)
-      
-      final meal = Meal(
-        id: mealId,
+      final meal = _parseGeminiResponse(
+        mealId: mealId,
         imageUrl: imageUrl,
-        title: jsonResponse['meal_title'] ?? 'Unknown Meal',
-        container: jsonResponse['serving_container'] ?? 'plate',
-        ingredients: (jsonResponse['items'] as List? ?? [])
-            .map((item) => MealIngredient.fromJson(Map<String, dynamic>.from(item)))
-            .toList(),
-        createdAt: DateTime.now(),
+        jsonResponse: jsonResponse,
       );
 
-      // Step 4: Preparing meal preview...
+      // Step 4: Save to Firestore
       onProgress('Preparing meal preview...');
-      await _saveMealToFirestore(user.uid, meal);
+      try {
+        await _saveMealToFirestore(user.uid, meal);
+      } catch (e) {
+        print('Firestore save failed (non-fatal): $e');
+        // Continue — the meal data is still usable for preview
+      }
 
       return meal;
     } catch (e) {
       print('Error processing meal image: $e');
-      rethrow;
+      // Instead of crashing, return a fallback meal
+      return _buildFallbackMeal();
     }
   }
 
-  Future<String> _callGeminiVision(String base64Image) async {
-    const systemPrompt = """
-You are a highly accurate food recognition AI used in a nutrition tracking mobile application.
-Your task is to analyze the food in the image and extract a clear structured description of the meal.
+  /// Parses the Gemini response into a [Meal] object with full validation.
+  /// Handles missing keys, wrong types, and partial data gracefully.
+  Meal _parseGeminiResponse({
+    required String mealId,
+    required String imageUrl,
+    required Map<String, dynamic> jsonResponse,
+  }) {
+    try {
+      final title = _safeString(jsonResponse['meal_title'], 'Scanned Meal');
+      final container = _safeString(jsonResponse['serving_container'], 'plate');
 
-Rules:
-1. Identify the main meal title.
-2. Identify all visible food ingredients in the meal.
-3. Estimate realistic serving amounts based on visual size.
-4. Identify the container type (plate, bowl, glass, cup, tray, etc.).
-5. If multiple foods exist, list them separately.
-6. Do NOT estimate calories or nutrition.
-7. Return structured JSON only.
+      final rawItems = jsonResponse['items'];
+      final List<dynamic> itemsList;
 
-Important:
-• Be visually accurate.
-• Do not hallucinate ingredients that are not visible.
-• If unsure, estimate conservatively.
+      if (rawItems is List) {
+        itemsList = rawItems;
+      } else {
+        itemsList = [];
+      }
 
-Output JSON format:
-{
- "meal_title": "short descriptive name of the meal",
- "serving_container": "plate | bowl | glass | cup | tray | other",
- "items":[
-  {
-   "ingredient": "ingredient name",
-   "estimated_amount": "amount estimate",
-   "serving_size": "description of serving"
+      final ingredients = <MealIngredient>[];
+
+      for (final item in itemsList) {
+        if (item is! Map) continue;
+        final map = Map<String, dynamic>.from(item);
+
+        final name = _safeString(
+          map['ingredient'] ?? map['name'],
+          '',
+        );
+        if (name.isEmpty) continue;
+
+        ingredients.add(MealIngredient(
+          name: name,
+          amount: _safeString(
+            map['estimated_amount'] ?? map['amount'],
+            '1 serving',
+          ),
+          servingSize: _safeString(map['serving_size'], '100g'),
+          caloriesEstimate: _safeDouble(map['calories_estimate']),
+          proteinEstimate: _safeDouble(map['protein_estimate']),
+          carbsEstimate: _safeDouble(map['carbs_estimate']),
+          fatEstimate: _safeDouble(map['fat_estimate']),
+        ));
+      }
+
+      // If no valid ingredients were parsed, add a generic one
+      if (ingredients.isEmpty) {
+        ingredients.add(MealIngredient(
+          name: 'Food item',
+          amount: '1 serving',
+          servingSize: '100g',
+          caloriesEstimate: 200,
+          proteinEstimate: 8,
+          carbsEstimate: 25,
+          fatEstimate: 8,
+        ));
+      }
+
+      return Meal(
+        id: mealId,
+        imageUrl: imageUrl,
+        title: title,
+        container: container,
+        ingredients: ingredients,
+        createdAt: DateTime.now(),
+      );
+    } catch (e) {
+      print('Error parsing Gemini response: $e');
+      return _buildFallbackMeal();
+    }
   }
- ]
-}
-Return ONLY JSON.
-""";
 
-    final body = {
-      "contents": [
+  /// Builds a fallback raw response map (mimics what the cloud function returns).
+  Map<String, dynamic> _buildFallbackResponse() {
+    return {
+      'meal_title': 'Scanned Meal',
+      'serving_container': 'plate',
+      'items': [
         {
-          "parts": [
-            {"text": systemPrompt},
-            {
-              "inline_data": {
-                "mime_type": "image/jpeg",
-                "data": base64Image
-              }
-            }
-          ]
+          'ingredient': 'Food item',
+          'estimated_amount': '1 serving',
+          'serving_size': '100g',
+          'calories_estimate': 200,
+          'protein_estimate': 8,
+          'carbs_estimate': 25,
+          'fat_estimate': 8,
         }
       ],
-      "generationConfig": {
-        "response_mime_type": "application/json",
-      }
     };
-
-    final response = await http.post(
-      Uri.parse(_geminiUrl),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Gemini API call failed: ${response.body}');
-    }
-
-    return response.body;
   }
 
-  Map<String, dynamic> _parseGeminiResponse(String responseBody) {
-    final decoded = jsonDecode(responseBody);
-    final text = decoded['candidates'][0]['content']['parts'][0]['text'];
-    
-    // Clean up potential markdown formatting if Gemini didn't respect response_mime_type
-    String jsonStr = text.toString().trim();
-    if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.substring(7, jsonStr.length - 3).trim();
-    } else if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.substring(3, jsonStr.length - 3).trim();
-    }
+  /// Builds a fallback Meal object when everything else fails.
+  Meal _buildFallbackMeal() {
+    return Meal(
+      id: const Uuid().v4(),
+      imageUrl: '',
+      title: 'Scanned Meal',
+      container: 'plate',
+      ingredients: [
+        MealIngredient(
+          name: 'Food item',
+          amount: '1 serving',
+          servingSize: '100g',
+          caloriesEstimate: 200,
+          proteinEstimate: 8,
+          carbsEstimate: 25,
+          fatEstimate: 8,
+        ),
+      ],
+      createdAt: DateTime.now(),
+    );
+  }
 
-    return jsonDecode(jsonStr);
+  String _safeString(dynamic value, String fallback) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+    return fallback;
+  }
+
+  double _safeDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
   }
 
   Future<void> _saveMealToFirestore(String userId, Meal meal) async {

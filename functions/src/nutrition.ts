@@ -2,9 +2,11 @@ import * as admin from 'firebase-admin';
 import axios from 'axios';
 import * as logger from 'firebase-functions/logger';
 import { defineSecret } from 'firebase-functions/params';
-import * as functions from 'firebase-functions';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
+import { CallableRequest, HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
+import * as cors from 'cors';
+
+const corsHandler = cors({ origin: true });
 
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -15,6 +17,7 @@ const db = admin.firestore();
 const FATSECRET_CLIENT_ID = defineSecret('FATSECRET_CLIENT_ID');
 const FATSECRET_CLIENT_SECRET = defineSecret('FATSECRET_CLIENT_SECRET');
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
+const USDA_API_KEY = defineSecret('USDA_API_KEY');
 
 const REGION = 'us-central1';
 const FATSECRET_TOKEN_URL = 'https://oauth.fatsecret.com/connect/token';
@@ -22,19 +25,21 @@ const FATSECRET_SEARCH_V4_URL = 'https://platform.fatsecret.com/rest/foods/searc
 const FATSECRET_FOOD_V5_URL = 'https://platform.fatsecret.com/rest/food/v5';
 const FATSECRET_BARCODE_V2_URL =
     'https://platform.fatsecret.com/rest/food/barcode/find-by-id/v2';
-const FATSECRET_IMAGE_RECOGNITION_V2_URL =
-    'https://platform.fatsecret.com/rest/image-recognition/v2';
+
+const USDA_SEARCH_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
+const USDA_DETAILS_URL = 'https://api.nal.usda.gov/fdc/v1/food';
+
 
 const FATSECRET_SCOPE_PREMIER = 'premier';
 const FATSECRET_SCOPE_BARCODE = 'barcode';
-const FATSECRET_SCOPE_IMAGE_RECOGNITION = 'image-recognition';
+
 
 const FOOD_CACHE_COLLECTION = 'foods_cache';
 const FOOD_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 const TOKEN_REFRESH_BUFFER_MS = 60 * 1000; // refresh 1 minute early
 
-// Retrieve Gemini API Key from environment configuration (supporting both v1 config and v2 secrets)
-const GEMINI_KEY = (functions as any).config().gemini?.key || GEMINI_API_KEY.value();
+// Retrieve Gemini API Key using modern secrets
+const GEMINI_KEY = GEMINI_API_KEY.value();
 const genAI = GEMINI_KEY ? new GoogleGenerativeAI(GEMINI_KEY) : null;
 
 interface CachedToken {
@@ -63,20 +68,23 @@ interface SearchBarcodeRequest {
     language?: string;
 }
 
-interface EatenFoodInput {
-    food_id?: number | string;
-    food_name?: string;
-    food_brand?: string | null;
-    serving_description?: string;
-    serving_size?: number | string;
-}
-
 interface RecognizeMealImageRequest {
     imageB64?: string;
-    includeFoodData?: boolean;
-    eatenFoods?: EatenFoodInput[];
-    region?: string;
-    language?: string;
+}
+
+interface NormalizedFood {
+    name: string;
+    nutritionPer100g: {
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+    };
+    servingOptions: {
+        label: string;
+        grams: number;
+    }[];
+    source: string;
 }
 
 class FatSecretApiError extends Error {
@@ -114,6 +122,181 @@ function normalizeArray<T>(value: T | T[] | undefined | null): T[] {
     }
     return Array.isArray(value) ? value : [value];
 }
+
+/**
+ * Normalizes USDA FDC food data into our internal format
+ */
+function normalizeUSDAResponse(food: any): NormalizedFood {
+    const nutrients = food.foodNutrients || food.nutrients || [];
+    
+    const findNutrient = (nameOrId: string | number) => {
+        return nutrients.find((n: any) => 
+            n.nutrientId === nameOrId || 
+            n.nutrientNumber === nameOrId || 
+            (n.nutrient && (n.nutrient.id === nameOrId || n.nutrient.number === nameOrId)) ||
+            (n.name && n.name.toLowerCase().includes(nameOrId.toString().toLowerCase()))
+        );
+    };
+
+    const getNutrientValue = (id: number) => {
+        const n = findNutrient(id);
+        const val = n ? toNumber(n.amount || n.value) : 0;
+        return val;
+    };
+
+    // USDA Nutrient IDs
+    // Energy (kcal): 1008
+    // Protein: 1003
+    // Lipid (Fat): 1004
+    // Carbohydrate: 1005
+    
+    let calories = getNutrientValue(1008);
+    if (calories === 0) calories = getNutrientValue(208); // fallback
+    const protein = getNutrientValue(1003);
+    const fat = getNutrientValue(1004);
+    const carbs = getNutrientValue(1005);
+
+    const servingOptions: { label: string; grams: number }[] = [];
+    
+    // Add default 100g option
+    servingOptions.push({ label: '100g', grams: 100 });
+
+    // Handle USDA foodPortions
+    if (food.foodPortions && Array.isArray(food.foodPortions)) {
+        food.foodPortions.forEach((portion: any) => {
+            if (portion.gramWeight) {
+                const label = portion.modifier || portion.portionDescription || `${portion.amount || ''} ${portion.measureUnit?.name || 'serving'}`;
+                servingOptions.push({
+                    label: label.trim() || 'Custom serving',
+                    grams: toNumber(portion.gramWeight)
+                });
+            }
+        });
+    }
+
+    return {
+        name: food.description || food.lowercaseDescription || 'Unknown Food',
+        nutritionPer100g: {
+            calories,
+            protein,
+            carbs,
+            fat
+        },
+        servingOptions,
+        source: 'usda'
+    };
+}
+
+/**
+ * Normalizes Open Food Facts data into our internal format
+ */
+function normalizeOFFResponse(product: any): NormalizedFood {
+    const nutriments = product.nutriments || {};
+    
+    return {
+        name: product.product_name || product.product_name_en || 'Unknown Food',
+        nutritionPer100g: {
+            calories: toNumber(nutriments['energy-kcal_100g'] || nutriments.energy_kcal_100g || 0),
+            protein: toNumber(nutriments.proteins_100g || 0),
+            carbs: toNumber(nutriments.carbohydrates_100g || 0),
+            fat: toNumber(nutriments.fat_100g || 0)
+        },
+        servingOptions: [
+            { label: '100g', grams: 100 },
+            ...(product.serving_quantity ? [{ label: product.serving_size || '1 serving', grams: toNumber(product.serving_quantity) }] : [])
+        ],
+        source: 'off'
+    };
+}
+
+/**
+ * Fetch and normalize food from USDA
+ */
+async function fetchFoodFromUSDA(query: string): Promise<NormalizedFood | null> {
+    const apiKey = USDA_API_KEY.value();
+    if (!apiKey) return null;
+
+    try {
+        const searchRes = await axios.post(`${USDA_SEARCH_URL}?api_key=${apiKey}`, {
+            query,
+            pageSize: 1,
+            dataType: ['Foundation', 'SR Legacy', 'Survey (FNDDS)']
+        }, { timeout: 10000 });
+
+        const foods = searchRes.data.foods;
+        if (!foods || foods.length === 0) return null;
+
+        const fdcId = foods[0].fdcId;
+        const detailsRes = await axios.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 10000 });
+        return normalizeUSDAResponse(detailsRes.data);
+    } catch (error) {
+        logger.error('fetchFoodFromUSDA error', { query, error });
+        return null;
+    }
+}
+
+/**
+ * Fetch and normalize food from Open Food Facts
+ */
+async function fetchFoodFromOFF(query: string): Promise<NormalizedFood | null> {
+    try {
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=1`;
+        const response = await axios.get(url, {
+            headers: { 'User-Agent': 'Physiq/1.0 (support@physiq.app)' },
+            timeout: 10000
+        });
+
+        const products = response.data.products;
+        if (!products || products.length === 0) return null;
+
+        return normalizeOFFResponse(products[0]);
+    } catch (error) {
+        logger.error('fetchFoodFromOFF error', { query, error });
+        return null;
+    }
+}
+
+export const searchFoodUSDA = onRequest({ secrets: [USDA_API_KEY] }, async (req, res) => {
+    return corsHandler(req, res, async () => {
+        const query = req.body.query || req.query.query;
+        if (!query) {
+            res.status(400).send({ error: 'Query is required.' });
+            return;
+        }
+
+        try {
+            const apiKey = USDA_API_KEY.value();
+            const response = await axios.post(`${USDA_SEARCH_URL}?api_key=${apiKey}`, {
+                query,
+                pageSize: 20,
+                dataType: ['Foundation', 'SR Legacy', 'Survey (FNDDS)']
+            }, { timeout: 10000 });
+            res.send(response.data.foods || []);
+        } catch (error) {
+            logger.error('searchFoodUSDA error', error);
+            res.status(500).send({ error: 'Search failed.' });
+        }
+    });
+});
+
+export const getFoodDetailsUSDA = onRequest({ secrets: [USDA_API_KEY] }, async (req, res) => {
+    return corsHandler(req, res, async () => {
+        const fdcId = req.body.fdcId || req.query.fdcId;
+        if (!fdcId) {
+            res.status(400).send({ error: 'FDC ID is required.' });
+            return;
+        }
+
+        try {
+            const apiKey = USDA_API_KEY.value();
+            const response = await axios.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 10000 });
+            res.send(normalizeUSDAResponse(response.data));
+        } catch (error) {
+            logger.error('getFoodDetailsUSDA error', error);
+            res.status(500).send({ error: 'Details failed.' });
+        }
+    });
+});
 
 function toBoolean(value: unknown, fallback = false): boolean {
     if (typeof value === 'boolean') return value;
@@ -492,50 +675,7 @@ async function callFatSecretGet(
     }
 }
 
-async function callFatSecretJsonPost(
-    endpoint: string,
-    payload: Record<string, unknown>,
-    scope: string
-): Promise<Record<string, unknown>> {
-    const accessToken = await getAccessToken(scope);
 
-    try {
-        const response = await axios.post(endpoint, payload, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-            },
-            timeout: 25000,
-        });
-
-        const responseData = response.data as Record<string, unknown>;
-        const apiError = parseFatSecretErrorNode(responseData.error);
-        if (apiError) {
-            throw apiError;
-        }
-
-        logger.info('FatSecret JSON POST response', {
-            endpoint,
-        });
-
-        return responseData;
-    } catch (error) {
-        const apiError = parseFatSecretErrorFromAxios(error);
-        if (apiError) {
-            throw apiError;
-        }
-
-        if (error instanceof FatSecretApiError || error instanceof HttpsError) {
-            throw error;
-        }
-
-        logger.error('FatSecret JSON POST failed', {
-            endpoint,
-            ...getAxiosErrorDetails(error),
-        });
-        throw new HttpsError('internal', 'FatSecret request failed.');
-    }
-}
 
 function extractSearchFoodsResponse(
     responseData: Record<string, unknown>
@@ -582,133 +722,7 @@ function normalizeBarcode(value: string): string {
     return digitsOnly.padStart(13, '0');
 }
 
-function sanitizeEatenFoods(input: unknown): Record<string, unknown>[] {
-    if (!Array.isArray(input)) {
-        return [];
-    }
 
-    const results: Record<string, unknown>[] = [];
-    for (const entry of input) {
-        if (!entry || typeof entry !== 'object') continue;
-        const node = entry as Record<string, unknown>;
-
-        const foodId = Math.trunc(toNumber(node.food_id));
-        const foodName = typeof node.food_name === 'string' ? node.food_name.trim() : '';
-        if (!foodId || !foodName) continue;
-
-        const mapped: Record<string, unknown> = {
-            food_id: foodId,
-            food_name: foodName,
-        };
-
-        if (typeof node.food_brand === 'string' && node.food_brand.trim().length > 0) {
-            mapped.food_brand = node.food_brand.trim();
-        }
-        if (typeof node.serving_description === 'string' && node.serving_description.trim().length > 0) {
-            mapped.serving_description = node.serving_description.trim();
-        }
-
-        const servingSize = toNumber(node.serving_size);
-        if (servingSize > 0) {
-            mapped.serving_size = servingSize;
-        }
-
-        results.push(mapped);
-    }
-
-    return results;
-}
-
-function mapImageRecognitionFood(raw: Record<string, unknown>): Record<string, unknown> {
-    const eaten = raw.eaten as Record<string, unknown> | undefined;
-    const nutrition = eaten?.total_nutritional_content as Record<string, unknown> | undefined;
-    const suggestedServing = raw.suggested_serving as Record<string, unknown> | undefined;
-    const foodNode = raw.food as Record<string, unknown> | undefined;
-
-    const name = typeof raw.food_entry_name === 'string'
-        ? raw.food_entry_name
-        : (typeof eaten?.food_name_singular === 'string'
-            ? eaten.food_name_singular
-            : (typeof foodNode?.food_name === 'string' ? foodNode.food_name : 'Detected food'));
-
-    const servingDescription = typeof suggestedServing?.custom_serving_description === 'string'
-        ? suggestedServing.custom_serving_description
-        : (typeof suggestedServing?.serving_description === 'string'
-            ? suggestedServing.serving_description
-            : 'serving');
-
-    return {
-        id: String(raw.food_id ?? foodNode?.food_id ?? ''),
-        name,
-        brand: typeof foodNode?.brand_name === 'string' ? foodNode.brand_name : '',
-        type: typeof foodNode?.food_type === 'string' ? foodNode.food_type : 'Generic',
-        serving_id: String(suggestedServing?.serving_id ?? ''),
-        serving_description: servingDescription,
-        units: toNumber(eaten?.units) > 0 ? toNumber(eaten?.units) : 1,
-        calories: toNumber(nutrition?.calories),
-        protein: toNumber(nutrition?.protein),
-        carbs: toNumber(nutrition?.carbohydrate),
-        fat: toNumber(nutrition?.fat),
-        saturated_fat: toNumber(nutrition?.saturated_fat),
-        polyunsaturated_fat: toNumber(nutrition?.polyunsaturated_fat),
-        monounsaturated_fat: toNumber(nutrition?.monounsaturated_fat),
-        cholesterol: toNumber(nutrition?.cholesterol),
-        sodium: toNumber(nutrition?.sodium),
-        potassium: toNumber(nutrition?.potassium),
-        fiber: toNumber(nutrition?.fiber),
-        sugar: toNumber(nutrition?.sugar),
-        vitamin_a: toNumber(nutrition?.vitamin_a),
-        vitamin_c: toNumber(nutrition?.vitamin_c),
-        calcium: toNumber(nutrition?.calcium),
-        iron: toNumber(nutrition?.iron),
-        metric_description: typeof eaten?.metric_description === 'string' ? eaten.metric_description : null,
-        total_metric_amount: toNumber(eaten?.total_metric_amount),
-        per_unit_metric_amount: toNumber(eaten?.per_unit_metric_amount),
-    };
-}
-
-function summarizeRecognizedMeal(foods: Record<string, unknown>[]): Record<string, unknown> | null {
-    if (foods.length === 0) return null;
-
-    const sum = (key: string): number =>
-        foods.reduce((total, item) => total + toNumber(item[key]), 0);
-
-    const names = foods
-        .map((item) => (typeof item.name === 'string' ? item.name.trim() : ''))
-        .filter((name) => name.length > 0);
-
-    let mealName = 'Scanned meal';
-    if (names.length === 1) {
-        mealName = names[0];
-    } else if (names.length > 1) {
-        const previewNames = names.slice(0, 3);
-        mealName = previewNames.join(', ');
-        if (names.length > 3) {
-            mealName = `${mealName} +${names.length - 3} more`;
-        }
-    }
-
-    return {
-        name: mealName,
-        item_count: foods.length,
-        calories: sum('calories'),
-        protein: sum('protein'),
-        carbs: sum('carbs'),
-        fat: sum('fat'),
-        saturated_fat: sum('saturated_fat'),
-        polyunsaturated_fat: sum('polyunsaturated_fat'),
-        monounsaturated_fat: sum('monounsaturated_fat'),
-        cholesterol: sum('cholesterol'),
-        sodium: sum('sodium'),
-        potassium: sum('potassium'),
-        fiber: sum('fiber'),
-        sugar: sum('sugar'),
-        vitamin_a: sum('vitamin_a'),
-        vitamin_c: sum('vitamin_c'),
-        calcium: sum('calcium'),
-        iron: sum('iron'),
-    };
-}
 
 export const searchFood = onCall<SearchFoodRequest>(callableOptions, async (request) => {
     logAuthContext('searchFood', request);
@@ -761,80 +775,6 @@ export const searchFood = onCall<SearchFoodRequest>(callableOptions, async (requ
             };
         }
         throw toHttpsError('searchFood', error);
-    }
-});
-
-export const analyzeMealImage = onCall<{ imageB64: string }>(callableOptions, async (request) => {
-    logAuthContext('analyzeMealImage', request);
-
-    const imageB64 = request.data?.imageB64;
-    if (!imageB64) {
-        throw new HttpsError('invalid-argument', 'Image data is required (base64).');
-    }
-
-    if (!genAI) {
-        throw new HttpsError('failed-precondition', 'Gemini API key is not configured in Cloud Functions.');
-    }
-
-    try {
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
-            generationConfig: {
-                responseMimeType: "application/json",
-            }
-        });
-
-        const systemPrompt = `
-You are a highly accurate food recognition AI used in a nutrition tracking mobile application.
-Your task is to analyze the food in the image and extract a clear structured description of the meal.
-
-Rules:
-1. Identify the main meal title.
-2. Identify all visible food ingredients in the meal.
-3. Estimate realistic serving amounts based on visual size.
-4. Identify the container type (plate, bowl, glass, cup, tray, etc.).
-5. If multiple foods exist, list them separately.
-6. Do NOT estimate calories or nutrition.
-7. Return structured JSON only.
-
-Important:
-• Be visually accurate.
-• Do not hallucinate ingredients that are not visible.
-• If unsure, estimate conservatively.
-
-Output JSON format:
-{
- "meal_title": "short descriptive name of the meal",
- "serving_container": "plate | bowl | glass | cup | tray | other",
- "items":[
-  {
-   "ingredient": "ingredient name",
-   "estimated_amount": "amount estimate",
-   "serving_size": "description of serving"
-  }
- ]
-}
-Return ONLY JSON.
-`;
-
-        const result = await model.generateContent([
-            systemPrompt,
-            {
-                inlineData: {
-                    mimeType: "image/jpeg",
-                    data: imageB64
-                }
-            }
-        ]);
-
-        const response = result.response;
-        const text = response.text();
-        
-        // Return the parsed JSON
-        return JSON.parse(text);
-    } catch (error) {
-        logger.error('Gemini analysis failed', error);
-        throw new HttpsError('internal', 'Failed to analyze meal image.');
     }
 });
 
@@ -958,6 +898,201 @@ export const searchBarcode = onCall<SearchBarcodeRequest>(callableOptions, async
     }
 });
 
+// ---------------------------------------------------------------------------
+// Gemini-powered meal image recognition
+// ---------------------------------------------------------------------------
+
+const GEMINI_MEAL_PROMPT = `You are a precise food identification AI for a nutrition tracking app.
+
+TASK: Analyze the food image and identify EVERY distinct food item visible.
+
+STRICT RULES:
+1. Identify ALL separate food items — do NOT group them as one "meal".
+2. Use SPECIFIC food names (e.g., "Roti" not "bread", "Dal Tadka" not "lentil soup", "Jeera Rice" not "rice").
+3. For each item, estimate the serving size in GRAMS as a number. Use realistic portions:
+   - 1 roti/chapati ≈ 40g
+   - 1 cup cooked rice ≈ 180g
+   - 1 bowl dal ≈ 200g
+   - 1 cup sabzi ≈ 150g
+   - 1 glass milk ≈ 250g
+   - 1 egg ≈ 50g
+   - 1 banana ≈ 120g
+   - 1 apple ≈ 180g
+   - 1 slice bread ≈ 30g
+   - 1 cup salad ≈ 100g
+   - 1 chicken breast ≈ 170g
+   - 1 bowl yogurt/curd ≈ 150g
+4. Estimate approximate calories and macros per item based on your nutritional knowledge.
+5. Choose a short descriptive meal title.
+6. Identify the container: plate, bowl, glass, cup, tray, lunchbox, or other.
+
+CRITICAL:
+- Be visually accurate. Do NOT hallucinate items that are not clearly visible.
+- If you see 3 items, return 3 items. Never merge them.
+- Return ONLY valid JSON matching the exact schema below. No markdown, no explanation.
+
+JSON SCHEMA:
+{
+  "meal_title": "string - short descriptive name like 'Dal Rice with Roti' or 'Chicken Salad'",
+  "serving_container": "string - one of: plate, bowl, glass, cup, tray, lunchbox, other",
+  "items": [
+    {
+      "ingredient": "string - specific food name",
+      "estimated_amount": "string - human readable like '2 pieces' or '1 bowl'",
+      "serving_size": "string - weight in grams like '80g' or '200g'",
+      "calories_estimate": 0,
+      "protein_estimate": 0,
+      "carbs_estimate": 0,
+      "fat_estimate": 0
+    }
+  ]
+}
+
+EXAMPLE for an image containing roti, dal, and rice:
+{
+  "meal_title": "Dal Rice with Roti",
+  "serving_container": "plate",
+  "items": [
+    {
+      "ingredient": "Roti",
+      "estimated_amount": "2 pieces",
+      "serving_size": "80g",
+      "calories_estimate": 208,
+      "protein_estimate": 6,
+      "carbs_estimate": 36,
+      "fat_estimate": 4
+    },
+    {
+      "ingredient": "Dal Tadka",
+      "estimated_amount": "1 bowl",
+      "serving_size": "200g",
+      "calories_estimate": 180,
+      "protein_estimate": 10,
+      "carbs_estimate": 28,
+      "fat_estimate": 4
+    },
+    {
+      "ingredient": "Jeera Rice",
+      "estimated_amount": "1 serving",
+      "serving_size": "180g",
+      "calories_estimate": 220,
+      "protein_estimate": 4,
+      "carbs_estimate": 46,
+      "fat_estimate": 2
+    }
+  ]
+}`;
+
+interface GeminiMealItem {
+    ingredient?: string;
+    name?: string;
+    estimated_amount?: string;
+    amount?: string;
+    serving_size?: string;
+    calories_estimate?: number;
+    protein_estimate?: number;
+    carbs_estimate?: number;
+    fat_estimate?: number;
+}
+
+interface GeminiMealResponse {
+    meal_title?: string;
+    serving_container?: string;
+    items?: GeminiMealItem[];
+}
+
+function buildFallbackMealResponse(): Record<string, unknown> {
+    return {
+        meal_title: 'Unidentified Meal',
+        serving_container: 'plate',
+        items: [
+            {
+                ingredient: 'Food item',
+                estimated_amount: '1 serving',
+                serving_size: '100g',
+                calories_estimate: 200,
+                protein_estimate: 8,
+                carbs_estimate: 25,
+                fat_estimate: 8,
+            },
+        ],
+    };
+}
+
+function validateAndNormalizeMealResponse(parsed: unknown): Record<string, unknown> {
+    if (!parsed || typeof parsed !== 'object') {
+        logger.warn('Gemini response is not an object, using fallback');
+        return buildFallbackMealResponse();
+    }
+
+    const data = parsed as GeminiMealResponse;
+
+    const mealTitle =
+        typeof data.meal_title === 'string' && data.meal_title.trim().length > 0
+            ? data.meal_title.trim()
+            : 'Detected Meal';
+
+    const servingContainer =
+        typeof data.serving_container === 'string' && data.serving_container.trim().length > 0
+            ? data.serving_container.trim().toLowerCase()
+            : 'plate';
+
+    const rawItems = Array.isArray(data.items) ? data.items : [];
+
+    if (rawItems.length === 0) {
+        logger.warn('Gemini returned zero items, using fallback');
+        return buildFallbackMealResponse();
+    }
+
+    const validatedItems: Record<string, unknown>[] = [];
+
+    for (const item of rawItems) {
+        if (!item || typeof item !== 'object') continue;
+
+        const ingredientName =
+            (typeof item.ingredient === 'string' && item.ingredient.trim().length > 0
+                ? item.ingredient.trim()
+                : typeof item.name === 'string' && item.name.trim().length > 0
+                ? item.name.trim()
+                : null);
+
+        if (!ingredientName) continue;
+
+        const estimatedAmount =
+            typeof item.estimated_amount === 'string' && item.estimated_amount.trim().length > 0
+                ? item.estimated_amount.trim()
+                : typeof item.amount === 'string' && item.amount.trim().length > 0
+                ? item.amount.trim()
+                : '1 serving';
+
+        const servingSize =
+            typeof item.serving_size === 'string' && item.serving_size.trim().length > 0
+                ? item.serving_size.trim()
+                : '100g';
+
+        validatedItems.push({
+            ingredient: ingredientName,
+            estimated_amount: estimatedAmount,
+            serving_size: servingSize,
+            calories_estimate: toNumber(item.calories_estimate) || 100,
+            protein_estimate: toNumber(item.protein_estimate) || 3,
+            carbs_estimate: toNumber(item.carbs_estimate) || 15,
+            fat_estimate: toNumber(item.fat_estimate) || 3,
+        });
+    }
+
+    if (validatedItems.length === 0) {
+        logger.warn('All Gemini items were invalid, using fallback');
+        return buildFallbackMealResponse();
+    }
+
+    return {
+        meal_title: mealTitle,
+        serving_container: servingContainer,
+        items: validatedItems,
+    };
+}
+
 export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
     callableOptions,
     async (request) => {
@@ -967,75 +1102,129 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
         if (!imageB64) {
             throw new HttpsError('invalid-argument', 'imageB64 is required.');
         }
-        if (imageB64.length > 999982) {
+        if (imageB64.length > 10_000_000) {
             throw new HttpsError(
                 'invalid-argument',
-                'imageB64 exceeds the 999,982 character limit.'
+                'imageB64 exceeds the 10 MB limit.'
             );
         }
 
-        const includeFoodData = toBoolean(request.data?.includeFoodData, true);
-        const region = sanitizeRegion(request.data?.region);
-        const language = sanitizeLanguage(request.data?.language);
-        const eatenFoods = sanitizeEatenFoods(request.data?.eatenFoods);
+        if (!genAI) {
+            logger.error('Gemini API key is not configured');
+            // Return fallback instead of crashing
+            return buildFallbackMealResponse();
+        }
 
         try {
-            const payload: Record<string, unknown> = {
-                image_b64: imageB64,
-                include_food_data: includeFoodData,
-                region,
-                ...(language ? { language } : {}),
-                ...(eatenFoods.length > 0 ? { eaten_foods: eatenFoods } : {}),
-            };
-
             logger.info('recognizeMealImage request', {
-                region,
-                language,
-                includeFoodData,
-                eatenFoodsCount: eatenFoods.length,
+                imageSizeChars: imageB64.length,
             });
 
-            const responseData = await callFatSecretJsonPost(
-                FATSECRET_IMAGE_RECOGNITION_V2_URL,
-                payload,
-                FATSECRET_SCOPE_IMAGE_RECOGNITION
-            );
-
-            const foodsRaw = normalizeArray<Record<string, unknown>>(
-                responseData.food_response as
-                    | Record<string, unknown>
-                    | Record<string, unknown>[]
-                    | undefined
-            );
-
-            const foods = foodsRaw.map(mapImageRecognitionFood).filter((food) => {
-                const id = food.id;
-                const name = food.name;
-                return (
-                    (typeof id === 'string' && id.length > 0) ||
-                    (typeof name === 'string' && name.length > 0)
-                );
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-2.0-flash',
+                generationConfig: {
+                    responseMimeType: 'application/json',
+                    temperature: 0.1,
+                },
             });
 
-            const meal = summarizeRecognizedMeal(foods);
+            const result = await model.generateContent([
+                GEMINI_MEAL_PROMPT,
+                {
+                    inlineData: {
+                        mimeType: 'image/jpeg',
+                        data: imageB64,
+                    },
+                },
+            ]);
 
-            logger.info('recognizeMealImage success', {
-                items: foods.length,
+            const responseText = result.response.text();
+
+            logger.info('recognizeMealImage raw response', {
+                responseLength: responseText.length,
+                responsePreview: responseText.substring(0, 500),
             });
 
-            return {
-                foods,
-                meal,
-            };
-        } catch (error) {
-            if (error instanceof FatSecretApiError && error.apiCode === 211) {
-                return {
-                    foods: [],
-                    meal: null,
-                    errorCode: 211,
-                };
+            // Attempt to parse JSON — strip markdown fences if present
+            let cleanedText = responseText.trim();
+            if (cleanedText.startsWith('```')) {
+                // Remove ```json ... ``` or ``` ... ```
+                cleanedText = cleanedText
+                    .replace(/^```(?:json)?\s*\n?/i, '')
+                    .replace(/\n?```\s*$/i, '')
+                    .trim();
             }
-            throw toHttpsError('recognizeMealImage', error);
+
+            let parsed: unknown;
+            try {
+                parsed = JSON.parse(cleanedText);
+            } catch (parseError) {
+                logger.error('Failed to parse Gemini JSON response', {
+                    parseError,
+                    rawText: cleanedText.substring(0, 1000),
+                });
+                return buildFallbackMealResponse();
+            }
+
+            const validated = validateAndNormalizeMealResponse(parsed);
+            const items = validated.items as any[];
+
+            logger.info('recognizeMealImage: enriching items with USDA/OFF data', { itemCount: items.length });
+
+            const enrichedItems = await Promise.all(items.map(async (item) => {
+                const query = item.ingredient;
+                
+                // Try USDA first
+                let nutritionData = await fetchFoodFromUSDA(query);
+                
+                // Fallback to OFF
+                if (!nutritionData) {
+                    logger.info(`USDA failed for "${query}", trying OFF fallback`);
+                    nutritionData = await fetchFoodFromOFF(query);
+                }
+
+                if (nutritionData) {
+                    logger.info(`Enriched ${query} from ${nutritionData.source}`);
+                    return {
+                        ...item,
+                        ingredient: nutritionData.name, // potentially more accurate name
+                        calories_estimate: nutritionData.nutritionPer100g.calories,
+                        protein_estimate: nutritionData.nutritionPer100g.protein,
+                        carbs_estimate: nutritionData.nutritionPer100g.carbs,
+                        fat_estimate: nutritionData.nutritionPer100g.fat,
+                        serving_options: nutritionData.servingOptions,
+                        nutrition_per_100g: nutritionData.nutritionPer100g,
+                        source: nutritionData.source
+                    };
+                }
+
+                logger.info(`No enrichment found for "${query}", using Gemini estimates`);
+                return {
+                    ...item,
+                    serving_options: [
+                        { label: item.serving_size || '1 serving', grams: 100 },
+                        { label: '100g', grams: 100 }
+                    ],
+                    source: 'gemini_estimate'
+                };
+            }));
+
+            validated.items = enrichedItems;
+
+            logger.info('recognizeMealImage finalized', {
+                mealTitle: validated.meal_title,
+                itemCount: enrichedItems.length,
+            });
+
+            return validated;
+        } catch (error) {
+            logger.error('recognizeMealImage Gemini analysis failed', {
+                error: error instanceof Error ? error.message : error,
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+
+            // Return fallback instead of crashing
+            return buildFallbackMealResponse();
         }
     }
 );
