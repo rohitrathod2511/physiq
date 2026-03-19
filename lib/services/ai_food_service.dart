@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/services/cloud_functions_client.dart';
 import 'package:uuid/uuid.dart';
@@ -10,259 +11,549 @@ import 'package:uuid/uuid.dart';
 class AiFoodService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final CloudFunctionsClient _cloudFunctions = CloudFunctionsClient();
   final _uuid = const Uuid();
 
-
-  Future<Meal?> processAndEnrichMealAsync(String userId, String mealId, File imageFile) async {
+  Future<Meal?> processAndEnrichMealAsync(
+    String userId,
+    String mealId,
+    File imageFile,
+  ) async {
     try {
-      print('🚀 STEP 1: Starting Meal Analysis Flow');
+      debugPrint('STEP 1: Starting meal analysis flow');
 
-      // 1. Upload image
-      String imageUrl = '';
-      try {
-        print('📸 STEP 2: Uploading image to Storage...');
-        final storageRef = _storage.ref().child('meal_images/$userId/$mealId.jpg');
-        final uploadTask = await storageRef.putFile(imageFile);
-        imageUrl = await uploadTask.ref.getDownloadURL();
-        print('✅ Image uploaded: $imageUrl');
-      } catch (e) {
-        print('⚠️ Image upload failed (non-fatal): $e');
-      }
+      final imageUrl = await _uploadMealImage(userId, mealId, imageFile);
+      final jsonResponse = await _recognizeMeal(imageFile);
 
-      // 2. Analyze meal with Gemini
-      print('🤖 STEP 3: Calling Gemini API for image recognition...');
-      final base64Image = base64Encode(await imageFile.readAsBytes());
-      Map<String, dynamic> jsonResponse;
-      try {
-        jsonResponse = await _cloudFunctions.recognizeMealImage(base64Image);
-        print('✅ Gemini responded. Status: ${jsonResponse.isNotEmpty ? "SUCCESS" : "EMPTY"}');
-      } catch (e) {
-        print('❌ Gemini analysis failed, using fallback: $e');
-        jsonResponse = _buildFallbackResponse();
-      }
-
-      // 3. Parse Gemini response safely
-      print('📦 STEP 4: Parsing Gemini JSON Response...');
-      print('Parsed JSON (Gemini): $jsonResponse');
+      debugPrint('Parsed JSON (Gemini): $jsonResponse');
       final initialMeal = _parseGeminiResponse(
         mealId: mealId,
-        imageUrl: imageUrl, 
+        imageUrl: imageUrl,
         jsonResponse: jsonResponse,
       );
-      print('✅ Parsed meal: ${initialMeal.title} with ${initialMeal.ingredients.length} items');
 
-      // 4. Enrich and Update 
-      print('🍎 STEP 5: Starting USDA/OFF Enrichment for each item...');
-      final enrichedIngredients = <MealIngredient>[];
-
-      for (final ingredient in initialMeal.ingredients) {
-        try {
-          print('🔍 Searching nutrition for: ${ingredient.name}');
-          final nutritionData = await _cloudFunctions.enrichMealItem(ingredient.name);
-          print('USDA/OFF Response for ${ingredient.name}: $nutritionData');
-          
-          if (nutritionData != null) {
-            print('✅ Nutrition data received for: ${ingredient.name} from ${nutritionData['source']}');
-            final optionsRaw = nutritionData['servingOptions'] ?? nutritionData['serving_options'] ?? [];
-            final options = (optionsRaw as List).map((o) => ServingOption.fromJson(Map<String, dynamic>.from(o))).toList();
-            
-            final nutriments = nutritionData['nutritionPer100g'] ?? nutritionData['nutrition_per_100g'];
-            final Map<String, double> nutMap = {};
-            if (nutriments is Map) {
-              nutMap['calories'] = _safeDouble(nutriments['calories'] ?? nutriments['energy']);
-              nutMap['protein'] = _safeDouble(nutriments['protein']);
-              nutMap['carbs'] = _safeDouble(nutriments['carbs']);
-              nutMap['fat'] = _safeDouble(nutriments['fat']);
-            }
-
-            double cal = _safeDouble(ingredient.caloriesEstimate);
-            double prot = _safeDouble(ingredient.proteinEstimate);
-            double carb = _safeDouble(ingredient.carbsEstimate);
-            double fat = _safeDouble(ingredient.fatEstimate);
-            double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
-
-            if (estimatedGrams <= 0) {
-              final amt = ingredient.amount.toLowerCase();
-              final size = ingredient.servingSize.toLowerCase();
-              print('❓ Grams not provided for [${ingredient.name}], attempting mapping...');
-              if (amt.contains('bowl') || size.contains('bowl')) {
-                estimatedGrams = 200.0;
-              } else if (amt.contains('glass') || size.contains('glass')) {
-                estimatedGrams = 250.0;
-              } else if (amt.contains('piece') || size.contains('piece') || amt.contains('slice') || size.contains('slice')) {
-                estimatedGrams = 100.0;
-              } else {
-                if (options.length > 1 && options[1].grams > 0) {
-                  estimatedGrams = options[1].grams.toDouble();
-                } else {
-                  estimatedGrams = 100.0; 
-                }
-              }
-              print('⚖️ Calculated grams for [${ingredient.name}]: $estimatedGrams');
-            }
-
-            if (nutMap.containsKey('calories')) {
-              final scale = estimatedGrams / 100.0;
-              cal = _safeDouble(nutMap['calories']! * scale);
-              prot = _safeDouble((nutMap['protein'] ?? 0) * scale);
-              carb = _safeDouble((nutMap['carbs'] ?? 0) * scale);
-              fat = _safeDouble((nutMap['fat'] ?? 0) * scale);
-            }
-
-            print('Final calculated data for ${ingredient.name}: calories: $cal, protein: $prot, carbs: $carb, fat: $fat, grams: $estimatedGrams');
-
-            enrichedIngredients.add(MealIngredient(
-              name: _safeString(nutritionData['name'], ingredient.name),
-              amount: ingredient.amount,
-              servingSize: ingredient.servingSize,
-              caloriesEstimate: cal,
-              proteinEstimate: prot,
-              carbsEstimate: carb,
-              fatEstimate: fat,
-              servingOptions: options,
-              nutritionPer100g: nutMap,
-              source: _safeString(nutritionData['source'], 'enriched'),
-              fdcId: nutritionData['fdcId']?.toString() ?? nutritionData['fdc_id']?.toString(),
-              estimatedGrams: estimatedGrams,
-            ));
-          } else {
-             // Fallback
-             print('⚠️ No enrichment found for: ${ingredient.name}, using safe fallback');
-             double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
-             if (estimatedGrams <= 0) estimatedGrams = 100.0;
-
-             print('Fallback data for ${ingredient.name} as APIs failed');
-
-             enrichedIngredients.add(MealIngredient(
-               name: ingredient.name,
-               amount: ingredient.amount,
-               servingSize: ingredient.servingSize,
-               caloriesEstimate: _safeDouble(ingredient.caloriesEstimate),
-               proteinEstimate: _safeDouble(ingredient.proteinEstimate),
-               carbsEstimate: _safeDouble(ingredient.carbsEstimate),
-               fatEstimate: _safeDouble(ingredient.fatEstimate),
-               source: 'safe_fallback',
-               estimatedGrams: estimatedGrams,
-            ));
-          }
-        } catch (e) {
-             print('❌ Error enriching [${ingredient.name}]: $e');
-             enrichedIngredients.add(MealIngredient(
-               name: ingredient.name,
-               amount: ingredient.amount,
-               servingSize: ingredient.servingSize,
-               caloriesEstimate: 0.0,
-               proteinEstimate: 0.0,
-               carbsEstimate: 0.0,
-               fatEstimate: 0.0,
-               source: 'safe_fallback',
-               estimatedGrams: _safeDouble(ingredient.estimatedGrams),
-            ));
-        }
-      }
-
-      final enrichedMeal = Meal(
-        id: initialMeal.id,
-        imageUrl: imageUrl.isNotEmpty ? imageUrl : initialMeal.imageUrl,
-        title: initialMeal.title,
-        container: initialMeal.container,
-        ingredients: enrichedIngredients,
-        createdAt: initialMeal.createdAt,
-        bookmarked: initialMeal.bookmarked,
-        logged: initialMeal.logged,
+      debugPrint(
+        'STEP 5: Parsed ${initialMeal.ingredients.length} ingredients for ${initialMeal.title}',
       );
 
-      // UPDATE LOADING CARD
+      final enrichedMeal = await _buildEnrichedMeal(initialMeal);
       await _saveMealToFirestore(userId, enrichedMeal);
 
+      debugPrint('Final calculated data: ${enrichedMeal.toJson()}');
       return enrichedMeal;
-
-    } catch(e) {
-      print('Process and enrich error: $e');
+    } catch (error) {
+      debugPrint('Process and enrich error: $error');
       return null;
     }
   }
 
-  /// Parses the Gemini response into a [Meal] object with full validation.
-  /// Handles missing keys, wrong types, and partial data gracefully.
+  Future<String> _uploadMealImage(
+    String userId,
+    String mealId,
+    File imageFile,
+  ) async {
+    try {
+      debugPrint('STEP 2: Uploading image to Storage');
+      final storageRef = _storage.ref().child('meal_images/$userId/$mealId.jpg');
+      final uploadTask = await storageRef.putFile(imageFile);
+      final imageUrl = await uploadTask.ref.getDownloadURL();
+      debugPrint('Image uploaded: $imageUrl');
+      return imageUrl;
+    } catch (error) {
+      debugPrint('Image upload failed, continuing with local file: $error');
+      return '';
+    }
+  }
+
+  Future<Map<String, dynamic>> _recognizeMeal(File imageFile) async {
+    final base64Image = base64Encode(await imageFile.readAsBytes());
+
+    try {
+      debugPrint('STEP 3: Calling Gemini image recognition');
+      final jsonResponse = await _cloudFunctions.recognizeMealImage(base64Image);
+      debugPrint('Gemini normalized response: $jsonResponse');
+      return jsonResponse;
+    } catch (error) {
+      debugPrint('Gemini analysis failed, using fallback response: $error');
+      return _buildFallbackResponse();
+    }
+  }
+
   Meal _parseGeminiResponse({
     required String mealId,
     required String imageUrl,
     required Map<String, dynamic> jsonResponse,
   }) {
     try {
-      final title = _safeString(jsonResponse['meal_title'], 'Scanned Meal');
-      final container = _safeString(jsonResponse['serving_container'], 'plate');
-
-      final rawItems = jsonResponse['items'];
-      final List<dynamic> itemsList;
-
-      if (rawItems is List) {
-        itemsList = rawItems;
-      } else {
-        itemsList = [];
-      }
+      final rawItems = jsonResponse['items'] ?? jsonResponse['ingredients'];
+      final itemsList = rawItems is List ? rawItems : const <dynamic>[];
 
       final ingredients = <MealIngredient>[];
-
       for (final item in itemsList) {
         if (item is! Map) continue;
+
         final map = Map<String, dynamic>.from(item);
-
-        final name = _safeString(
+        final ingredientName = _cleanIngredientName(
           map['ingredient'] ?? map['name'],
-          '',
         );
-        if (name.isEmpty) continue;
 
-        ingredients.add(MealIngredient(
-          name: name,
-          amount: _safeString(
-            map['estimated_amount'] ?? map['amount'],
-            '1 serving',
+        if (ingredientName.isEmpty) {
+          continue;
+        }
+
+        ingredients.add(
+          MealIngredient(
+            name: ingredientName,
+            amount: _resolveAmount(map),
+            servingSize: _safeString(
+              map['serving_size'] ?? map['servingSize'],
+              '100g',
+            ),
+            caloriesEstimate: _safeDouble(
+              map['calories_estimate'] ?? map['calories'],
+            ),
+            proteinEstimate: _safeDouble(
+              map['protein_estimate'] ?? map['protein'],
+            ),
+            carbsEstimate: _safeDouble(
+              map['carbs_estimate'] ?? map['carbs'],
+            ),
+            fatEstimate: _safeDouble(map['fat_estimate'] ?? map['fat']),
+            source: _safeString(map['source'], 'gemini_estimate'),
+            estimatedGrams: _safeDouble(
+              map['estimated_grams'] ?? map['estimatedGrams'],
+            ),
           ),
-          servingSize: _safeString(map['serving_size'], '100g'),
-          caloriesEstimate: _safeDouble(map['calories_estimate']),
-          proteinEstimate: _safeDouble(map['protein_estimate']),
-          carbsEstimate: _safeDouble(map['carbs_estimate']),
-          fatEstimate: _safeDouble(map['fat_estimate']),
-          source: _safeString(map['source'], 'gemini_estimate'),
-          estimatedGrams: _safeDouble(map['estimated_grams'] ?? map['estimatedGrams']),
-        ));
+        );
       }
 
-      // If no valid ingredients were parsed, add a generic one
       if (ingredients.isEmpty) {
-        ingredients.add(MealIngredient(
-          name: 'Food item',
-          amount: '1 serving',
-          servingSize: '100g',
-          caloriesEstimate: 200,
-          proteinEstimate: 8,
-          carbsEstimate: 25,
-          fatEstimate: 8,
-          source: 'gemini_fallback',
-          estimatedGrams: 100,
-        ));
+        return _buildFallbackMeal(
+          mealId: mealId,
+          imageUrl: imageUrl,
+        );
       }
+
+      final detectedTitle = _safeString(
+        jsonResponse['meal_title'] ?? jsonResponse['mealName'] ?? jsonResponse['title'],
+        '',
+      );
+      final title = detectedTitle.isNotEmpty && !_isGenericIngredientName(detectedTitle)
+          ? detectedTitle
+          : ingredients.map((ingredient) => ingredient.name).take(3).join(', ');
 
       return Meal(
         id: mealId,
         imageUrl: imageUrl,
-        title: title,
-        container: container,
+        title: title.isEmpty ? 'Scanned Meal' : title,
+        container: _safeString(
+          jsonResponse['serving_container'] ??
+              jsonResponse['servingContainer'] ??
+              jsonResponse['container'],
+          'plate',
+        ),
         ingredients: ingredients,
         createdAt: DateTime.now(),
+        logged: true,
       );
-    } catch (e) {
-      print('Error parsing Gemini response: $e');
-      return _buildFallbackMeal();
+    } catch (error) {
+      debugPrint('Error parsing Gemini response: $error');
+      return _buildFallbackMeal(mealId: mealId, imageUrl: imageUrl);
     }
   }
 
-  /// Builds a fallback raw response map (mimics what the cloud function returns).
+  String _resolveAmount(Map<String, dynamic> map) {
+    final explicitAmount = _safeString(
+      map['estimated_amount'] ?? map['amount'],
+      '',
+    );
+    if (explicitAmount.isNotEmpty) {
+      return explicitAmount;
+    }
+
+    final quantity = _safeDouble(map['quantity']);
+    if (quantity > 0) {
+      final servingLabel = _safeString(
+        map['servingSize'] ?? map['serving_size'],
+        '',
+      );
+
+      if (servingLabel.isNotEmpty) {
+        return '${_formatQuantity(quantity)} $servingLabel';
+      }
+
+      return quantity == 1 ? '1 serving' : '${_formatQuantity(quantity)} servings';
+    }
+
+    return '1 serving';
+  }
+
+  Future<Meal> _buildEnrichedMeal(Meal meal) async {
+    debugPrint('STEP 6: Starting USDA/OFF enrichment');
+
+    final enrichedIngredients = <MealIngredient>[];
+    for (final ingredient in meal.ingredients) {
+      enrichedIngredients.add(await _enrichIngredient(ingredient));
+    }
+
+    return Meal(
+      id: meal.id,
+      imageUrl: meal.imageUrl,
+      title: meal.title,
+      container: meal.container,
+      ingredients: enrichedIngredients,
+      createdAt: meal.createdAt,
+      bookmarked: meal.bookmarked,
+      logged: meal.logged,
+    );
+  }
+
+  Future<MealIngredient> _enrichIngredient(MealIngredient ingredient) async {
+    try {
+      debugPrint('USDA/OFF lookup: ${ingredient.name}');
+
+      final nutritionData = await _cloudFunctions.enrichMealItem(ingredient.name);
+      debugPrint('USDA/OFF response for ${ingredient.name}: $nutritionData');
+
+      if (nutritionData == null) {
+        return _buildFallbackIngredient(ingredient, source: 'safe_fallback');
+      }
+
+      final servingOptions = _parseServingOptions(
+        nutritionData['servingOptions'] ?? nutritionData['serving_options'],
+      );
+      final nutritionPer100g = _parseNutritionMap(
+        nutritionData['nutritionPer100g'] ?? nutritionData['nutrition_per_100g'],
+      );
+      final estimatedGrams = _resolveEstimatedGrams(ingredient, servingOptions);
+
+      final caloriesPer100g = nutritionPer100g['calories'];
+      final proteinPer100g = nutritionPer100g['protein'];
+      final carbsPer100g = nutritionPer100g['carbs'];
+      final fatPer100g = nutritionPer100g['fat'];
+
+      final calories = caloriesPer100g != null
+          ? _calculateNutrient(estimatedGrams, caloriesPer100g)
+          : _safeDouble(ingredient.caloriesEstimate);
+      final protein = proteinPer100g != null
+          ? _calculateNutrient(estimatedGrams, proteinPer100g)
+          : _safeDouble(ingredient.proteinEstimate);
+      final carbs = carbsPer100g != null
+          ? _calculateNutrient(estimatedGrams, carbsPer100g)
+          : _safeDouble(ingredient.carbsEstimate);
+      final fat = fatPer100g != null
+          ? _calculateNutrient(estimatedGrams, fatPer100g)
+          : _safeDouble(ingredient.fatEstimate);
+
+      return MealIngredient(
+        name: _safeString(nutritionData['name'], ingredient.name),
+        amount: ingredient.amount,
+        servingSize: ingredient.servingSize,
+        caloriesEstimate: calories,
+        proteinEstimate: protein,
+        carbsEstimate: carbs,
+        fatEstimate: fat,
+        servingOptions: servingOptions,
+        nutritionPer100g: nutritionPer100g.isEmpty ? null : nutritionPer100g,
+        source: _safeString(nutritionData['source'], 'enriched'),
+        fdcId: _stringOrNull(nutritionData['fdcId'] ?? nutritionData['fdc_id']),
+        estimatedGrams: estimatedGrams,
+      );
+    } catch (error) {
+      debugPrint('Error enriching ingredient ${ingredient.name}: $error');
+      return _buildFallbackIngredient(ingredient, source: 'safe_fallback');
+    }
+  }
+
+  MealIngredient _buildFallbackIngredient(
+    MealIngredient ingredient, {
+    required String source,
+  }) {
+    final estimatedGrams = _resolveEstimatedGrams(ingredient, const <ServingOption>[]);
+
+    return MealIngredient(
+      name: ingredient.name,
+      amount: ingredient.amount,
+      servingSize: ingredient.servingSize,
+      caloriesEstimate: _safeDouble(ingredient.caloriesEstimate),
+      proteinEstimate: _safeDouble(ingredient.proteinEstimate),
+      carbsEstimate: _safeDouble(ingredient.carbsEstimate),
+      fatEstimate: _safeDouble(ingredient.fatEstimate),
+      source: source,
+      estimatedGrams: estimatedGrams,
+      nutritionPer100g: ingredient.nutritionPer100g,
+      servingOptions: ingredient.servingOptions,
+      fdcId: ingredient.fdcId,
+    );
+  }
+
+  List<ServingOption> _parseServingOptions(dynamic raw) {
+    if (raw is! List) {
+      return const [ServingOption(label: '100g', grams: 100)];
+    }
+
+    final options = raw
+        .whereType<Map>()
+        .map((option) => ServingOption.fromJson(Map<String, dynamic>.from(option)))
+        .where((option) => option.grams > 0)
+        .toList();
+
+    if (options.any((option) => option.label.toLowerCase() == '100g')) {
+      return options;
+    }
+
+    return [
+      const ServingOption(label: '100g', grams: 100),
+      ...options,
+    ];
+  }
+
+  Map<String, double> _parseNutritionMap(dynamic raw) {
+    if (raw is! Map) {
+      return const {};
+    }
+
+    final nutritionMap = <String, double>{};
+    for (final entry in raw.entries) {
+      final key = entry.key.toString().trim();
+      if (key.isEmpty) {
+        continue;
+      }
+
+      final value = _safeDouble(entry.value);
+      final normalizedKey = _normalizeNutritionKey(key);
+      nutritionMap[normalizedKey] = value;
+    }
+
+    if (!nutritionMap.containsKey('calories') && nutritionMap.containsKey('energy')) {
+      nutritionMap['calories'] = nutritionMap['energy']!;
+    }
+
+    return nutritionMap;
+  }
+
+  String _normalizeNutritionKey(String key) {
+    final normalized = key.trim().toLowerCase();
+    switch (normalized) {
+      case 'energy':
+      case 'calories':
+      case 'energy_kcal':
+        return 'calories';
+      case 'protein':
+        return 'protein';
+      case 'carbs':
+      case 'carbohydrates':
+        return 'carbs';
+      case 'fat':
+      case 'fats':
+        return 'fat';
+      default:
+        return normalized;
+    }
+  }
+
+  double _resolveEstimatedGrams(
+    MealIngredient ingredient,
+    List<ServingOption> servingOptions,
+  ) {
+    if (ingredient.estimatedGrams > 0) {
+      return ingredient.estimatedGrams;
+    }
+
+    final text = '${ingredient.amount} ${ingredient.servingSize}'.toLowerCase();
+    final explicitWeight = _extractExplicitWeightInGrams(text);
+    if (explicitWeight > 0) {
+      return explicitWeight;
+    }
+
+    final quantity = _extractQuantity(text);
+    final matchedOption = _matchServingOption(text, servingOptions);
+    if (matchedOption != null) {
+      return matchedOption.grams * quantity;
+    }
+
+    final heuristicWeight = _heuristicServingWeight(text);
+    if (heuristicWeight > 0) {
+      return heuristicWeight * quantity;
+    }
+
+    final fallbackOption = servingOptions.firstWhere(
+      (option) => option.grams > 0 && option.label.toLowerCase() != '100g',
+      orElse: () => const ServingOption(label: '100g', grams: 100),
+    );
+
+    return fallbackOption.grams * quantity;
+  }
+
+  double _extractExplicitWeightInGrams(String text) {
+    final match = RegExp(
+      r'(\d+(?:\.\d+)?)\s*(kg|kilogram|kilograms|g|gram|grams|ml|l|oz|ounce|ounces)\b',
+    ).firstMatch(text);
+
+    if (match == null) {
+      return 0;
+    }
+
+    final value = double.tryParse(match.group(1) ?? '') ?? 0;
+    final unit = (match.group(2) ?? '').toLowerCase();
+
+    switch (unit) {
+      case 'kg':
+      case 'kilogram':
+      case 'kilograms':
+        return value * 1000;
+      case 'l':
+        return value * 1000;
+      case 'oz':
+      case 'ounce':
+      case 'ounces':
+        return value * 28.3495;
+      default:
+        return value;
+    }
+  }
+
+  double _extractQuantity(String text) {
+    if (text.contains('half')) {
+      return 0.5;
+    }
+    if (text.contains('quarter')) {
+      return 0.25;
+    }
+
+    final fractionMatch = RegExp(r'(\d+)\s*/\s*(\d+)').firstMatch(text);
+    if (fractionMatch != null) {
+      final numerator = double.tryParse(fractionMatch.group(1) ?? '') ?? 0;
+      final denominator = double.tryParse(fractionMatch.group(2) ?? '') ?? 0;
+      if (denominator > 0) {
+        return numerator / denominator;
+      }
+    }
+
+    final numberMatch = RegExp(r'(^|\s)(\d+(?:\.\d+)?)(?=\s|$)').firstMatch(text);
+    if (numberMatch != null) {
+      return double.tryParse(numberMatch.group(2) ?? '') ?? 1;
+    }
+
+    const wordMap = <String, double>{
+      'a': 1,
+      'an': 1,
+      'one': 1,
+      'two': 2,
+      'three': 3,
+      'four': 4,
+      'five': 5,
+      'six': 6,
+    };
+
+    final words = text.split(RegExp(r'[^a-z]+'));
+    for (final entry in wordMap.entries) {
+      if (words.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    return 1;
+  }
+
+  ServingOption? _matchServingOption(
+    String text,
+    List<ServingOption> servingOptions,
+  ) {
+    final textTokens = _tokenize(text);
+    ServingOption? bestMatch;
+    int bestScore = 0;
+
+    for (final option in servingOptions) {
+      if (option.grams <= 0 || option.label.toLowerCase() == '100g') {
+        continue;
+      }
+
+      int score = 0;
+      final optionLabel = option.label.toLowerCase();
+      if (text.contains(optionLabel) || optionLabel.contains(text)) {
+        score += 5;
+      }
+
+      final optionTokens = _tokenize(optionLabel);
+      score += optionTokens.intersection(textTokens).length;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = option;
+      }
+    }
+
+    return bestScore > 0 ? bestMatch : null;
+  }
+
+  Set<String> _tokenize(String text) {
+    const ignored = <String>{
+      'a',
+      'an',
+      'the',
+      'of',
+      'serving',
+      'servings',
+      'small',
+      'medium',
+      'large',
+    };
+
+    return text
+        .split(RegExp(r'[^a-z0-9]+'))
+        .map((part) => part.trim())
+        .where((part) => part.length > 1 && !ignored.contains(part))
+        .toSet();
+  }
+
+  double _heuristicServingWeight(String text) {
+    if (text.contains('bowl')) {
+      return 200;
+    }
+    if (text.contains('plate')) {
+      return 250;
+    }
+    if (text.contains('glass') || text.contains('cup')) {
+      return 250;
+    }
+    if (text.contains('tbsp') || text.contains('tablespoon')) {
+      return 15;
+    }
+    if (text.contains('tsp') || text.contains('teaspoon')) {
+      return 5;
+    }
+    if (text.contains('piece') ||
+        text.contains('slice') ||
+        text.contains('leg') ||
+        text.contains('fillet')) {
+      return 100;
+    }
+
+    return 0;
+  }
+
+  double _calculateNutrient(double grams, double per100gValue) {
+    return (grams / 100) * per100gValue;
+  }
+
+  String _cleanIngredientName(dynamic value) {
+    final name = _safeString(value, '');
+    if (name.isEmpty || _isGenericIngredientName(name)) {
+      return '';
+    }
+    return name;
+  }
+
+  bool _isGenericIngredientName(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'food' ||
+        normalized == 'meal' ||
+        normalized == 'dish' ||
+        normalized == 'item' ||
+        normalized == 'food item';
+  }
+
   Map<String, dynamic> _buildFallbackResponse() {
     return {
       'meal_title': 'Scanned Meal',
@@ -276,19 +567,22 @@ class AiFoodService {
           'protein_estimate': 8,
           'carbs_estimate': 25,
           'fat_estimate': 8,
-        }
+          'estimated_grams': 100,
+        },
       ],
     };
   }
 
-  /// Builds a fallback Meal object when everything else fails.
-  Meal _buildFallbackMeal() {
+  Meal _buildFallbackMeal({
+    String? mealId,
+    String imageUrl = '',
+  }) {
     return Meal(
-      id: _uuid.v4(),
-      imageUrl: '',
+      id: mealId ?? _uuid.v4(),
+      imageUrl: imageUrl,
       title: 'Scanned Meal',
       container: 'plate',
-      ingredients: [
+      ingredients: const [
         MealIngredient(
           name: 'Food item',
           amount: '1 serving',
@@ -297,9 +591,12 @@ class AiFoodService {
           proteinEstimate: 8,
           carbsEstimate: 25,
           fatEstimate: 8,
+          estimatedGrams: 100,
+          source: 'gemini_fallback',
         ),
       ],
       createdAt: DateTime.now(),
+      logged: true,
     );
   }
 
@@ -310,9 +607,28 @@ class AiFoodService {
     return fallback;
   }
 
+  String? _stringOrNull(dynamic value) {
+    if (value is num) {
+      return value.toString();
+    }
+    final stringValue = _safeString(value, '');
+    return stringValue.isEmpty ? null : stringValue;
+  }
+
+  String _formatQuantity(double value) {
+    if (value == value.roundToDouble()) {
+      return value.round().toString();
+    }
+    return value.toStringAsFixed(1);
+  }
+
   double _safeDouble(dynamic value) {
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0;
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value.trim()) ?? 0;
+    }
     return 0;
   }
 
@@ -325,7 +641,11 @@ class AiFoodService {
         .set(meal.toJson());
   }
 
-  Future<void> updateMealBookmark(String userId, String mealId, bool bookmarked) async {
+  Future<void> updateMealBookmark(
+    String userId,
+    String mealId,
+    bool bookmarked,
+  ) async {
     await _firestore
         .collection('users')
         .doc(userId)
@@ -343,123 +663,13 @@ class AiFoodService {
         .update({'logged': true});
   }
 
-  /// Asynchronously enriches each ingredient in a meal with detailed USDA/OFF data.
-  /// Updates Firestore once all items are processed.
   Future<Meal> enrichMeal(String userId, Meal meal) async {
-    final enrichedIngredients = <MealIngredient>[];
-
-    for (final ingredient in meal.ingredients) {
-      try {
-        final nutritionData = await _cloudFunctions.enrichMealItem(ingredient.name);
-        if (nutritionData != null) {
-          final optionsRaw = nutritionData['servingOptions'] ?? nutritionData['serving_options'] ?? [];
-          final options = (optionsRaw as List).map((o) => ServingOption.fromJson(Map<String, dynamic>.from(o))).toList();
-          
-          final nutriments = nutritionData['nutritionPer100g'] ?? nutritionData['nutrition_per_100g'];
-          final Map<String, double> nutMap = {};
-          if (nutriments is Map) {
-            nutMap['calories'] = _safeDouble(nutriments['calories'] ?? nutriments['energy']);
-            nutMap['protein'] = _safeDouble(nutriments['protein']);
-            nutMap['carbs'] = _safeDouble(nutriments['carbs']);
-            nutMap['fat'] = _safeDouble(nutriments['fat']);
-          }
-
-          double calories = _safeDouble(ingredient.caloriesEstimate);
-          double protein = _safeDouble(ingredient.proteinEstimate);
-          double carbs = _safeDouble(ingredient.carbsEstimate);
-          double fat = _safeDouble(ingredient.fatEstimate);
-          double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
-
-          if (estimatedGrams <= 0) {
-            final amt = ingredient.amount.toLowerCase();
-            final size = ingredient.servingSize.toLowerCase();
-            if (amt.contains('bowl') || size.contains('bowl')) {
-              estimatedGrams = 200.0;
-            } else if (amt.contains('glass') || size.contains('glass')) {
-              estimatedGrams = 250.0;
-            } else if (amt.contains('piece') || size.contains('piece') || amt.contains('slice') || size.contains('slice')) {
-              estimatedGrams = 100.0;
-            } else {
-              if (options.length > 1 && options[1].grams > 0) {
-                estimatedGrams = options[1].grams.toDouble();
-              } else {
-                estimatedGrams = 100.0; 
-              }
-            }
-          }
-
-          if (nutMap.containsKey('calories')) {
-            final scale = estimatedGrams / 100.0;
-            calories = nutMap['calories']! * scale;
-            protein = (nutMap['protein'] ?? 0) * scale;
-            carbs = (nutMap['carbs'] ?? 0) * scale;
-            fat = (nutMap['fat'] ?? 0) * scale;
-          }
-
-          enrichedIngredients.add(MealIngredient(
-            name: _safeString(nutritionData['name'], ingredient.name),
-            amount: ingredient.amount,
-            servingSize: ingredient.servingSize,
-            caloriesEstimate: calories,
-            proteinEstimate: protein,
-            carbsEstimate: carbs,
-            fatEstimate: fat,
-            servingOptions: options,
-            nutritionPer100g: nutMap,
-            source: _safeString(nutritionData['source'], 'enriched'),
-            fdcId: nutritionData['fdcId']?.toString() ?? nutritionData['fdc_id']?.toString(),
-            estimatedGrams: estimatedGrams,
-          ));
-        } else {
-          double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
-          if (estimatedGrams <= 0) estimatedGrams = 100.0;
-
-          enrichedIngredients.add(MealIngredient(
-            name: ingredient.name,
-            amount: ingredient.amount,
-            servingSize: ingredient.servingSize,
-            caloriesEstimate: _safeDouble(ingredient.caloriesEstimate),
-            proteinEstimate: _safeDouble(ingredient.proteinEstimate),
-            carbsEstimate: _safeDouble(ingredient.carbsEstimate),
-            fatEstimate: _safeDouble(ingredient.fatEstimate),
-            source: 'safe_fallback',
-            estimatedGrams: estimatedGrams,
-          ));
-        }
-      } catch (e) {
-        print('Error enriching ingredient ${ingredient.name}: $e');
-        double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
-        if (estimatedGrams <= 0) estimatedGrams = 100.0;
-
-        enrichedIngredients.add(MealIngredient(
-            name: ingredient.name,
-            amount: ingredient.amount,
-            servingSize: ingredient.servingSize,
-            caloriesEstimate: _safeDouble(ingredient.caloriesEstimate),
-            proteinEstimate: _safeDouble(ingredient.proteinEstimate),
-            carbsEstimate: _safeDouble(ingredient.carbsEstimate),
-            fatEstimate: _safeDouble(ingredient.fatEstimate),
-            source: 'safe_fallback',
-            estimatedGrams: estimatedGrams,
-        ));
-      }
-    }
-
-    final enrichedMeal = Meal(
-      id: meal.id,
-      imageUrl: meal.imageUrl,
-      title: meal.title,
-      container: meal.container,
-      ingredients: enrichedIngredients,
-      createdAt: meal.createdAt,
-      bookmarked: meal.bookmarked,
-      logged: meal.logged,
-    );
+    final enrichedMeal = await _buildEnrichedMeal(meal);
 
     try {
       await _saveMealToFirestore(userId, enrichedMeal);
-    } catch (e) {
-      print('Failed to save enriched meal to Firestore: $e');
+    } catch (error) {
+      debugPrint('Failed to save enriched meal to Firestore: $error');
     }
 
     return enrichedMeal;

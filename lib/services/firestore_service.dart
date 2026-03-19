@@ -199,18 +199,18 @@ class FirestoreService {
   ) async {
     try {
       final batch = _firestore.batch();
+      final requestedId = _toNullableString(mealData['id']);
       final mealRef = _firestore
           .collection('users')
           .doc(uid)
           .collection('meals')
-          .doc();
+          .doc(requestedId == null || requestedId.isEmpty ? null : requestedId);
       final normalizedMeal = _normalizeMealDocument(mealData, mealRef.id, date);
 
-      // 1. Add meal to meals subcollection
       batch.set(mealRef, {
         ...normalizedMeal,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       // 2. Update Daily Summary for the specific date
       final dateId = _formatDateId(date);

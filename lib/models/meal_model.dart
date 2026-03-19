@@ -4,7 +4,7 @@ class ServingOption {
   final String label;
   final double grams;
 
-  ServingOption({required this.label, required this.grams});
+  const ServingOption({required this.label, required this.grams});
 
   factory ServingOption.fromJson(Map<String, dynamic> json) {
     return ServingOption(
@@ -41,7 +41,7 @@ class MealIngredient {
   final String? fdcId;
   final double estimatedGrams;
 
-  MealIngredient({
+  const MealIngredient({
     required this.name,
     required this.amount,
     required this.servingSize,
@@ -154,28 +154,71 @@ class Meal {
   factory Meal.fromJson(Map<String, dynamic> data, String id) {
     return Meal(
       id: id,
-      imageUrl: data['image_url'] ?? '',
-      title: data['meal_title'] ?? data['title'] ?? '',
+      imageUrl: data['image_url'] ?? data['imageUrl'] ?? '',
+      title: data['meal_title'] ?? data['title'] ?? data['name'] ?? '',
       container: data['container'] ?? 'plate',
       ingredients: (data['ingredients'] as List? ?? [])
           .map((i) => MealIngredient.fromJson(Map<String, dynamic>.from(i)))
           .toList(),
-      createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: _dateFromAny(
+            data['created_at'] ?? data['createdAt'] ?? data['timestamp'],
+          ) ??
+          DateTime.now(),
       bookmarked: data['bookmarked'] ?? false,
       logged: data['logged'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
+    final totals = _ingredientTotals();
+
     return {
       'image_url': imageUrl,
       'meal_title': title,
+      'name': title,
       'container': container,
       'ingredients': ingredients.map((i) => i.toJson()).toList(),
       'created_at': Timestamp.fromDate(createdAt),
+      'timestamp': Timestamp.fromDate(createdAt),
+      'calories': totals['calories'],
+      'proteinG': totals['protein'],
+      'carbsG': totals['carbs'],
+      'fatG': totals['fat'],
+      'protein': totals['protein'],
+      'carbs': totals['carbs'],
+      'fat': totals['fat'],
+      'source': 'snap',
       'bookmarked': bookmarked,
       'logged': logged,
     };
+  }
+
+  Map<String, double> _ingredientTotals() {
+    double calories = 0;
+    double protein = 0;
+    double carbs = 0;
+    double fat = 0;
+
+    for (final ingredient in ingredients) {
+      calories += ingredient.caloriesEstimate;
+      protein += ingredient.proteinEstimate;
+      carbs += ingredient.carbsEstimate;
+      fat += ingredient.fatEstimate;
+    }
+
+    return {
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+    };
+  }
+
+  static DateTime? _dateFromAny(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 }
 

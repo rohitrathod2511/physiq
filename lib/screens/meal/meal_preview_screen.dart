@@ -81,14 +81,14 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
         .doc(_currentMeal!.id)
         .snapshots()
         .listen((snapshot) {
-      if (snapshot.exists && mounted) {
-        final updatedMeal = Meal.fromSnapshot(snapshot);
-        setState(() {
-          _currentMeal = updatedMeal;
-          _updateFoodFromMeal(updatedMeal);
+          if (snapshot.exists && mounted) {
+            final updatedMeal = Meal.fromSnapshot(snapshot);
+            setState(() {
+              _currentMeal = updatedMeal;
+              _updateFoodFromMeal(updatedMeal);
+            });
+          }
         });
-      }
-    });
   }
 
   void _updateFoodFromMeal(Meal meal) {
@@ -96,7 +96,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     double totalProtein = 0;
     double totalCarbs = 0;
     double totalFat = 0;
-    
+
     double totalFiber = 0;
     double totalSugar = 0;
     double totalSodium = 0;
@@ -110,16 +110,19 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       totalProtein += ingredient.proteinEstimate;
       totalCarbs += ingredient.carbsEstimate;
       totalFat += ingredient.fatEstimate;
-      
-      if (ingredient.nutritionPer100g != null && ingredient.estimatedGrams > 0) {
+
+      if (ingredient.nutritionPer100g != null &&
+          ingredient.estimatedGrams > 0) {
         final scale = ingredient.estimatedGrams / 100.0;
         totalFiber += (ingredient.nutritionPer100g!['fiber'] ?? 0) * scale;
         totalSugar += (ingredient.nutritionPer100g!['sugar'] ?? 0) * scale;
         totalSodium += (ingredient.nutritionPer100g!['sodium'] ?? 0) * scale;
-        totalCholesterol += (ingredient.nutritionPer100g!['cholesterol'] ?? 0) * scale;
+        totalCholesterol +=
+            (ingredient.nutritionPer100g!['cholesterol'] ?? 0) * scale;
         totalCalcium += (ingredient.nutritionPer100g!['calcium'] ?? 0) * scale;
         totalIron += (ingredient.nutritionPer100g!['iron'] ?? 0) * scale;
-        totalPotassium += (ingredient.nutritionPer100g!['potassium'] ?? 0) * scale;
+        totalPotassium +=
+            (ingredient.nutritionPer100g!['potassium'] ?? 0) * scale;
       }
     }
 
@@ -162,7 +165,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       proteinG: _getNutrient(_food.protein),
       carbsG: _getNutrient(_food.carbs),
       fatG: _getNutrient(_food.fat),
-      timestamp: DateTime.now(),
+      timestamp: _currentMeal?.createdAt ?? DateTime.now(),
       imageUrl: _currentMeal?.imageUrl,
       source: _currentMeal != null
           ? 'snap'
@@ -186,7 +189,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
-  
+
   Future<void> _deleteMeal() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _currentMeal == null) return;
@@ -197,8 +200,14 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
         title: const Text('Delete Meal'),
         content: const Text('Are you sure you want to delete this meal?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -207,8 +216,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
     try {
       // 1. Delete from HomeViewModel (handles Today's Log recalculation)
-      await ref.read(homeViewModelProvider.notifier).deleteMeal(_currentMeal!.id, _currentMeal!.createdAt);
-      
+      await ref
+          .read(homeViewModelProvider.notifier)
+          .deleteMeal(_currentMeal!.id, _currentMeal!.createdAt);
+
       // 2. Also ensure raw scan is deleted if it exists separately
       await FirebaseFirestore.instance
           .collection('users')
@@ -241,7 +252,16 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       body: Stack(
         children: [
           _buildHeroImage(context),
-          _buildContentSheet(context, theme, textPrimary, textSecondary, calories, protein, carbs, fat),
+          _buildContentSheet(
+            context,
+            theme,
+            textPrimary,
+            textSecondary,
+            calories,
+            protein,
+            carbs,
+            fat,
+          ),
           _buildTopNavButtons(context),
           _buildBottomActions(context, theme),
         ],
@@ -250,11 +270,14 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   }
 
   Widget _buildHeroImage(BuildContext context) {
-    if ((widget.imagePath == null || widget.imagePath!.isEmpty) && (_currentMeal?.imageUrl.isEmpty ?? true)) {
+    if ((widget.imagePath == null || widget.imagePath!.isEmpty) &&
+        (_currentMeal?.imageUrl.isEmpty ?? true)) {
       return Container(
         height: 380,
         color: Colors.grey[200],
-        child: const Center(child: Icon(Icons.image_not_supported_outlined, size: 50)),
+        child: const Center(
+          child: Icon(Icons.image_not_supported_outlined, size: 50),
+        ),
       );
     }
 
@@ -274,7 +297,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       right: 0,
       child: Container(
         color: Colors.transparent,
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, bottom: 12, left: 16, right: 16),
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 8,
+          bottom: 12,
+          left: 16,
+          right: 16,
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -282,7 +310,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               onTap: () => Navigator.pop(context),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
                 child: const Icon(Icons.close, color: Colors.white, size: 22),
               ),
             ),
@@ -292,8 +323,15 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               },
               icon: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), shape: BoxShape.circle),
-                child: const Icon(Icons.more_vert, color: Colors.white, size: 22),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.more_vert,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               itemBuilder: (context) => [
                 const PopupMenuItem(
@@ -348,14 +386,25 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                 const SizedBox(height: 24),
                 _buildEnrichmentStatus(theme),
                 const SizedBox(height: 12),
-                _buildCaloriesCard(totalCalories, textPrimary, textSecondary, theme),
+                _buildCaloriesCard(
+                  totalCalories,
+                  textPrimary,
+                  textSecondary,
+                  theme,
+                ),
                 const SizedBox(height: 16),
                 _buildMacrosRow(protein, carbs, fat, theme),
                 const SizedBox(height: 32),
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Ingredients', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Ingredients',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -370,7 +419,9 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   }
 
   Widget _buildBookmarkAndTime(ThemeData theme, Color textSecondary) {
-    final timeStr = DateFormat('hh:mm a').format(_currentMeal?.createdAt ?? DateTime.now());
+    final timeStr = DateFormat(
+      'hh:mm a',
+    ).format(_currentMeal?.createdAt ?? DateTime.now());
     return Row(
       children: [
         const Icon(Icons.bookmark_border, color: Colors.black, size: 24),
@@ -383,7 +434,11 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
           ),
           child: Text(
             timeStr,
-            style: TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -397,7 +452,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
         Expanded(
           child: Text(
             _currentMeal?.title ?? _food.name,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textPrimary, height: 1.2),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textPrimary,
+              height: 1.2,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -419,7 +479,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               ),
               Text(
                 _quantity.toInt().toString(),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.add, size: 20),
@@ -434,7 +497,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     );
   }
 
-  Widget _buildCaloriesCard(int calories, Color textPrimary, Color textSecondary, ThemeData theme) {
+  Widget _buildCaloriesCard(
+    int calories,
+    Color textPrimary,
+    Color textSecondary,
+    ThemeData theme,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -458,15 +526,33 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               color: const Color(0xFFF7F7F9),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.local_fire_department, color: Colors.black, size: 24),
+            child: const Icon(
+              Icons.local_fire_department,
+              color: Colors.black,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 20),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Calories', style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500)),
+              Text(
+                'Calories',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text('$calories', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)),
+              Text(
+                '$calories',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
             ],
           ),
         ],
@@ -512,49 +598,71 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: const Color(0xFFF7F7F9), borderRadius: BorderRadius.circular(20)),
-        child: const Text('Detecting ingredients...', style: TextStyle(color: Colors.grey)),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F7F9),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text(
+          'Detecting ingredients...',
+          style: TextStyle(color: Colors.grey),
+        ),
       );
     }
 
     return Column(
-      children: _currentMeal!.ingredients.map((item) => Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: item.name,
-                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        TextSpan(
-                          text: ' • ${item.caloriesEstimate.round()} cal, ${item.amount}',
-                          style: TextStyle(color: Colors.grey[500], fontSize: 14),
-                        ),
-                      ],
+      children: _currentMeal!.ingredients
+          .map(
+            (item) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F7F9),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: item.name,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          TextSpan(
+                            text:
+                                ' • ${item.caloriesEstimate.round()} cal, ${item.amount}',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                if (item.source == 'usda' || item.source == 'off')
-                  const Icon(Icons.verified, color: Colors.green, size: 20),
-              ],
+                  if (item.source == 'usda' || item.source == 'off')
+                    const Icon(Icons.verified, color: Colors.green, size: 20),
+                ],
+              ),
             ),
-          )).toList(),
+          )
+          .toList(),
     );
   }
 
   Widget _buildEnrichmentStatus(ThemeData theme) {
     if (_currentMeal == null) return const SizedBox.shrink();
     final total = _currentMeal!.ingredients.length;
-    final enriched = _currentMeal!.ingredients.where((i) => i.source != 'gemini_estimate' && i.source != 'gemini_fallback').length;
+    final enriched = _currentMeal!.ingredients
+        .where(
+          (i) => i.source != 'gemini_estimate' && i.source != 'gemini_fallback',
+        )
+        .length;
     if (enriched == total && total > 0) return const SizedBox.shrink();
 
     return Padding(
@@ -562,13 +670,21 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       child: Row(
         children: [
           const SizedBox(
-            width: 14, height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.black,
+            ),
           ),
           const SizedBox(width: 8),
           Text(
             'Verifying nutrition ($enriched/$total)...',
-            style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -584,7 +700,13 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: ElevatedButton(
           onPressed: _saveMeal,
@@ -593,9 +715,14 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 18),
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
           ),
-          child: const Text('Done', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Log Meal',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -631,15 +758,28 @@ class _MacroItem extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: icon,
               ),
               const SizedBox(width: 8),
-              Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+              Text(
+                label,
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
         ],
       ),
     );

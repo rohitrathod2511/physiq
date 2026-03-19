@@ -216,7 +216,8 @@ class RecentMealsList extends ConsumerWidget {
     final imageUrl = (mealData['imageUrl'] ?? mealData['image_url']) as String?;
 
     // Unlogged scans have 'ingredients' field from AI scans
-    final bool isUnloggedScan = mealData['ingredients'] != null && mealData['proteinG'] == null;
+    final bool hasMealData = mealData['ingredients'] is List;
+    final bool isUnloggedScan = hasMealData && mealData['proteinG'] == null;
     
     // Dynamic stats for unlogged scans
     double displayP = protein;
@@ -238,6 +239,12 @@ class RecentMealsList extends ConsumerWidget {
     final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
     final sourceType = mealData['source'] as String? ?? 'snap';
     final bool isDatabaseMeal = sourceType == 'database';
+    final bool isLoadingScan = hasMealData &&
+        (mealData['ingredients'] as List).isEmpty &&
+        displayCal == 0 &&
+        displayP == 0 &&
+        displayC == 0 &&
+        displayF == 0;
 
     // Time Formatting
     String timeStr = '';
@@ -252,26 +259,25 @@ class RecentMealsList extends ConsumerWidget {
           onMealTap!(id);
         } else {
            // Direct navigation to preview screen
-           if (isUnloggedScan) {
-              final meal = Meal.fromJson(mealData, id);
-              // initialFood is required, so we provide one from the meal title
-              final dummyFood = Food(
-                id: meal.id,
-                name: meal.title,
-                category: 'AI Scan',
-                unit: 'serving',
+           if (hasMealData) {
+               final meal = Meal.fromJson(mealData, id);
+               final dummyFood = Food(
+                 id: meal.id,
+                 name: meal.title,
+                 category: 'AI Scan',
+                 unit: 'serving',
                 baseWeightG: 100,
                 calories: displayCal,
                 protein: displayP,
                 carbs: displayC,
                 fat: displayF,
                 source: 'snap',
-              );
-              Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(
-                meal: meal,
-                initialFood: dummyFood,
-              )));
-            } else {
+               );
+               Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(
+                 meal: meal,
+                 initialFood: dummyFood,
+               )));
+             } else {
               final source = mealData['source'] as String? ?? 'snap';
               final servingAmount = (mealData['servingAmount'] as num?)?.toDouble() ?? 1.0;
               final servingDescription = mealData['servingDescription'] as String? ?? 'serving';
@@ -399,10 +405,29 @@ class RecentMealsList extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(
-                        '${displayCal.round()} kcal',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
-                      ),
+                      isLoadingScan
+                          ? Row(
+                              children: [
+                                const SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Analyzing...',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              '${displayCal.round()} kcal',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                            ),
                       if (mealData['logged'] == false) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -414,15 +439,21 @@ class RecentMealsList extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _buildMacroChip('P', '${displayP.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE57373)),
-                      const SizedBox(width: 8),
-                      _buildMacroChip('C', '${displayC.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFFB74D)),
-                      const SizedBox(width: 8),
-                      _buildMacroChip('F', '${displayF.round()}g', const Color(0xFFE3F2FD), const Color(0xFF64B5F6)),
-                    ],
-                  ),
+                  if (isLoadingScan)
+                    Text(
+                      'Waiting for Gemini + USDA nutrition',
+                      style: AppTextStyles.smallLabel.copyWith(color: Colors.grey[500]),
+                    )
+                  else
+                    Row(
+                      children: [
+                        _buildMacroChip('P', '${displayP.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE57373)),
+                        const SizedBox(width: 8),
+                        _buildMacroChip('C', '${displayC.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFFB74D)),
+                        const SizedBox(width: 8),
+                        _buildMacroChip('F', '${displayF.round()}g', const Color(0xFFE3F2FD), const Color(0xFF64B5F6)),
+                      ],
+                    ),
                 ],
               ),
             ),

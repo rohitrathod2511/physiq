@@ -38,10 +38,6 @@ const FOOD_CACHE_COLLECTION = 'foods_cache';
 const FOOD_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 const TOKEN_REFRESH_BUFFER_MS = 60 * 1000; // refresh 1 minute early
 
-// Retrieve Gemini API Key using modern secrets
-const GEMINI_KEY = GEMINI_API_KEY.value();
-const genAI = GEMINI_KEY ? new GoogleGenerativeAI(GEMINI_KEY) : null;
-
 interface CachedToken {
     token: string;
     expiresAtMs: number;
@@ -102,7 +98,7 @@ const cachedTokens = new Map<string, CachedToken>();
 const callableOptions = {
     region: REGION,
     invoker: 'public' as const,
-    secrets: [FATSECRET_CLIENT_ID, FATSECRET_CLIENT_SECRET, GEMINI_API_KEY],
+    secrets: [FATSECRET_CLIENT_ID, FATSECRET_CLIENT_SECRET, GEMINI_API_KEY, USDA_API_KEY],
 };
 
 function toNumber(value: unknown): number {
@@ -976,6 +972,7 @@ function buildFallbackMealResponse(): Record<string, unknown> {
                 protein_estimate: 8,
                 carbs_estimate: 25,
                 fat_estimate: 8,
+                estimated_grams: 100,
             },
         ],
     };
@@ -1080,7 +1077,8 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
             );
         }
 
-        if (!genAI) {
+        const geminiKey = GEMINI_API_KEY.value();
+        if (!geminiKey) {
             logger.error('Gemini API key is not configured');
             // Return fallback instead of crashing
             return buildFallbackMealResponse();
@@ -1088,6 +1086,7 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
 
         try {
             console.log("📸 STEP 1: Image sent to Gemini (Size: " + imageB64.length + ")");
+            const genAI = new GoogleGenerativeAI(geminiKey);
             
             const model = genAI.getGenerativeModel({
                 model: 'gemini-3.1-flash-lite-preview',
