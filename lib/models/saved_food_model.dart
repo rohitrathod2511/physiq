@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SavedFood {
   final String id;
@@ -10,7 +10,7 @@ class SavedFood {
   final double servingAmount; // user's selected quantity, e.g., 1.5
   final SavedFoodNutrition nutrition;
   final DateTime createdAt;
-  final String originalId; // ID from external source (FatSecret, etc.)
+  final String originalId; // ID from an external nutrition source
 
   SavedFood({
     required this.id,
