@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.claimReferral = exports.createInviteCode = void 0;
-const functions = require("firebase-functions");
+const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const db = admin.firestore();
 // Generate a random alphanumeric code
@@ -13,16 +13,16 @@ function generateCode(length) {
     }
     return result;
 }
-exports.createInviteCode = functions.https.onCall(async (data, context) => {
+exports.createInviteCode = (0, https_1.onCall)(async (request) => {
     var _a;
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    if (!request.auth) {
+        throw new https_1.HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
-    const uid = context.auth.uid;
+    const uid = request.auth.uid;
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
     if (!userDoc.exists) {
-        throw new functions.https.HttpsError('not-found', 'User not found.');
+        throw new https_1.HttpsError('not-found', 'User not found.');
     }
     const userData = userDoc.data();
     if ((_a = userData === null || userData === void 0 ? void 0 : userData.invites) === null || _a === void 0 ? void 0 : _a.code) {
@@ -55,32 +55,28 @@ exports.createInviteCode = functions.https.onCall(async (data, context) => {
     await batch.commit();
     return { code };
 });
-exports.claimReferral = functions.https.onCall(async (data, context) => {
+exports.claimReferral = (0, https_1.onCall)(async (request) => {
     var _a;
-    const { code, newUserUid } = data;
-    // In a real scenario, we should verify context.auth.uid matches newUserUid or is an admin
-    // For this flow, we assume the client calls this after signup.
+    const { code, newUserUid } = request.data;
     // Validate inputs
     if (!code || !newUserUid) {
-        throw new functions.https.HttpsError('invalid-argument', 'Missing code or newUserUid.');
+        throw new https_1.HttpsError('invalid-argument', 'Missing code or newUserUid.');
     }
     const inviteRef = db.collection('invites').doc(code);
     const inviteDoc = await inviteRef.get();
     if (!inviteDoc.exists) {
-        throw new functions.https.HttpsError('not-found', 'Invite code not found.');
+        throw new https_1.HttpsError('not-found', 'Invite code not found.');
     }
     const inviteData = inviteDoc.data();
     const referrerUid = inviteData === null || inviteData === void 0 ? void 0 : inviteData.referrerUid;
     if (referrerUid === newUserUid) {
-        throw new functions.https.HttpsError('invalid-argument', 'Cannot refer yourself.');
+        throw new https_1.HttpsError('invalid-argument', 'Cannot refer yourself.');
     }
     if ((_a = inviteData === null || inviteData === void 0 ? void 0 : inviteData.usedBy) === null || _a === void 0 ? void 0 : _a.includes(newUserUid)) {
-        throw new functions.https.HttpsError('already-exists', 'Referral already claimed by this user.');
+        throw new https_1.HttpsError('already-exists', 'Referral already claimed by this user.');
     }
     const referrerRef = db.collection('users').doc(referrerUid);
-    const newUserRef = db.collection('users').doc(newUserUid);
-    // Check if new user already has a referrer (optional, to prevent double dipping)
-    // For now, we trust the check on the invite code usage.
+    // const newUserRef = db.collection('users').doc(newUserUid);
     const REWARD_AMOUNT = 100;
     const BONUS_THRESHOLD = 5;
     const BONUS_AMOUNT = 500;
@@ -88,7 +84,7 @@ exports.claimReferral = functions.https.onCall(async (data, context) => {
         var _a;
         const rDoc = await t.get(referrerRef);
         if (!rDoc.exists) {
-            throw new functions.https.HttpsError('not-found', 'Referrer user not found.');
+            throw new https_1.HttpsError('not-found', 'Referrer user not found.');
         }
         const rData = rDoc.data();
         const currentRedeemed = (((_a = rData === null || rData === void 0 ? void 0 : rData.invites) === null || _a === void 0 ? void 0 : _a.redeemedCount) || 0) + 1;
@@ -115,8 +111,7 @@ exports.claimReferral = functions.https.onCall(async (data, context) => {
         });
         // Update New User (e.g. give trial)
         // t.update(newUserRef, { ... });
-        // Log transaction (optional)
     });
-    return { success: true, amountCredited: REWARD_AMOUNT }; // Return base amount for display
+    return { success: true, amountCredited: REWARD_AMOUNT };
 });
 //# sourceMappingURL=invite.js.map

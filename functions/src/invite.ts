@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
@@ -13,17 +13,17 @@ function generateCode(length: number): string {
     return result;
 }
 
-export const createInviteCode = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+export const createInviteCode = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
-    const uid = context.auth.uid;
+    const uid = request.auth.uid;
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-        throw new functions.https.HttpsError('not-found', 'User not found.');
+        throw new HttpsError('not-found', 'User not found.');
     }
 
     const userData = userDoc.data();
@@ -65,40 +65,34 @@ export const createInviteCode = functions.https.onCall(async (data, context) => 
     return { code };
 });
 
-export const claimReferral = functions.https.onCall(async (data, context) => {
-    const { code, newUserUid } = data;
+export const claimReferral = onCall(async (request) => {
+    const { code, newUserUid } = request.data as { code: string; newUserUid: string };
 
-    // In a real scenario, we should verify context.auth.uid matches newUserUid or is an admin
-    // For this flow, we assume the client calls this after signup.
-    
     // Validate inputs
     if (!code || !newUserUid) {
-        throw new functions.https.HttpsError('invalid-argument', 'Missing code or newUserUid.');
+        throw new HttpsError('invalid-argument', 'Missing code or newUserUid.');
     }
 
     const inviteRef = db.collection('invites').doc(code);
     const inviteDoc = await inviteRef.get();
 
     if (!inviteDoc.exists) {
-        throw new functions.https.HttpsError('not-found', 'Invite code not found.');
+        throw new HttpsError('not-found', 'Invite code not found.');
     }
 
     const inviteData = inviteDoc.data();
     const referrerUid = inviteData?.referrerUid;
 
     if (referrerUid === newUserUid) {
-        throw new functions.https.HttpsError('invalid-argument', 'Cannot refer yourself.');
+        throw new HttpsError('invalid-argument', 'Cannot refer yourself.');
     }
 
     if (inviteData?.usedBy?.includes(newUserUid)) {
-         throw new functions.https.HttpsError('already-exists', 'Referral already claimed by this user.');
+         throw new HttpsError('already-exists', 'Referral already claimed by this user.');
     }
 
     const referrerRef = db.collection('users').doc(referrerUid);
-    const newUserRef = db.collection('users').doc(newUserUid);
-
-    // Check if new user already has a referrer (optional, to prevent double dipping)
-    // For now, we trust the check on the invite code usage.
+    // const newUserRef = db.collection('users').doc(newUserUid);
 
     const REWARD_AMOUNT = 100;
     const BONUS_THRESHOLD = 5;
@@ -107,7 +101,7 @@ export const claimReferral = functions.https.onCall(async (data, context) => {
     await db.runTransaction(async (t) => {
         const rDoc = await t.get(referrerRef);
         if (!rDoc.exists) {
-            throw new functions.https.HttpsError('not-found', 'Referrer user not found.');
+            throw new HttpsError('not-found', 'Referrer user not found.');
         }
         
         const rData = rDoc.data();
@@ -139,9 +133,7 @@ export const claimReferral = functions.https.onCall(async (data, context) => {
 
         // Update New User (e.g. give trial)
         // t.update(newUserRef, { ... });
-        
-        // Log transaction (optional)
     });
 
-    return { success: true, amountCredited: REWARD_AMOUNT }; // Return base amount for display
+    return { success: true, amountCredited: REWARD_AMOUNT };
 });

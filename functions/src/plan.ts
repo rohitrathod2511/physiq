@@ -1,19 +1,19 @@
-import * as functions from 'firebase-functions';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
 
-export const generateCanonicalPlan = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+export const generateCanonicalPlan = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
-    const uid = context.auth.uid;
+    const uid = request.auth.uid;
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-        throw new functions.https.HttpsError('not-found', 'User not found.');
+        throw new HttpsError('not-found', 'User not found.');
     }
 
     const userData = userDoc.data();
@@ -25,7 +25,7 @@ export const generateCanonicalPlan = functions.https.onCall(async (data, context
     const height = userData?.heightCm || 170;
     const age = new Date().getFullYear() - (userData?.birthYear || 2000);
     const gender = userData?.gender || 'male';
-    const activityLevel = userData?.activityLevel || 'moderate'; // Need to ensure this field exists
+    // activityLevel is removed as it's not currently used, to pass TS build
     
     // Mifflin-St Jeor Equation
     let bmr = (10 * weight) + (6.25 * height) - (5 * age);

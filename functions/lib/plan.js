@@ -1,18 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateCanonicalPlan = void 0;
-const functions = require("firebase-functions");
+const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const db = admin.firestore();
-exports.generateCanonicalPlan = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+exports.generateCanonicalPlan = (0, https_1.onCall)(async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
-    const uid = context.auth.uid;
+    const uid = request.auth.uid;
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
     if (!userDoc.exists) {
-        throw new functions.https.HttpsError('not-found', 'User not found.');
+        throw new https_1.HttpsError('not-found', 'User not found.');
     }
     const userData = userDoc.data();
     // Logic to calculate plan based on height, weight, goal, etc.
@@ -21,7 +21,7 @@ exports.generateCanonicalPlan = functions.https.onCall(async (data, context) => 
     const height = (userData === null || userData === void 0 ? void 0 : userData.heightCm) || 170;
     const age = new Date().getFullYear() - ((userData === null || userData === void 0 ? void 0 : userData.birthYear) || 2000);
     const gender = (userData === null || userData === void 0 ? void 0 : userData.gender) || 'male';
-    const activityLevel = (userData === null || userData === void 0 ? void 0 : userData.activityLevel) || 'moderate'; // Need to ensure this field exists
+    // activityLevel is removed as it's not currently used, to pass TS build
     // Mifflin-St Jeor Equation
     let bmr = (10 * weight) + (6.25 * height) - (5 * age);
     if (gender === 'male') {
