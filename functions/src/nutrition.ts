@@ -214,9 +214,13 @@ function normalizeOFFResponse(product: any): NormalizedFood {
  */
 async function fetchFoodFromUSDA(query: string): Promise<NormalizedFood | null> {
     const apiKey = USDA_API_KEY.value();
-    if (!apiKey) return null;
+    if (!apiKey) {
+        console.error("❌ USDA_API_KEY is missing/undefined in Firebase!");
+        return null;
+    }
 
     try {
+        console.log(`🔍 STEP: Searching USDA for [${query}]`);
         const searchRes = await axios.post(`${USDA_SEARCH_URL}?api_key=${apiKey}`, {
             query,
             pageSize: 1,
@@ -224,9 +228,14 @@ async function fetchFoodFromUSDA(query: string): Promise<NormalizedFood | null> 
         }, { timeout: 10000 });
 
         const foods = searchRes.data.foods;
-        if (!foods || foods.length === 0) return null;
+        if (!foods || foods.length === 0) {
+            console.warn(`⚠️ USDA returned NO results for [${query}]`);
+            return null;
+        }
 
         const fdcId = foods[0].fdcId;
+        console.log(`✅ USDA found [${foods[0].description}] with fdcId: ${fdcId}`);
+        
         const detailsRes = await axios.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 10000 });
         return normalizeUSDAResponse(detailsRes.data);
     } catch (error) {
@@ -910,36 +919,32 @@ Your task:
 2. Be specific (e.g., "chapati", "dal tadka", "jeera rice", not "food").
 3. Estimate realistic serving size for each item (in grams or common units).
 4. Detect multiple items if present.
-5. Provide approximate calories and macros (protein, carbs, fat) for each item as a fallback.
 
 STRICT RULES:
 - Return ONLY valid JSON.
 - No explanation.
-- No markdown formatting or extra text.
-- Use realistic Indian food naming when applicable.
-- If unsure, provide your best professional estimate.
+- No extra text.
+- No markdown formatting.
+- Detect all items.
+- Use real food names.
 
 JSON FORMAT:
 {
-  "mealName": "string - descriptive name",
-  "items": [
-    {
-      "name": "string",
-      "quantity": number,
-      "servingSize": "string (e.g., '2 pieces', '1 bowl')",
-      "estimatedGrams": number,
-      "calories": number,
-      "protein": number,
-      "carbs": number,
-      "fat": number
-    }
-  ]
+"mealName": "string - descriptive name",
+"items": [
+{
+"name": "string",
+"quantity": 1,
+"servingSize": "string (e.g., '2 pieces', '1 bowl')",
+"estimatedGrams": 100
+}
+]
 }`;
 
 interface GeminiMealItem {
     ingredient?: string;
     name?: string;
-    estimated_amount?: string;
+    estimated_amount?: string; 
     amount?: string;
     serving_size?: string;
     calories_estimate?: number;
@@ -978,30 +983,32 @@ function buildFallbackMealResponse(): Record<string, unknown> {
 
 function validateAndNormalizeMealResponse(parsed: unknown): Record<string, unknown> {
     if (!parsed || typeof parsed !== 'object') {
-        logger.warn('Gemini response is not an object, using fallback');
+        console.warn('⚠️ Gemini response is not a valid JSON object, using fallback');
         return buildFallbackMealResponse();
     }
 
     const data = parsed as any;
+    console.log(`✅ Validating response for: ${data.mealName || data.meal_title || 'Unknown Meal'}`);
 
     const mealTitle =
         (typeof data.mealName === 'string' && data.mealName.trim().length > 0)
             ? data.mealName.trim()
             : (typeof data.meal_title === 'string' && data.meal_title.trim().length > 0)
                 ? data.meal_title.trim()
-                : 'Detected Meal';
+                : 'Scanned Meal';
+
+    const itemsRaw = (data.items || data.ingredients || []) as GeminiMealItem[];
+    if (!Array.isArray(itemsRaw) || itemsRaw.length === 0) {
+        console.warn('⚠️ No items found in Gemini response segments, using fallback');
+        return buildFallbackMealResponse();
+    }
 
     const servingContainer =
         typeof data.serving_container === 'string' && data.serving_container.trim().length > 0
             ? data.serving_container.trim().toLowerCase()
             : 'plate';
 
-    const rawItems = (Array.isArray(data.items) ? data.items : []) as GeminiMealItem[];
-
-    if (rawItems.length === 0) {
-        logger.warn('Gemini returned zero items, using fallback');
-        return buildFallbackMealResponse();
-    }
+    const rawItems = itemsRaw;
 
     const validatedItems: Record<string, unknown>[] = [];
 
@@ -1080,10 +1087,8 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
         }
 
         try {
-            logger.info('recognizeMealImage request', {
-                imageSizeChars: imageB64.length,
-            });
-
+            console.log("📸 STEP 1: Image sent to Gemini (Size: " + imageB64.length + ")");
+            
             const model = genAI.getGenerativeModel({
                 model: 'gemini-3.1-flash-lite-preview',
                 generationConfig: {
@@ -1103,6 +1108,8 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(
             ]);
 
             const responseText = result.response.text();
+            console.log("🤖 RAW GEMINI RESPONSE:");
+            console.log(responseText);
 
             logger.info('RAW GEMINI RESPONSE:', { responseText });
 

@@ -17,40 +17,54 @@ class AiFoodService {
 
   Future<Meal?> processAndEnrichMealAsync(String userId, String mealId, File imageFile) async {
     try {
+      print('🚀 STEP 1: Starting Meal Analysis Flow');
+
       // 1. Upload image
       String imageUrl = '';
       try {
+        print('📸 STEP 2: Uploading image to Storage...');
         final storageRef = _storage.ref().child('meal_images/$userId/$mealId.jpg');
         final uploadTask = await storageRef.putFile(imageFile);
         imageUrl = await uploadTask.ref.getDownloadURL();
+        print('✅ Image uploaded: $imageUrl');
       } catch (e) {
-        print('Image upload failed (non-fatal): $e');
+        print('⚠️ Image upload failed (non-fatal): $e');
       }
 
       // 2. Analyze meal with Gemini
+      print('🤖 STEP 3: Calling Gemini API for image recognition...');
       final base64Image = base64Encode(await imageFile.readAsBytes());
       Map<String, dynamic> jsonResponse;
       try {
         jsonResponse = await _cloudFunctions.recognizeMealImage(base64Image);
+        print('✅ Gemini responded. Status: ${jsonResponse.isNotEmpty ? "SUCCESS" : "EMPTY"}');
       } catch (e) {
-        print('Gemini analysis failed, using fallback: $e');
+        print('❌ Gemini analysis failed, using fallback: $e');
         jsonResponse = _buildFallbackResponse();
       }
 
       // 3. Parse Gemini response safely
+      print('📦 STEP 4: Parsing Gemini JSON Response...');
+      print('Parsed JSON (Gemini): $jsonResponse');
       final initialMeal = _parseGeminiResponse(
         mealId: mealId,
         imageUrl: imageUrl, 
         jsonResponse: jsonResponse,
       );
+      print('✅ Parsed meal: ${initialMeal.title} with ${initialMeal.ingredients.length} items');
 
       // 4. Enrich and Update 
+      print('🍎 STEP 5: Starting USDA/OFF Enrichment for each item...');
       final enrichedIngredients = <MealIngredient>[];
 
       for (final ingredient in initialMeal.ingredients) {
         try {
+          print('🔍 Searching nutrition for: ${ingredient.name}');
           final nutritionData = await _cloudFunctions.enrichMealItem(ingredient.name);
+          print('USDA/OFF Response for ${ingredient.name}: $nutritionData');
+          
           if (nutritionData != null) {
+            print('✅ Nutrition data received for: ${ingredient.name} from ${nutritionData['source']}');
             final optionsRaw = nutritionData['servingOptions'] ?? nutritionData['serving_options'] ?? [];
             final options = (optionsRaw as List).map((o) => ServingOption.fromJson(Map<String, dynamic>.from(o))).toList();
             
@@ -69,13 +83,35 @@ class AiFoodService {
             double fat = _safeDouble(ingredient.fatEstimate);
             double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
 
-            if (nutMap.containsKey('calories') && estimatedGrams > 0) {
+            if (estimatedGrams <= 0) {
+              final amt = ingredient.amount.toLowerCase();
+              final size = ingredient.servingSize.toLowerCase();
+              print('❓ Grams not provided for [${ingredient.name}], attempting mapping...');
+              if (amt.contains('bowl') || size.contains('bowl')) {
+                estimatedGrams = 200.0;
+              } else if (amt.contains('glass') || size.contains('glass')) {
+                estimatedGrams = 250.0;
+              } else if (amt.contains('piece') || size.contains('piece') || amt.contains('slice') || size.contains('slice')) {
+                estimatedGrams = 100.0;
+              } else {
+                if (options.length > 1 && options[1].grams > 0) {
+                  estimatedGrams = options[1].grams.toDouble();
+                } else {
+                  estimatedGrams = 100.0; 
+                }
+              }
+              print('⚖️ Calculated grams for [${ingredient.name}]: $estimatedGrams');
+            }
+
+            if (nutMap.containsKey('calories')) {
               final scale = estimatedGrams / 100.0;
               cal = _safeDouble(nutMap['calories']! * scale);
               prot = _safeDouble((nutMap['protein'] ?? 0) * scale);
               carb = _safeDouble((nutMap['carbs'] ?? 0) * scale);
               fat = _safeDouble((nutMap['fat'] ?? 0) * scale);
             }
+
+            print('Final calculated data for ${ingredient.name}: calories: $cal, protein: $prot, carbs: $carb, fat: $fat, grams: $estimatedGrams');
 
             enrichedIngredients.add(MealIngredient(
               name: _safeString(nutritionData['name'], ingredient.name),
@@ -93,19 +129,26 @@ class AiFoodService {
             ));
           } else {
              // Fallback
+             print('⚠️ No enrichment found for: ${ingredient.name}, using safe fallback');
+             double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
+             if (estimatedGrams <= 0) estimatedGrams = 100.0;
+
+             print('Fallback data for ${ingredient.name} as APIs failed');
+
              enrichedIngredients.add(MealIngredient(
                name: ingredient.name,
                amount: ingredient.amount,
                servingSize: ingredient.servingSize,
-               caloriesEstimate: 0.0,
-               proteinEstimate: 0.0,
-               carbsEstimate: 0.0,
-               fatEstimate: 0.0,
+               caloriesEstimate: _safeDouble(ingredient.caloriesEstimate),
+               proteinEstimate: _safeDouble(ingredient.proteinEstimate),
+               carbsEstimate: _safeDouble(ingredient.carbsEstimate),
+               fatEstimate: _safeDouble(ingredient.fatEstimate),
                source: 'safe_fallback',
-               estimatedGrams: _safeDouble(ingredient.estimatedGrams),
+               estimatedGrams: estimatedGrams,
             ));
           }
         } catch (e) {
+             print('❌ Error enriching [${ingredient.name}]: $e');
              enrichedIngredients.add(MealIngredient(
                name: ingredient.name,
                amount: ingredient.amount,
@@ -321,14 +364,32 @@ class AiFoodService {
             nutMap['fat'] = _safeDouble(nutriments['fat']);
           }
 
-          // Recalculate estimates based on nutrition data and Gemini's gram estimate
-          double calories = ingredient.caloriesEstimate;
-          double protein = ingredient.proteinEstimate;
-          double carbs = ingredient.carbsEstimate;
-          double fat = ingredient.fatEstimate;
+          double calories = _safeDouble(ingredient.caloriesEstimate);
+          double protein = _safeDouble(ingredient.proteinEstimate);
+          double carbs = _safeDouble(ingredient.carbsEstimate);
+          double fat = _safeDouble(ingredient.fatEstimate);
+          double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
 
-          if (nutMap.containsKey('calories') && ingredient.estimatedGrams > 0) {
-            final scale = ingredient.estimatedGrams / 100.0;
+          if (estimatedGrams <= 0) {
+            final amt = ingredient.amount.toLowerCase();
+            final size = ingredient.servingSize.toLowerCase();
+            if (amt.contains('bowl') || size.contains('bowl')) {
+              estimatedGrams = 200.0;
+            } else if (amt.contains('glass') || size.contains('glass')) {
+              estimatedGrams = 250.0;
+            } else if (amt.contains('piece') || size.contains('piece') || amt.contains('slice') || size.contains('slice')) {
+              estimatedGrams = 100.0;
+            } else {
+              if (options.length > 1 && options[1].grams > 0) {
+                estimatedGrams = options[1].grams.toDouble();
+              } else {
+                estimatedGrams = 100.0; 
+              }
+            }
+          }
+
+          if (nutMap.containsKey('calories')) {
+            final scale = estimatedGrams / 100.0;
             calories = nutMap['calories']! * scale;
             protein = (nutMap['protein'] ?? 0) * scale;
             carbs = (nutMap['carbs'] ?? 0) * scale;
@@ -347,33 +408,39 @@ class AiFoodService {
             nutritionPer100g: nutMap,
             source: _safeString(nutritionData['source'], 'enriched'),
             fdcId: nutritionData['fdcId']?.toString() ?? nutritionData['fdc_id']?.toString(),
-            estimatedGrams: ingredient.estimatedGrams,
+            estimatedGrams: estimatedGrams,
           ));
         } else {
+          double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
+          if (estimatedGrams <= 0) estimatedGrams = 100.0;
+
           enrichedIngredients.add(MealIngredient(
             name: ingredient.name,
             amount: ingredient.amount,
             servingSize: ingredient.servingSize,
-            caloriesEstimate: 0.0,
-            proteinEstimate: 0.0,
-            carbsEstimate: 0.0,
-            fatEstimate: 0.0,
+            caloriesEstimate: _safeDouble(ingredient.caloriesEstimate),
+            proteinEstimate: _safeDouble(ingredient.proteinEstimate),
+            carbsEstimate: _safeDouble(ingredient.carbsEstimate),
+            fatEstimate: _safeDouble(ingredient.fatEstimate),
             source: 'safe_fallback',
-            estimatedGrams: _safeDouble(ingredient.estimatedGrams),
+            estimatedGrams: estimatedGrams,
           ));
         }
       } catch (e) {
         print('Error enriching ingredient ${ingredient.name}: $e');
+        double estimatedGrams = _safeDouble(ingredient.estimatedGrams);
+        if (estimatedGrams <= 0) estimatedGrams = 100.0;
+
         enrichedIngredients.add(MealIngredient(
             name: ingredient.name,
             amount: ingredient.amount,
             servingSize: ingredient.servingSize,
-            caloriesEstimate: 0.0,
-            proteinEstimate: 0.0,
-            carbsEstimate: 0.0,
-            fatEstimate: 0.0,
+            caloriesEstimate: _safeDouble(ingredient.caloriesEstimate),
+            proteinEstimate: _safeDouble(ingredient.proteinEstimate),
+            carbsEstimate: _safeDouble(ingredient.carbsEstimate),
+            fatEstimate: _safeDouble(ingredient.fatEstimate),
             source: 'safe_fallback',
-            estimatedGrams: _safeDouble(ingredient.estimatedGrams),
+            estimatedGrams: estimatedGrams,
         ));
       }
     }

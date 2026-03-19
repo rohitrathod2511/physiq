@@ -81,6 +81,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
     });
 
     // STEP 3: Create temporary loading meal card
+    // Set logged: true so it appears immediately in "Today's logs"
     final loadingMeal = Meal(
       id: mealId,
       imageUrl: file.path, 
@@ -88,7 +89,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
       container: 'plate',
       ingredients: [],
       createdAt: DateTime.now(),
-      logged: false,
+      logged: true, 
     );
 
     try {
@@ -108,6 +109,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
 
     // Process using AI service in background
     try {
+      // await geminiDetection, usdaProcessing, and calculations all inside this function
       final meal = await _aiFoodService.processAndEnrichMealAsync(user.uid, mealId, file);
       
       if (meal == null) {
@@ -115,7 +117,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
         return;
       }
 
-      // STEP 6: Total calculation
+      // Calculation logic
       double totalCalories = 0.0;
       double totalProtein = 0.0;
       double totalCarbs = 0.0;
@@ -142,7 +144,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
         aliases: meal.ingredients.map((i) => "${i.name} (${i.amount})").toList(),
       );
 
-      // STEP 8: Navigate to Preview Screen after calculation
+      print('🏁 STEP 8: All calculations done. Navigating to preview screen with ${meal.ingredients.length} ingredients.');
       nav.push(
         MaterialPageRoute(
           builder: (_) => MealPreviewScreen(
