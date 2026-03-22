@@ -187,7 +187,7 @@ async function fetchFoodFromUSDA(query: string): Promise<NormalizedFood | null> 
 
 async function fetchFoodFromOFF(query: string): Promise<NormalizedFood | null> {
     try {
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=1`;
+        const url = `https://in.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=1`;
         const response = await axios.get(url, {
             headers: { 'User-Agent': 'Physiq/1.0 (support@physiq.app)' },
             timeout: 10000,
@@ -272,7 +272,10 @@ Rules:
 - No explanation
 - No extra text
 - Detect all visible items
-- Use real food names, never generic words like food or meal`;
+- Use specific food names (e.g., "apple", "chicken breast", "white rice") - never generic words like food, meal, dish, item, or food item.
+- If you cannot identify a specific item, use the most specific category possible (e.g., "fruit", "meat", "grain") but avoid the aforementioned generic terms.
+- Estimate the quantity and serving size based on the image.
+- estimatedGrams should be the estimated weight in grams for one serving.`;
 
 function buildFallbackMealResponse(): Record<string, unknown> {
     return {
@@ -383,7 +386,7 @@ export const recognizeMealImage = onCall<RecognizeMealImageRequest>(callableOpti
     try {
         const genAI = new GoogleGenerativeAI(geminiKey);
         const model = genAI.getGenerativeModel({
-            model: 'gemini-3.1-flash-lite-preview',
+            model: 'gemini-3-flash',
             generationConfig: {
                 responseMimeType: 'application/json',
                 temperature: 0.1,
