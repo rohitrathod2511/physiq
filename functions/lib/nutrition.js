@@ -41,6 +41,47 @@ const GENERIC_FOOD_NAMES = new Set([
     'dish',
     'food item',
 ]);
+const SNAPMEAL_QUERY_MAP = {
+    banana: 'banana raw',
+    apple: 'apple raw',
+    rice: 'white rice cooked',
+    chicken: 'chicken cooked',
+    potato: 'potato boiled',
+};
+const USDA_REJECT_KEYWORDS = [
+    'dehydrated',
+    'dried',
+    'powder',
+    'chips',
+    'fried',
+    'oil',
+    'butter',
+    'sauce',
+    'gravy',
+    'dessert',
+    'cake',
+    'pie',
+    'sweet',
+    'juice',
+    'concentrate',
+    'syrup',
+    'flavored',
+];
+const PRODUCE_TERMS = new Set([
+    'apple', 'banana', 'orange', 'grape', 'mango', 'papaya', 'pineapple',
+    'melon', 'watermelon', 'pear', 'peach', 'plum', 'berry', 'berries',
+    'strawberry', 'blueberry', 'vegetable', 'carrot', 'potato', 'tomato',
+    'onion', 'cucumber', 'spinach', 'broccoli', 'cabbage', 'cauliflower',
+    'capsicum', 'pepper', 'okra', 'eggplant',
+]);
+const GRAIN_TERMS = new Set([
+    'rice', 'pasta', 'noodle', 'oats', 'oatmeal', 'quinoa', 'barley',
+    'couscous', 'bread',
+]);
+const MEAT_TERMS = new Set([
+    'chicken', 'beef', 'mutton', 'lamb', 'pork', 'turkey', 'fish',
+    'salmon', 'tuna', 'shrimp', 'prawn', 'egg',
+]);
 const GEMINI_MEAL_PROMPT = `Identify food items in this image.
 
 Return JSON:
@@ -99,6 +140,81 @@ function normalizeNutritionQuery(query) {
         normalized = normalized.replace(new RegExp(`\\b${source}\\b`, 'g'), replacement);
     }
     return normalized.replace(/\s+/g, ' ').trim();
+}
+function containsAnyTerm(text, terms) {
+    const sourceTerms = Array.isArray(terms) ? terms : Array.from(terms);
+    return sourceTerms.some((term) => text.includes(term));
+}
+function getFoodContext(query) {
+    const normalized = normalizeNutritionQuery(query);
+    if (containsAnyTerm(normalized, PRODUCE_TERMS)) {
+        return 'produce';
+    }
+    if (containsAnyTerm(normalized, GRAIN_TERMS)) {
+        return 'grain';
+    }
+    if (containsAnyTerm(normalized, MEAT_TERMS)) {
+        return 'meat';
+    }
+    return 'generic';
+}
+function enhanceSnapMealUSDAQuery(query) {
+    const normalized = normalizeNutritionQuery(query);
+    if (SNAPMEAL_QUERY_MAP[normalized]) {
+        return SNAPMEAL_QUERY_MAP[normalized];
+    }
+    const context = getFoodContext(normalized);
+    if (context === 'produce' && !containsAnyTerm(normalized, ['raw', 'fresh'])) {
+        return `${normalized} raw`;
+    }
+    if (context === 'grain' && !containsAnyTerm(normalized, ['cooked', 'boiled'])) {
+        return `${normalized} cooked`;
+    }
+    if (context === 'meat' && !containsAnyTerm(normalized, ['cooked', 'grilled', 'boiled'])) {
+        return `${normalized} cooked`;
+    }
+    return normalized;
+}
+function hasRejectedKeyword(description) {
+    return USDA_REJECT_KEYWORDS.some((keyword) => description.includes(keyword));
+}
+function scoreUSDACandidate(query, food) {
+    const description = safeString(food === null || food === void 0 ? void 0 : food.description).toLowerCase();
+    const originalQuery = normalizeNutritionQuery(query);
+    const context = getFoodContext(originalQuery);
+    let score = 0;
+    if (description.includes(originalQuery)) {
+        score += 5;
+    }
+    for (const token of originalQuery.split(' ')) {
+        if (token.length >= 3 && description.includes(token)) {
+            score += 2;
+        }
+    }
+    if (context === 'produce') {
+        if (description.includes('raw'))
+            score += 4;
+        if (description.includes('fresh'))
+            score += 3;
+    }
+    if (context === 'grain') {
+        if (description.includes('cooked'))
+            score += 3;
+        if (description.includes('boiled'))
+            score += 2;
+    }
+    if (context === 'meat') {
+        if (description.includes('cooked'))
+            score += 3;
+        if (description.includes('boiled'))
+            score += 2;
+        if (description.includes('grilled'))
+            score += 2;
+    }
+    if (hasRejectedKeyword(description)) {
+        score -= 10;
+    }
+    return score;
 }
 function isInvalidNutritionQuery(query) {
     if (!query) {
@@ -186,24 +302,38 @@ function buildUnavailableNutrition(query, reason) {
 function normalizeUSDAResponse(food) {
     var _a, _b, _c, _d, _e, _f;
     const nutrients = food.foodNutrients || food.nutrients || [];
-    const findNutrient = (nameOrId) => {
+    const findNutrient = (matcher) => {
+        const normalizedMatcher = matcher.toString().toLowerCase();
         return nutrients.find((nutrient) => {
-            var _a;
-            return nutrient.nutrientId === nameOrId ||
-                nutrient.nutrientNumber === nameOrId ||
-                (nutrient.nutrient && (nutrient.nutrient.id === nameOrId || nutrient.nutrient.number === nameOrId)) ||
-                (nutrient.name && nutrient.name.toLowerCase().includes(nameOrId.toString().toLowerCase())) ||
-                (((_a = nutrient.nutrient) === null || _a === void 0 ? void 0 : _a.name) && nutrient.nutrient.name.toLowerCase().includes(nameOrId.toString().toLowerCase()));
+            var _a, _b, _c, _d;
+            return nutrient.nutrientId === matcher ||
+                nutrient.nutrientNumber === matcher ||
+                (typeof matcher === 'number' &&
+                    (((_a = nutrient.nutrient) === null || _a === void 0 ? void 0 : _a.id) === matcher ||
+                        Number.parseInt(String((_c = (_b = nutrient.nutrient) === null || _b === void 0 ? void 0 : _b.number) !== null && _c !== void 0 ? _c : ''), 10) === matcher)) ||
+                (typeof matcher === 'string' &&
+                    ((safeString(nutrient.name).toLowerCase().includes(normalizedMatcher)) ||
+                        (safeString((_d = nutrient.nutrient) === null || _d === void 0 ? void 0 : _d.name).toLowerCase().includes(normalizedMatcher))));
         });
     };
-    const getNutrientValue = (id, alias) => {
-        var _a;
-        const nutrient = findNutrient(id) || (alias ? findNutrient(alias) : null);
-        return toNumber((_a = nutrient === null || nutrient === void 0 ? void 0 : nutrient.amount) !== null && _a !== void 0 ? _a : nutrient === null || nutrient === void 0 ? void 0 : nutrient.value);
+    const getNutrientValue = (ids, aliases = []) => {
+        var _a, _b;
+        for (const id of ids) {
+            const nutrient = findNutrient(id);
+            const amount = toNullableNumber((_a = nutrient === null || nutrient === void 0 ? void 0 : nutrient.amount) !== null && _a !== void 0 ? _a : nutrient === null || nutrient === void 0 ? void 0 : nutrient.value);
+            if (amount !== null) {
+                return amount;
+            }
+        }
+        for (const alias of aliases) {
+            const nutrient = findNutrient(alias);
+            const amount = toNullableNumber((_b = nutrient === null || nutrient === void 0 ? void 0 : nutrient.amount) !== null && _b !== void 0 ? _b : nutrient === null || nutrient === void 0 ? void 0 : nutrient.value);
+            if (amount !== null) {
+                return amount;
+            }
+        }
+        return null;
     };
-    let calories = getNutrientValue(1008, 'energy');
-    if (calories === 0)
-        calories = getNutrientValue(208, 'kcal');
     const servingOptions = [{ label: '100g', grams: 100 }];
     if (Array.isArray(food.foodPortions)) {
         for (const portion of food.foodPortions) {
@@ -214,15 +344,34 @@ function normalizeUSDAResponse(food) {
             servingOptions.push({ label, grams });
         }
     }
+    const uniqueServingOptions = servingOptions.filter((option, index, options) => options.findIndex((candidate) => candidate.label.toLowerCase() === option.label.toLowerCase() &&
+        Math.abs(candidate.grams - option.grams) < 0.01) === index);
+    const nutritionPer100g = {};
+    const setNutrient = (key, value) => {
+        if (value !== null) {
+            nutritionPer100g[key] = value;
+        }
+    };
+    setNutrient('calories', getNutrientValue([1008, 208], ['energy', 'kcal']));
+    setNutrient('protein', getNutrientValue([1003], ['protein']));
+    setNutrient('carbs', getNutrientValue([1005], ['carbohydrate', 'carbohydrate, by difference']));
+    setNutrient('fat', getNutrientValue([1004], ['total lipid', 'fat']));
+    setNutrient('saturatedFat', getNutrientValue([1258], ['fatty acids, total saturated', 'saturated']));
+    setNutrient('polyunsaturatedFat', getNutrientValue([1292], ['fatty acids, total polyunsaturated', 'polyunsaturated']));
+    setNutrient('monounsaturatedFat', getNutrientValue([1293], ['fatty acids, total monounsaturated', 'monounsaturated']));
+    setNutrient('cholesterol', getNutrientValue([1253], ['cholesterol']));
+    setNutrient('sodium', getNutrientValue([1093], ['sodium']));
+    setNutrient('fiber', getNutrientValue([1079], ['fiber', 'dietary fiber']));
+    setNutrient('sugar', getNutrientValue([2000, 1063], ['sugars', 'sugar']));
+    setNutrient('potassium', getNutrientValue([1092], ['potassium']));
+    setNutrient('vitaminA', getNutrientValue([1106], ['vitamin a']));
+    setNutrient('vitaminC', getNutrientValue([1162], ['vitamin c', 'ascorbic acid']));
+    setNutrient('calcium', getNutrientValue([1087], ['calcium']));
+    setNutrient('iron', getNutrientValue([1089], ['iron']));
     return {
         name: safeString((_f = food.description) !== null && _f !== void 0 ? _f : food.lowercaseDescription, 'Unknown Food'),
-        nutritionPer100g: {
-            calories,
-            protein: getNutrientValue(1003, 'protein'),
-            carbs: getNutrientValue(1005, 'carbohydrate'),
-            fat: getNutrientValue(1004, 'fat'),
-        },
-        servingOptions,
+        nutritionPer100g,
+        servingOptions: uniqueServingOptions,
         source: 'usda',
         fdcId: food.fdcId ? String(food.fdcId) : undefined,
     };
@@ -257,6 +406,7 @@ function normalizeOFFResponse(product, query) {
     };
 }
 async function fetchFoodFromUSDA(query) {
+    var _a;
     const normalizedQuery = normalizeNutritionQuery(query);
     if (isInvalidNutritionQuery(normalizedQuery)) {
         logger.warn('Skipping invalid USDA query', { query, normalizedQuery });
@@ -272,23 +422,72 @@ async function fetchFoodFromUSDA(query) {
         return null;
     }
     try {
-        logger.info('Searching USDA', { query, normalizedQuery });
+        const enhancedQuery = enhanceSnapMealUSDAQuery(query);
+        const normalizedEnhancedQuery = normalizeNutritionQuery(enhancedQuery);
+        const foodContext = getFoodContext(query);
+        logger.info('Searching USDA', { query, normalizedQuery, enhancedQuery: normalizedEnhancedQuery });
         const searchResponse = await axios_1.default.post(`${USDA_SEARCH_URL}?api_key=${apiKey}`, {
-            query: normalizedQuery,
-            pageSize: 5,
+            query: normalizedEnhancedQuery,
+            pageSize: 10,
             dataType: ['Foundation', 'SR Legacy', 'Survey (FNDDS)'],
         }, { timeout: 10000 });
         const foods = searchResponse.data.foods;
         if (!Array.isArray(foods) || foods.length === 0) {
-            logger.warn('USDA returned no matches', { normalizedQuery });
+            logger.warn('USDA returned no matches', { normalizedQuery, normalizedEnhancedQuery });
             return null;
         }
-        const firstMatch = foods[0];
-        const fdcId = firstMatch.fdcId;
-        const detailsResponse = await axios_1.default.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 10000 });
-        const normalized = normalizeUSDAResponse(detailsResponse.data);
-        setCachedNutrition(`usda:${normalizedQuery}`, normalized);
-        return normalized;
+        const filteredFoods = foods.filter((food) => {
+            const description = safeString(food === null || food === void 0 ? void 0 : food.description).toLowerCase();
+            return !hasRejectedKeyword(description);
+        });
+        const candidateFoods = (filteredFoods.length > 0 ? filteredFoods : foods)
+            .map((food) => ({
+            food,
+            score: scoreUSDACandidate(query, food),
+        }))
+            .sort((left, right) => right.score - left.score);
+        let lowestCalorieMatch = null;
+        for (const candidate of candidateFoods) {
+            const fdcId = (_a = candidate.food) === null || _a === void 0 ? void 0 : _a.fdcId;
+            if (!fdcId) {
+                continue;
+            }
+            const detailsResponse = await axios_1.default.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 10000 });
+            const normalized = normalizeUSDAResponse(detailsResponse.data);
+            const calories = normalized.nutritionPer100g.calories;
+            if (typeof calories === 'number') {
+                if (!lowestCalorieMatch || calories < lowestCalorieMatch.calories) {
+                    lowestCalorieMatch = { food: candidate.food, normalized, calories };
+                }
+            }
+            if (foodContext === 'produce' && typeof calories === 'number' && calories > 300) {
+                continue;
+            }
+            logger.info('SMART USDA MATCH', {
+                originalQuery: query,
+                enhancedQuery: normalizedEnhancedQuery,
+                selectedFood: candidate.food.description,
+                calories,
+            });
+            setCachedNutrition(`usda:${normalizedQuery}`, normalized);
+            return normalized;
+        }
+        if (lowestCalorieMatch) {
+            logger.info('SMART USDA MATCH', {
+                originalQuery: query,
+                enhancedQuery: normalizedEnhancedQuery,
+                selectedFood: lowestCalorieMatch.food.description,
+                calories: lowestCalorieMatch.calories,
+            });
+            setCachedNutrition(`usda:${normalizedQuery}`, lowestCalorieMatch.normalized);
+            return lowestCalorieMatch.normalized;
+        }
+        logger.warn('USDA smart matching found no safe match', {
+            query,
+            normalizedQuery,
+            normalizedEnhancedQuery,
+        });
+        return null;
     }
     catch (error) {
         logger.error('fetchFoodFromUSDA error', { query, normalizedQuery, error });
@@ -447,6 +646,7 @@ exports.getFoodDetailsUSDA = (0, https_1.onRequest)({ region: REGION, secrets: [
         try {
             const apiKey = USDA_API_KEY.value();
             const response = await axios_1.default.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 10000 });
+            logger.info('USDA DETAILS RESPONSE', { data: response.data });
             res.send(normalizeUSDAResponse(response.data));
         }
         catch (error) {

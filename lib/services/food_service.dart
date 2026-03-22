@@ -599,7 +599,8 @@ class FoodService {
     try {
       final details = await _functions.getFoodDetailsUSDA(fdcId);
       if (details == null) return null;
-      return Food.fromJson(details, fdcId);
+      debugPrint('Food details: $details');
+      return Food.fromJson(details, 'usda_$fdcId');
     } catch (e) {
       debugPrint('Error fetching USDA details: $e');
       return null;
