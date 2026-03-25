@@ -29,6 +29,7 @@ import 'package:physiq/screens/onboarding/loading_screen.dart';
 import 'package:physiq/screens/onboarding/review_screen.dart';
 import 'package:physiq/screens/onboarding/rodrigo_transformation_screen.dart';
 import 'package:physiq/screens/onboarding/lucas_transformation_screen.dart';
+import 'package:physiq/screens/onboarding/success_stories_screen.dart';
 
 import 'package:physiq/screens/onboarding/paywall_free_screen.dart';
 import 'package:physiq/screens/onboarding/paywall_notification_screen.dart';
@@ -149,10 +150,7 @@ final GoRouter router = GoRouter(
           location.startsWith('/meal-history');
 
       // Enforce paywall/onboarding completion before app shell access.
-      if (isProtected ||
-          location == '/' ||
-          location == '/get-started' ||
-          location == '/sign-in') {
+      if (isProtected || location == '/' || location == '/get-started') {
         return '/onboarding/paywall-free';
       }
       return null;
@@ -278,6 +276,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/onboarding/transformation-lucas',
       builder: (context, state) => const LucasTransformationScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/success-stories',
+      builder: (context, state) => const SuccessStoriesScreen(),
     ),
 
     GoRoute(

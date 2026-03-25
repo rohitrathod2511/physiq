@@ -148,7 +148,7 @@ class RodrigoTransformationScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.push('/onboarding/paywall-free'),
+                  onPressed: () => context.push('/onboarding/success-stories'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,

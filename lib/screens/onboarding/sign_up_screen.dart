@@ -16,14 +16,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
-  String _getNextRoute(WidgetRef ref) {
-    final store = ref.read(onboardingProvider);
-    final goal = store.goal?.toLowerCase() ?? '';
-    if (goal.contains('gain')) {
-      return '/onboarding/transformation-rodrigo';
-    } else if (goal.contains('lose')) {
-      return '/onboarding/transformation-lucas';
-    }
+  String _getNextRoute() {
     return '/onboarding/paywall-free';
   }
 
@@ -43,7 +36,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         if (user != null) {
-          context.go(_getNextRoute(ref));
+          context.pushReplacement(_getNextRoute());
         }
       }
     } catch (e) {
@@ -83,10 +76,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
 
     // 3. Navigate Immediately
-    if (mounted) {
-      setState(() => _isLoading = false);
-      context.go('/onboarding/referral');
-    }
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    context.pushReplacement(_getNextRoute());
   }
 
   void _handleEmailSignIn() {
@@ -150,7 +142,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 setState(() => _isLoading = false);
 
                 if (user != null && mounted) {
-                  context.go(_getNextRoute(ref));
+                  context.pushReplacement(_getNextRoute());
                 }
               } catch (e) {
                 if (mounted) {
