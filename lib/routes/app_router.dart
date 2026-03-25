@@ -20,6 +20,7 @@ import 'package:physiq/screens/onboarding/goal_screen.dart';
 import 'package:physiq/screens/onboarding/target_weight_screen.dart';
 import 'package:physiq/screens/onboarding/motivational_message_screen.dart';
 import 'package:physiq/screens/onboarding/timeframe_screen.dart';
+import 'package:physiq/screens/onboarding/potential_screen.dart';
 import 'package:physiq/screens/onboarding/result_message_screen.dart';
 import 'package:physiq/screens/onboarding/diet_preference_screen.dart';
 import 'package:physiq/screens/onboarding/notification_screen.dart';
@@ -240,6 +241,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/onboarding/timeframe',
       builder: (context, state) => const TimeframeScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/potential',
+      builder: (context, state) => const PotentialScreen(),
     ),
     GoRoute(
       path: '/onboarding/result-message',
