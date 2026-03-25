@@ -16,6 +16,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  String _getNextRoute(WidgetRef ref) {
+    final store = ref.read(onboardingProvider);
+    final goal = store.goal?.toLowerCase() ?? '';
+    if (goal.contains('gain')) {
+      return '/onboarding/transformation-rodrigo';
+    } else if (goal.contains('lose')) {
+      return '/onboarding/transformation-lucas';
+    }
+    return '/onboarding/paywall-free';
+  }
+
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
     try {
@@ -32,7 +43,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         if (user != null) {
-          context.go('/onboarding/paywall-free');
+          context.go(_getNextRoute(ref));
         }
       }
     } catch (e) {
@@ -139,7 +150,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 setState(() => _isLoading = false);
 
                 if (user != null && mounted) {
-                  context.go('/onboarding/paywall-free');
+                  context.go(_getNextRoute(ref));
                 }
               } catch (e) {
                 if (mounted) {

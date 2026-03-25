@@ -27,6 +27,8 @@ import 'package:physiq/screens/onboarding/referral_screen.dart';
 import 'package:physiq/screens/onboarding/generate_plan_screen.dart';
 import 'package:physiq/screens/onboarding/loading_screen.dart';
 import 'package:physiq/screens/onboarding/review_screen.dart';
+import 'package:physiq/screens/onboarding/rodrigo_transformation_screen.dart';
+import 'package:physiq/screens/onboarding/lucas_transformation_screen.dart';
 
 import 'package:physiq/screens/onboarding/paywall_free_screen.dart';
 import 'package:physiq/screens/onboarding/paywall_notification_screen.dart';
@@ -268,6 +270,15 @@ final GoRouter router = GoRouter(
 
     // Review & Paywall
     GoRoute(path: '/review', builder: (context, state) => const ReviewScreen()),
+
+    GoRoute(
+      path: '/onboarding/transformation-rodrigo',
+      builder: (context, state) => const RodrigoTransformationScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/transformation-lucas',
+      builder: (context, state) => const LucasTransformationScreen(),
+    ),
 
     GoRoute(
       path: '/onboarding/paywall-free',
