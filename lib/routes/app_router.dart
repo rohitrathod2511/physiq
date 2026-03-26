@@ -17,8 +17,10 @@ import 'package:physiq/screens/onboarding/birthyear_screen.dart';
 import 'package:physiq/screens/onboarding/height_weight_screen.dart';
 import 'package:physiq/screens/onboarding/activity_lifestyle_screen.dart';
 import 'package:physiq/screens/onboarding/goal_screen.dart';
+import 'package:physiq/screens/onboarding/obstacles_screen.dart';
 import 'package:physiq/screens/onboarding/target_weight_screen.dart';
 import 'package:physiq/screens/onboarding/motivational_message_screen.dart';
+import 'package:physiq/screens/onboarding/long_term_results_screen.dart';
 import 'package:physiq/screens/onboarding/timeframe_screen.dart';
 import 'package:physiq/screens/onboarding/potential_screen.dart';
 import 'package:physiq/screens/onboarding/result_message_screen.dart';
@@ -231,12 +233,20 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const GoalScreen(),
     ),
     GoRoute(
+      path: '/onboarding/obstacles',
+      builder: (context, state) => const ObstaclesScreen(),
+    ),
+    GoRoute(
       path: '/onboarding/target-weight',
       builder: (context, state) => const TargetWeightScreen(),
     ),
     GoRoute(
       path: '/onboarding/motivational-message',
       builder: (context, state) => const MotivationalMessageScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding/referral',
+      builder: (context, state) => const LongTermResultsScreen(),
     ),
     GoRoute(
       path: '/onboarding/timeframe',
@@ -259,7 +269,7 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const NotificationScreen(),
     ),
     GoRoute(
-      path: '/onboarding/referral',
+      path: '/onboarding/referral-step',
       builder: (context, state) => const ReferralScreen(),
     ),
     GoRoute(

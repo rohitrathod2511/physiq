@@ -16,6 +16,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  static const EdgeInsets _optionButtonPadding = EdgeInsets.symmetric(vertical: 16);
+  static const double _optionButtonRadius = 30;
+
   String _getNextRoute() {
     return '/onboarding/paywall-free';
   }
@@ -164,6 +167,20 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     );
   }
 
+  TextStyle _filledOptionTextStyle() {
+    return AppTextStyles.button.copyWith(
+      color: Colors.white,
+      fontSize: 16,
+    );
+  }
+
+  TextStyle _outlinedOptionTextStyle() {
+    return AppTextStyles.button.copyWith(
+      color: AppColors.primaryText,
+      fontSize: 16,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -193,14 +210,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 ElevatedButton.icon(
                   onPressed: _handleGoogleSignIn,
                   icon: const Icon(Icons.g_mobiledata, size: 28),
-                  label: const Text('Continue with Google'),
+                  label: Text(
+                    'Continue with Google',
+                    style: _filledOptionTextStyle(),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: _optionButtonPadding,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(_optionButtonRadius),
                     ),
+                    elevation: 0,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -210,13 +231,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   onPressed: _handleEmailSignIn,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryText,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: _optionButtonPadding,
                     side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(_optionButtonRadius),
                     ),
                   ),
-                  child: const Text('Continue with Email'),
+                  child: Text(
+                    'Continue with Email',
+                    style: _outlinedOptionTextStyle(),
+                  ),
                 ),
                 const SizedBox(height: 16),
 
@@ -225,13 +249,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   onPressed: _handleAnonymousSignIn,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryText,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: _optionButtonPadding,
                     side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(_optionButtonRadius),
                     ),
                   ),
-                  child: const Text('Skip'),
+                  child: Text(
+                    'Skip',
+                    style: _outlinedOptionTextStyle(),
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],

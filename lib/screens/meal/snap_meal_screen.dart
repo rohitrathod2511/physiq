@@ -214,20 +214,6 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
           ),
           // Scanner Overlay
           const Center(child: ScannerOverlay()),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(

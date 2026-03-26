@@ -32,7 +32,7 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
   void _onContinue() {
     if (_selectedGoal != null) {
       ref.read(onboardingProvider).saveStepData('goal', _selectedGoal);
-      context.push('/onboarding/target-weight');
+      context.push('/onboarding/obstacles');
     }
   }
 
