@@ -20,7 +20,8 @@ class FoodNutritionScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<FoodNutritionScreen> createState() => _FoodNutritionScreenState();
+  ConsumerState<FoodNutritionScreen> createState() =>
+      _FoodNutritionScreenState();
 }
 
 class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
@@ -100,7 +101,8 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
     );
   }
 
-  double get _baseGrams => _baseFood.baseWeightG > 0 ? _baseFood.baseWeightG : 100.0;
+  double get _baseGrams =>
+      _baseFood.baseWeightG > 0 ? _baseFood.baseWeightG : 100.0;
 
   double get _selectedServingGrams =>
       _selectedServing.grams > 0 ? _selectedServing.grams : _baseGrams;
@@ -187,19 +189,29 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
         if (_baseFood.saturatedFat != null)
           'saturatedFat': _calculateNutrient(_baseFood.saturatedFat!),
         if (_baseFood.polyunsaturatedFat != null)
-          'polyunsaturatedFat': _calculateNutrient(_baseFood.polyunsaturatedFat!),
+          'polyunsaturatedFat': _calculateNutrient(
+            _baseFood.polyunsaturatedFat!,
+          ),
         if (_baseFood.monounsaturatedFat != null)
-          'monounsaturatedFat': _calculateNutrient(_baseFood.monounsaturatedFat!),
+          'monounsaturatedFat': _calculateNutrient(
+            _baseFood.monounsaturatedFat!,
+          ),
         if (_baseFood.cholesterol != null)
           'cholesterol': _calculateNutrient(_baseFood.cholesterol!),
-        if (_baseFood.sodium != null) 'sodium': _calculateNutrient(_baseFood.sodium!),
-        if (_baseFood.fiber != null) 'fiber': _calculateNutrient(_baseFood.fiber!),
-        if (_baseFood.sugar != null) 'sugar': _calculateNutrient(_baseFood.sugar!),
+        if (_baseFood.sodium != null)
+          'sodium': _calculateNutrient(_baseFood.sodium!),
+        if (_baseFood.fiber != null)
+          'fiber': _calculateNutrient(_baseFood.fiber!),
+        if (_baseFood.sugar != null)
+          'sugar': _calculateNutrient(_baseFood.sugar!),
         if (_baseFood.potassium != null)
           'potassium': _calculateNutrient(_baseFood.potassium!),
-        if (_baseFood.vitaminA != null) 'vitaminA': _calculateNutrient(_baseFood.vitaminA!),
-        if (_baseFood.vitaminC != null) 'vitaminC': _calculateNutrient(_baseFood.vitaminC!),
-        if (_baseFood.calcium != null) 'calcium': _calculateNutrient(_baseFood.calcium!),
+        if (_baseFood.vitaminA != null)
+          'vitaminA': _calculateNutrient(_baseFood.vitaminA!),
+        if (_baseFood.vitaminC != null)
+          'vitaminC': _calculateNutrient(_baseFood.vitaminC!),
+        if (_baseFood.calcium != null)
+          'calcium': _calculateNutrient(_baseFood.calcium!),
         if (_baseFood.iron != null) 'iron': _calculateNutrient(_baseFood.iron!),
       },
     );
@@ -216,42 +228,102 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final calories = _hasNutritionData ? _calculateNutrient(_baseFood.calories) : null;
-    final protein = _hasNutritionData ? _calculateNutrient(_baseFood.protein) : null;
-    final carbs = _hasNutritionData ? _calculateNutrient(_baseFood.carbs) : null;
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+    final calories = _hasNutritionData
+        ? _calculateNutrient(_baseFood.calories)
+        : null;
+    final protein = _hasNutritionData
+        ? _calculateNutrient(_baseFood.protein)
+        : null;
+    final carbs = _hasNutritionData
+        ? _calculateNutrient(_baseFood.carbs)
+        : null;
     final fat = _hasNutritionData ? _calculateNutrient(_baseFood.fat) : null;
 
     final otherFacts = <({String label, double? value, String unit})>[
-      (label: 'Saturated Fat', value: _calculateOptionalNutrient(_baseFood.saturatedFat), unit: 'g'),
-      (label: 'Polyunsaturated Fat', value: _calculateOptionalNutrient(_baseFood.polyunsaturatedFat), unit: 'g'),
-      (label: 'Monounsaturated Fat', value: _calculateOptionalNutrient(_baseFood.monounsaturatedFat), unit: 'g'),
-      (label: 'Cholesterol', value: _calculateOptionalNutrient(_baseFood.cholesterol), unit: 'mg'),
-      (label: 'Sodium', value: _calculateOptionalNutrient(_baseFood.sodium), unit: 'mg'),
-      (label: 'Fiber', value: _calculateOptionalNutrient(_baseFood.fiber), unit: 'g'),
-      (label: 'Sugar', value: _calculateOptionalNutrient(_baseFood.sugar), unit: 'g'),
-      (label: 'Potassium', value: _calculateOptionalNutrient(_baseFood.potassium), unit: 'mg'),
-      (label: 'Vitamin A', value: _calculateOptionalNutrient(_baseFood.vitaminA), unit: 'mcg'),
-      (label: 'Vitamin C', value: _calculateOptionalNutrient(_baseFood.vitaminC), unit: 'mg'),
-      (label: 'Calcium', value: _calculateOptionalNutrient(_baseFood.calcium), unit: 'mg'),
-      (label: 'Iron', value: _calculateOptionalNutrient(_baseFood.iron), unit: 'mg'),
+      (
+        label: 'Saturated Fat',
+        value: _calculateOptionalNutrient(_baseFood.saturatedFat),
+        unit: 'g',
+      ),
+      (
+        label: 'Polyunsaturated Fat',
+        value: _calculateOptionalNutrient(_baseFood.polyunsaturatedFat),
+        unit: 'g',
+      ),
+      (
+        label: 'Monounsaturated Fat',
+        value: _calculateOptionalNutrient(_baseFood.monounsaturatedFat),
+        unit: 'g',
+      ),
+      (
+        label: 'Cholesterol',
+        value: _calculateOptionalNutrient(_baseFood.cholesterol),
+        unit: 'mg',
+      ),
+      (
+        label: 'Sodium',
+        value: _calculateOptionalNutrient(_baseFood.sodium),
+        unit: 'mg',
+      ),
+      (
+        label: 'Fiber',
+        value: _calculateOptionalNutrient(_baseFood.fiber),
+        unit: 'g',
+      ),
+      (
+        label: 'Sugar',
+        value: _calculateOptionalNutrient(_baseFood.sugar),
+        unit: 'g',
+      ),
+      (
+        label: 'Potassium',
+        value: _calculateOptionalNutrient(_baseFood.potassium),
+        unit: 'mg',
+      ),
+      (
+        label: 'Vitamin A',
+        value: _calculateOptionalNutrient(_baseFood.vitaminA),
+        unit: 'mcg',
+      ),
+      (
+        label: 'Vitamin C',
+        value: _calculateOptionalNutrient(_baseFood.vitaminC),
+        unit: 'mg',
+      ),
+      (
+        label: 'Calcium',
+        value: _calculateOptionalNutrient(_baseFood.calcium),
+        unit: 'mg',
+      ),
+      (
+        label: 'Iron',
+        value: _calculateOptionalNutrient(_baseFood.iron),
+        unit: 'mg',
+      ),
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFBFBFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Nutrition',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: Icon(Icons.more_vert, color: textPrimary),
             onPressed: () {},
           ),
         ],
@@ -270,10 +342,18 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
                       Expanded(
                         child: Text(
                           _baseFood.name,
-                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
                         ),
                       ),
-                      const Icon(Icons.bookmark_border, size: 28),
+                      Icon(
+                        Icons.bookmark_border,
+                        size: 28,
+                        color: theme.iconTheme.color ?? textPrimary,
+                      ),
                     ],
                   ),
                   if (_detailsError != null) ...[
@@ -282,26 +362,26 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3E0),
+                        color: theme.colorScheme.errorContainer,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
                         _detailsError!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: theme.colorScheme.onErrorContainer,
                         ),
                       ),
                     ),
                   ],
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Serving Size Measurement',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -324,11 +404,14 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
                     children: [
                       Text(
                         'Serving Amount • ${_formatQuantity(_selectedServingGrams)}g each',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black.withOpacity(0.1)),
+                          border: Border.all(color: theme.dividerColor),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -338,10 +421,15 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
                               icon: const Icon(Icons.remove, size: 20),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               child: Text(
                                 '$_servingAmount',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                             IconButton(
@@ -355,37 +443,52 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
                   ),
                   const SizedBox(height: 32),
                   _buildCaloriesCard(
-                    calories == null ? 'Nutrition unavailable' : _formatQuantity(calories),
+                    calories == null
+                        ? 'Nutrition unavailable'
+                        : _formatQuantity(calories),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
                       _buildMacroCard(
                         'Protein',
-                        protein == null ? 'Nutrition unavailable' : _formatMacro(protein),
-                        const FishIcon(color: Color(0xFFE57373), size: 16),
-                        const Color(0xFFFFEBEE),
+                        protein == null
+                            ? 'Nutrition unavailable'
+                            : _formatMacro(protein),
+                        FishIcon(color: theme.colorScheme.error, size: 16),
+                        theme.colorScheme.errorContainer,
                       ),
                       const SizedBox(width: 8),
                       _buildMacroCard(
                         'Carbs',
-                        carbs == null ? 'Nutrition unavailable' : _formatMacro(carbs),
-                        const WheatIcon(color: Color(0xFFFFB74D), size: 16),
-                        const Color(0xFFFFF3E0),
+                        carbs == null
+                            ? 'Nutrition unavailable'
+                            : _formatMacro(carbs),
+                        WheatIcon(color: theme.colorScheme.secondary, size: 16),
+                        theme.colorScheme.secondaryContainer,
                       ),
                       const SizedBox(width: 8),
                       _buildMacroCard(
                         'Fats',
-                        fat == null ? 'Nutrition unavailable' : _formatMacro(fat),
-                        const AvocadoIcon(color: Color(0xFF64B5F6), size: 16),
-                        const Color(0xFFE3F2FD),
+                        fat == null
+                            ? 'Nutrition unavailable'
+                            : _formatMacro(fat),
+                        AvocadoIcon(
+                          color: theme.colorScheme.tertiary,
+                          size: 16,
+                        ),
+                        theme.colorScheme.tertiaryContainer,
                       ),
                     ],
                   ),
                   const SizedBox(height: 32),
-                  const Text(
+                  Text(
                     'Other nutrition facts',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   if (otherFacts.every((fact) => fact.value == null))
@@ -404,24 +507,34 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
               ),
             ),
       bottomSheet: Container(
-        color: const Color(0xFFFBFBFC),
+        color: theme.scaffoldBackgroundColor,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         child: ElevatedButton(
           onPressed: _isLoadingDetails ? null : _onSave,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1E1E1E),
-            foregroundColor: Colors.white,
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
             minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
             elevation: 0,
           ),
-          child: const Text('Save', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: Text(
+            'Save',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimary,
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildServingChip(ServingOption serving) {
+    final ThemeData theme = Theme.of(context);
     final isSelected =
         _selectedServing.label == serving.label &&
         (_selectedServing.grams - serving.grams).abs() < 0.01;
@@ -431,16 +544,18 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E1E1E) : Colors.white,
+          color: isSelected ? theme.colorScheme.primary : theme.cardColor,
           borderRadius: BorderRadius.circular(25),
           border: Border.all(
-            color: isSelected ? Colors.transparent : Colors.black.withOpacity(0.1),
+            color: isSelected ? Colors.transparent : theme.dividerColor,
           ),
         ),
         child: Text(
           _formatServingLabel(serving),
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
+            color: isSelected
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -449,46 +564,74 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
   }
 
   Widget _buildCaloriesCard(String value) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F9),
+              color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.local_fire_department, color: Colors.black, size: 24),
+            child: Icon(
+              Icons.local_fire_department,
+              color: theme.colorScheme.primary,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Calories', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-              Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                'Calories',
+                style: TextStyle(color: textSecondary, fontSize: 13),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
+              ),
             ],
           ),
           const Spacer(),
-          Icon(Icons.edit_outlined, color: Colors.grey[400], size: 20),
+          Icon(Icons.edit_outlined, color: textSecondary, size: 20),
         ],
       ),
     );
   }
 
   Widget _buildMacroCard(String label, String value, Widget icon, Color bg) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.35)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,11 +640,17 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: icon,
                 ),
                 const SizedBox(width: 8),
-                Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 12, color: textSecondary),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -510,10 +659,14 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
                   ),
                 ),
-                Icon(Icons.edit_outlined, color: Colors.grey[300], size: 14),
+                Icon(Icons.edit_outlined, color: textSecondary, size: 14),
               ],
             ),
           ],
@@ -523,22 +676,36 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
   }
 
   Widget _buildNutritionFact(String label, String value) {
+    final ThemeData theme = Theme.of(context);
+    final Color textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.03)),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(label, style: const TextStyle(fontSize: 16, color: Colors.black87)),
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 16, color: textPrimary),
+            ),
           ),
           const SizedBox(width: 12),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: textPrimary,
+            ),
+          ),
         ],
       ),
     );

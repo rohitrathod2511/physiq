@@ -114,8 +114,11 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
                     background: Container(
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      color: Colors.red,
-                      child: const Icon(Icons.delete, color: Colors.white),
+                      color: theme.colorScheme.error,
+                      child: Icon(
+                        Icons.delete,
+                        color: theme.colorScheme.onError,
+                      ),
                     ),
                     onDismissed: (direction) {
                       _deleteFood(food.id);

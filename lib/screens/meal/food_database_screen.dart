@@ -177,7 +177,8 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? (theme.brightness == Brightness.dark
-                                          ? Colors.white.withValues(alpha: 0.14)
+                                          ? theme.colorScheme.onSurface
+                                                .withValues(alpha: 0.14)
                                           : theme.cardColor)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(20),
@@ -185,7 +186,8 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                     isSelected &&
                                         theme.brightness == Brightness.dark
                                     ? Border.all(
-                                        color: Colors.white.withValues(
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(
                                           alpha: 0.24,
                                         ),
                                         width: 1,
@@ -194,7 +196,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: Colors.black.withValues(
+                                          color: theme.shadowColor.withValues(
                                             alpha:
                                                 theme.brightness ==
                                                     Brightness.dark

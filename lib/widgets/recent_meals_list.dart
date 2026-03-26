@@ -21,6 +21,10 @@ class RecentMealsList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // If logs exist and list is not empty
     final hasLogs = logs != null && logs!.isNotEmpty;
+    final theme = Theme.of(context);
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +42,7 @@ class RecentMealsList extends ConsumerWidget {
             margin: const EdgeInsets.symmetric(horizontal: 4),
             padding: const EdgeInsets.all(16), // Reduced padding
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(AppRadii.bigCard),
               boxShadow: [AppShadows.card],
             ),
@@ -50,14 +54,14 @@ class RecentMealsList extends ConsumerWidget {
                   width: 80, // Reduced size
                   height: 50, // Reduced size
                   decoration: BoxDecoration(
-                    color: AppColors.background,
+                    color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
                     child: Icon(
                       Icons.lunch_dining,
                       size: 32,
-                      color: Colors.grey.shade400,
+                      color: theme.iconTheme.color ?? textSecondary,
                     ),
                   ),
                 ),
@@ -65,7 +69,7 @@ class RecentMealsList extends ConsumerWidget {
                 Text(
                   'Tap + to add your first meal or workout',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.secondaryText,
+                    color: textSecondary,
                     fontSize: 14,
                   ),
                   textAlign: TextAlign.center,
@@ -90,7 +94,7 @@ class RecentMealsList extends ConsumerWidget {
                   item.id,
                   item.timestamp,
                   false,
-                  _buildWorkoutCard(item),
+                  _buildWorkoutCard(context, item),
                 );
               } else if (item is Map<String, dynamic>) {
                 final id = item['id'] as String? ?? '';
@@ -125,6 +129,8 @@ class RecentMealsList extends ConsumerWidget {
     bool isMeal,
     Widget child,
   ) {
+    final theme = Theme.of(context);
+
     return Dismissible(
       key: Key(id),
       direction: DismissDirection.endToStart,
@@ -132,21 +138,21 @@ class RecentMealsList extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.redAccent,
+          color: theme.colorScheme.error,
           borderRadius: BorderRadius.circular(AppRadii.bigCard),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Text(
               'Delete',
               style: TextStyle(
-                color: Colors.white,
+                color: theme.colorScheme.onError,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(width: 8),
-            Icon(Icons.delete, color: Colors.white),
+            const SizedBox(width: 8),
+            Icon(Icons.delete, color: theme.colorScheme.onError),
           ],
         ),
       ),
@@ -168,10 +174,10 @@ class RecentMealsList extends ConsumerWidget {
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Entry deleted successfully'),
-              backgroundColor: Colors.black87,
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: const Text('Entry deleted successfully'),
+              backgroundColor: theme.colorScheme.inverseSurface,
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -192,9 +198,9 @@ class RecentMealsList extends ConsumerWidget {
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text(
+                  child: Text(
                     "DELETE",
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: theme.colorScheme.error),
                   ),
                 ),
               ],
@@ -207,6 +213,12 @@ class RecentMealsList extends ConsumerWidget {
   }
 
   Widget _buildMealCard(BuildContext context, Map<String, dynamic> mealData) {
+    final theme = Theme.of(context);
+    final textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
     final id = mealData['id'] as String? ?? '';
     final name = mealData['name'] ?? mealData['meal_title'] ?? 'Meal';
     final protein = (mealData['proteinG'] ?? 0.0);
@@ -346,9 +358,9 @@ class RecentMealsList extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[100]!),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.35)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -359,9 +371,11 @@ class RecentMealsList extends ConsumerWidget {
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey[100]!),
+                    border: Border.all(
+                      color: theme.dividerColor.withValues(alpha: 0.35),
+                    ),
                   ),
                   clipBehavior: Clip.hardEdge,
                   child: imageUrl!.startsWith('http')
@@ -374,10 +388,13 @@ class RecentMealsList extends ConsumerWidget {
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.fastfood, color: Colors.grey),
+                  child: Icon(
+                    Icons.fastfood,
+                    color: theme.iconTheme.color ?? textSecondary,
+                  ),
                 ),
                 const SizedBox(width: 16),
               ],
@@ -393,13 +410,20 @@ class RecentMealsList extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: textPrimary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (timeStr.isNotEmpty)
-                        Text(timeStr, style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+                        Text(
+                          timeStr,
+                          style: TextStyle(color: textSecondary, fontSize: 11),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -419,21 +443,35 @@ class RecentMealsList extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.grey[700],
+                                    color: textSecondary,
                                   ),
                                 ),
                               ],
                             )
                           : Text(
                               '${displayCal.round()} kcal',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
+                              ),
                             ),
                       if (mealData['logged'] == false) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                          child: const Text('UNLOGGED', style: TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold)),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.tertiaryContainer,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'UNLOGGED',
+                            style: TextStyle(
+                              color: theme.colorScheme.onTertiaryContainer,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ],
@@ -442,16 +480,34 @@ class RecentMealsList extends ConsumerWidget {
                   if (isLoadingScan)
                     Text(
                       'Waiting for Gemini + USDA nutrition',
-                      style: AppTextStyles.smallLabel.copyWith(color: Colors.grey[500]),
+                      style: AppTextStyles.smallLabel.copyWith(
+                        color: textSecondary,
+                      ),
                     )
                   else
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
                       children: [
-                        _buildMacroChip('P', '${displayP.round()}g', const Color(0xFFFFEBEE), const Color(0xFFE57373)),
+                        _buildMacroChip(
+                          'P',
+                          '${displayP.round()}g',
+                          theme.colorScheme.errorContainer,
+                          theme.colorScheme.onErrorContainer,
+                        ),
                         const SizedBox(width: 8),
-                        _buildMacroChip('C', '${displayC.round()}g', const Color(0xFFFFF3E0), const Color(0xFFFFB74D)),
-                        const SizedBox(width: 8),
-                        _buildMacroChip('F', '${displayF.round()}g', const Color(0xFFE3F2FD), const Color(0xFF64B5F6)),
+                        _buildMacroChip(
+                          'C',
+                          '${displayC.round()}g',
+                          theme.colorScheme.secondaryContainer,
+                          theme.colorScheme.onSurface,
+                        ),
+                        _buildMacroChip(
+                          'F',
+                          '${displayF.round()}g',
+                          theme.colorScheme.tertiaryContainer,
+                          theme.colorScheme.onSurface,
+                        ),
                       ],
                     ),
                 ],
@@ -463,7 +519,13 @@ class RecentMealsList extends ConsumerWidget {
     );
   }
 
-  Widget _buildWorkoutCard(ExerciseLog log) {
+  Widget _buildWorkoutCard(BuildContext context, ExerciseLog log) {
+    final theme = Theme.of(context);
+    final textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
     final name = log.name;
     final calories = log.calories.toInt();
     final source = log.source;
@@ -510,7 +572,7 @@ class RecentMealsList extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(AppRadii.bigCard),
         boxShadow: [AppShadows.card],
       ),
@@ -523,13 +585,13 @@ class RecentMealsList extends ConsumerWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(
                 child: Icon(
                   Icons.fitness_center,
-                  color: AppColors.primary,
+                  color: theme.colorScheme.primary,
                   size: 28,
                 ),
               ),
@@ -547,19 +609,27 @@ class RecentMealsList extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         name,
-                        style: AppTextStyles.bodyBold.copyWith(fontSize: 16),
+                        style: AppTextStyles.bodyBold.copyWith(
+                          fontSize: 16,
+                          color: textPrimary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(timeStr, style: AppTextStyles.smallLabel),
+                    Text(
+                      timeStr,
+                      style: AppTextStyles.smallLabel.copyWith(
+                        color: textSecondary,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '$calories kcal',
                   style: AppTextStyles.label.copyWith(
-                    color: AppColors.primaryText,
+                    color: textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -567,7 +637,7 @@ class RecentMealsList extends ConsumerWidget {
                 Text(
                   detailsText,
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.secondaryText,
+                    color: textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -581,16 +651,17 @@ class RecentMealsList extends ConsumerWidget {
 
   Widget _buildMacroChip(String label, String value, Color bg, Color text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: text.withValues(alpha: 0.14)),
       ),
       child: Text(
         '$label $value',
         style: AppTextStyles.smallLabel.copyWith(
           color: text,
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: FontWeight.w700,
         ),
       ),
