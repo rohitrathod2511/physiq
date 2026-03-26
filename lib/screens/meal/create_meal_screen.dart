@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/models/my_meal_model.dart';
 import 'package:physiq/services/my_meals_service.dart';
-import 'package:physiq/screens/meal/food_database_screen.dart';
+import 'package:physiq/screens/meal/FoodSearchForMealScreen.dart';
 
 class CreateMealScreen extends StatefulWidget {
   const CreateMealScreen({super.key});
@@ -46,15 +46,14 @@ class _CreateMealScreenState extends State<CreateMealScreen> {
   }
 
   Future<void> _addItems() async {
-    // Navigate to FoodDatabaseScreen in selection mode
-    final result = await Navigator.push(
+    final MealItem? result = await Navigator.push<MealItem>(
       context,
       MaterialPageRoute(
-        builder: (_) => const FoodDatabaseScreen(isSelectionMode: true),
+        builder: (_) => const FoodSearchForMealScreen(),
       ),
     );
 
-    if (result != null && result is MealItem) {
+    if (result != null) {
       setState(() {
         _items.add(result);
       });
@@ -236,34 +235,38 @@ class _CreateMealScreenState extends State<CreateMealScreen> {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: theme.dividerColor),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.secondaryContainer,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.local_fire_department,
-                            color: theme.colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.local_fire_department,
+                                color: theme.colorScheme.primary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
                             Text(
                               "Calories",
                               style: AppTextStyles.body.copyWith(
                                 color: textSecondary,
                               ),
                             ),
-                            Text(
-                              "${_totalCalories.toInt()}",
-                              style: AppTextStyles.h2,
-                            ),
                           ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          "${_totalCalories.toInt()}",
+                          style: AppTextStyles.h2,
                         ),
                       ],
                     ),
@@ -298,8 +301,6 @@ class _CreateMealScreenState extends State<CreateMealScreen> {
                   ),
 
                   const SizedBox(height: 32),
-                  const Divider(),
-                  const SizedBox(height: 16),
 
                   // Meal Items Header
                   Center(

@@ -16,12 +16,23 @@ class MyFoodsScreen extends ConsumerStatefulWidget {
 
 class _MyFoodsScreenState extends ConsumerState<MyFoodsScreen> {
   final CustomFoodService _service = CustomFoodService();
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final Color textPrimary =
         theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final Color textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     return Column(
       children: [
@@ -38,48 +49,94 @@ class _MyFoodsScreenState extends ConsumerState<MyFoodsScreen> {
               }
 
               final foods = snapshot.data ?? [];
+              final filteredFoods = _searchQuery.isEmpty
+                  ? foods
+                  : foods
+                        .where(
+                          (food) =>
+                              food.description.toLowerCase().contains(
+                                _searchQuery,
+                              ) ||
+                              food.brandName.toLowerCase().contains(
+                                _searchQuery,
+                              ),
+                        )
+                        .toList();
 
               if (foods.isEmpty) {
                 return _buildEmptyState(context);
               }
 
-              // Show list
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: foods.length + 1,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  if (index == foods.length) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 30, top: 10),
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CreateFoodScreen(),
-                            ),
-                          );
-                        },
-                        icon: Icon(Icons.add, color: textPrimary),
-                        label: Text(
-                          "Create New Food",
-                          style: TextStyle(color: textPrimary),
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.toLowerCase();
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search saved items',
+                        prefixIcon: Icon(Icons.search, color: textSecondary),
+                        filled: true,
+                        fillColor:
+                            theme.inputDecorationTheme.fillColor ??
+                            theme.cardColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
                         ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: BorderSide(color: theme.dividerColor),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
                         ),
                       ),
-                    );
-                  }
-                  final food = foods[index];
-                  return _buildFoodCard(context, ref, food, _service);
-                },
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: filteredFoods.length + 1,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        if (index == filteredFoods.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 30, top: 10),
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const CreateFoodScreen(),
+                                  ),
+                                );
+                              },
+                              icon: Icon(Icons.add, color: textPrimary),
+                              label: Text(
+                                "Create New Food",
+                                style: TextStyle(color: textPrimary),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                side: BorderSide(color: theme.dividerColor),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        final food = filteredFoods[index];
+                        return _buildFoodCard(context, ref, food, _service);
+                      },
+                    ),
+                  ),
+                ],
               );
             },
           ),

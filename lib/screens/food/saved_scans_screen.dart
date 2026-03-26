@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +20,31 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
   final _service = SavedFoodService();
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _deleteFood(String foodId) async {
+    final uid = _service.uid;
+    if (uid == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('saved_scans')
+          .doc(uid)
+          .collection('items')
+          .doc(foodId)
+          .delete();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting food: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +108,20 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
                     const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final food = foods[index];
-                  return _buildFoodCard(food);
+                  return Dismissible(
+                    key: Key(food.id.toString()),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      color: Colors.red,
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    onDismissed: (direction) {
+                      _deleteFood(food.id);
+                    },
+                    child: _buildFoodCard(food),
+                  );
                 },
               ),
             ),

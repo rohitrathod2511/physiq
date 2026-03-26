@@ -47,7 +47,6 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Color primary = theme.colorScheme.primary;
     final Color onPrimary = theme.colorScheme.onPrimary;
     final Color textPrimary =
         theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
@@ -123,8 +122,8 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveFood,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primary,
-                  foregroundColor: onPrimary,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   disabledBackgroundColor:
                       theme.colorScheme.surfaceContainerHighest,
                   disabledForegroundColor: textSecondary,
@@ -134,10 +133,9 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
                 ),
                 child: _isLoading
                     ? CircularProgressIndicator(color: onPrimary)
-                    : Text(
+                    : const Text(
                         "Save Food",
                         style: TextStyle(
-                          color: onPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -170,7 +168,7 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
     bool isNumber = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -182,25 +180,25 @@ class _AddNutritionScreenState extends State<AddNutritionScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          TextField(
-            controller: controller,
-            keyboardType: isNumber
-                ? const TextInputType.numberWithOptions(decimal: true)
-                : TextInputType.text,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor:
-                  Theme.of(context).inputDecorationTheme.fillColor ??
-                  Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).dividerColor),
+              color: Theme.of(context).cardColor,
+            ),
+            child: TextField(
+              controller: controller,
+              keyboardType: isNumber
+                  ? const TextInputType.numberWithOptions(decimal: true)
+                  : TextInputType.text,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ),

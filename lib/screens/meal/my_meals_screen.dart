@@ -17,6 +17,14 @@ class MyMealsScreen extends ConsumerStatefulWidget {
 
 class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
   final MyMealsService _service = MyMealsService();
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _navToCreate() {
     Navigator.push(
@@ -68,6 +76,19 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
         }
 
         final allMeals = snapshot.data ?? [];
+        final filteredMeals = _searchQuery.isEmpty
+            ? allMeals
+            : allMeals
+                  .where(
+                    (meal) =>
+                        meal.name.toLowerCase().contains(_searchQuery) ||
+                        meal.items.any(
+                          (item) => item.foodName.toLowerCase().contains(
+                            _searchQuery,
+                          ),
+                        ),
+                  )
+                  .toList();
 
         // 1. Empty State
         if (allMeals.isEmpty) {
@@ -116,15 +137,34 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
         // 2. List State
         return Column(
           children: [
-            // List
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search saved items',
+                  prefixIcon: Icon(Icons.search, color: textSecondary),
+                  filled: true,
+                  fillColor:
+                      theme.inputDecorationTheme.fillColor ?? theme.cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+              ),
+            ),
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 itemCount:
-                    allMeals.length +
+                    filteredMeals.length +
                     1, // +1 for Create Button at bottom or top?
                 // User req: "Button: Create a Meal" in empty state.
                 // Does existing state have a create button?
@@ -133,7 +173,7 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
                 // I'll add a CTA row at top if not empty.
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  if (index == allMeals.length) {
+                  if (index == filteredMeals.length) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 30, top: 10),
                       child: OutlinedButton.icon(
@@ -154,7 +194,7 @@ class _MyMealsScreenState extends ConsumerState<MyMealsScreen> {
                     );
                   }
 
-                  final meal = allMeals[index];
+                  final meal = filteredMeals[index];
                   return _buildMealCard(meal);
                 },
               ),

@@ -66,8 +66,6 @@ class _CreateFoodScreenState extends State<CreateFoodScreen> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Color primary = theme.colorScheme.primary;
-    final Color onPrimary = theme.colorScheme.onPrimary;
     final Color textPrimary =
         theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
     final Color textSecondary =
@@ -100,19 +98,16 @@ class _CreateFoodScreenState extends State<CreateFoodScreen> {
                   _brandController,
                   hint: "ex Campbell's",
                 ),
-                const SizedBox(height: 16),
                 _buildField(
                   "Description*",
                   _descriptionController,
                   hint: "Domino's cheese Pizza",
                 ),
-                const SizedBox(height: 16),
                 _buildField(
                   "Serving size*",
                   _servingSizeController,
                   hint: "ex 1 cup",
                 ),
-                const SizedBox(height: 16),
                 _buildField(
                   "Serving per container*",
                   _servingPerContainerController,
@@ -129,8 +124,8 @@ class _CreateFoodScreenState extends State<CreateFoodScreen> {
               child: ElevatedButton(
                 onPressed: _isNextEnabled ? _onNext : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primary,
-                  foregroundColor: onPrimary,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   disabledBackgroundColor:
                       theme.colorScheme.surfaceContainerHighest,
                   disabledForegroundColor: textSecondary,
@@ -141,8 +136,7 @@ class _CreateFoodScreenState extends State<CreateFoodScreen> {
                 ),
                 child: Text(
                   "Next",
-                  style: TextStyle(
-                    color: onPrimary,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -172,31 +166,31 @@ class _CreateFoodScreenState extends State<CreateFoodScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          keyboardType: isNumber
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : TextInputType.text,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTextStyles.body.copyWith(
-              color: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Theme.of(context).dividerColor),
+            color: Theme.of(context).cardColor,
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: isNumber
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.text,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
-            filled: true,
-            fillColor:
-                Theme.of(context).inputDecorationTheme.fillColor ??
-                Theme.of(
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: AppTextStyles.body.copyWith(
+                color: Theme.of(
                   context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
+                ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ),
