@@ -16,8 +16,7 @@ class TargetWeightScreen extends ConsumerStatefulWidget {
 
 class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
   String _unitSystem = 'Metric';
-  double _targetWeightKg = 80.0;
-  double _currentWeightKg = 80.0;
+  double _targetWeight = 0;
 
   String? _normalizeGoal(String? goal) {
     final normalizedGoal = goal?.trim().toLowerCase();
@@ -39,26 +38,28 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final store = ref.read(onboardingProvider);
-      if (store.weightKg != null) {
-        _currentWeightKg = store.weightKg!;
-        switch (_normalizeGoal(store.goal)) {
-          case 'gain':
-            _targetWeightKg = _currentWeightKg + 5;
-            break;
-          case 'lose':
-            _targetWeightKg = _currentWeightKg - 5;
-            break;
-          default:
-            _targetWeightKg = _currentWeightKg;
-        }
-      }
-      if (store.targetWeightKg != null) {
-        _targetWeightKg = store.targetWeightKg!;
-      }
-      setState(() {});
-    });
+
+    final store = ref.read(onboardingProvider);
+    final goal = _normalizeGoal(store.goal);
+    final currentWeight = (store.weightKg ?? 80.0).toDouble();
+
+    if (goal == 'gain') {
+      _targetWeight = currentWeight + 10;
+    } else if (goal == 'lose') {
+      _targetWeight = currentWeight - 10;
+    } else {
+      _targetWeight = currentWeight;
+    }
+
+    if (store.targetWeightKg != null) {
+      _targetWeight = store.targetWeightKg!;
+    }
+
+    _targetWeight = _targetWeight.clamp(30.0, 200.0).toDouble();
+
+    print('Goal: $goal');
+    print('Current Weight: $currentWeight');
+    print('Target Weight: $_targetWeight');
   }
 
   void _onUnitChanged(String newUnit) {
@@ -68,7 +69,7 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
   }
 
   void _onContinue() {
-    ref.read(onboardingProvider).saveStepData('targetWeightKg', _targetWeightKg);
+    ref.read(onboardingProvider).saveStepData('targetWeightKg', _targetWeight);
     context.push('/onboarding/result-message');
   }
 
@@ -76,8 +77,8 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
   Widget build(BuildContext context) {
     final isMetric = _unitSystem == 'Metric';
     final double displayVal = isMetric
-        ? _targetWeightKg
-        : Conversions.kgToLbs(_targetWeightKg);
+        ? _targetWeight
+        : Conversions.kgToLbs(_targetWeight);
     final String unit = isMetric ? 'kg' : 'lbs';
 
     return Scaffold(
@@ -93,10 +94,7 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
-            Text(
-              "What is your Target Weight?",
-              style: AppTextStyles.h1,
-            ),
+            Text("What is your Target Weight?", style: AppTextStyles.h1),
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -104,16 +102,19 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
                     children: [
                       SliderWeight(
                         value: displayVal,
-                        min: isMetric ? 30 : 66,
-                        max: isMetric ? 140 : 308.7,
+                        min: isMetric ? 30.0 : Conversions.kgToLbs(30.0),
+                        max: isMetric ? 200.0 : Conversions.kgToLbs(200.0),
                         unit: unit,
-                        onChanged: (val) {
+                        onChanged: (value) {
                           setState(() {
                             if (isMetric) {
-                              _targetWeightKg = val;
+                              _targetWeight = value;
                             } else {
-                              _targetWeightKg = Conversions.lbsToKg(val);
+                              _targetWeight = Conversions.lbsToKg(value);
                             }
+                            _targetWeight = _targetWeight
+                                .clamp(30.0, 200.0)
+                                .toDouble();
                           });
                         },
                       ),

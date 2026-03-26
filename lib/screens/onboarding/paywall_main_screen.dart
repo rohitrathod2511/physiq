@@ -60,7 +60,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                 style: AppTextStyles.h1.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 34),
               _buildFeatureItem(
                 'Get your Dream Body',
                 'We keep it simple to make getting results easy',
@@ -68,6 +68,14 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               _buildFeatureItem(
                 'Track your Progress',
                 'Stay on track with personalized insights and smart reminders',
+              ),
+              _buildFeatureItem(
+                'Easy Food Scanning',
+                'Track your calories with our easy to use food scanner',
+              ),
+              _buildFeatureItem(
+                'Easy to Follow Workouts',
+                'Stay on track with our easy to follow workout plans',
               ),
 
               const Spacer(),
@@ -131,21 +139,26 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
 
   Widget _buildFeatureItem(String title, String subtitle) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.check, color: AppColors.primaryText),
+          Icon(Icons.check, color: AppColors.primaryText, size: 20),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.h3),
+                Text(
+                  title,
+                  style: AppTextStyles.h3.copyWith(fontSize: 16, height: 1.15),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: AppTextStyles.body.copyWith(
+                    fontSize: 14,
+                    height: 1.2,
                     color: AppColors.secondaryText,
                   ),
                 ),
