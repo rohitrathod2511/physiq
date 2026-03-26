@@ -136,7 +136,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     ref.read(homeViewModelProvider.notifier).updateCurrentPlan(currentPlan);
 
     if (mounted) {
-      context.push(_getNextRoute(store));
+      final nextRoute = Uri.encodeComponent(_getNextRoute(store));
+      context.push('/signup?next=$nextRoute');
     }
   }
 

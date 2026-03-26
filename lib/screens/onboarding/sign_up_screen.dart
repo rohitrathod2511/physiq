@@ -19,8 +19,59 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   static const EdgeInsets _optionButtonPadding = EdgeInsets.symmetric(vertical: 16);
   static const double _optionButtonRadius = 30;
 
-  String _getNextRoute() {
-    return '/onboarding/paywall-free';
+  String? _normalizeGoal(String? goal) {
+    final normalizedGoal = goal?.trim().toLowerCase();
+    if (normalizedGoal == null || normalizedGoal.isEmpty) {
+      return null;
+    }
+    if (normalizedGoal.contains('gain')) {
+      return 'gain';
+    }
+    if (normalizedGoal.contains('lose') || normalizedGoal.contains('loss')) {
+      return 'lose';
+    }
+    if (normalizedGoal.contains('maintain')) {
+      return 'maintain';
+    }
+    return null;
+  }
+
+  Future<String> _getNextRoute() async {
+    final store = ref.read(onboardingProvider);
+    var goal = _normalizeGoal(await store.getStoredGoal());
+
+    if (goal == null) {
+      final nextRoute = GoRouterState.of(context).uri.queryParameters['next'];
+      if (nextRoute != null) {
+        if (nextRoute.contains('transformation-rodrigo')) {
+          goal = 'gain';
+        } else if (nextRoute.contains('transformation-lucas')) {
+          goal = 'lose';
+        } else if (nextRoute.contains('notification')) {
+          goal = 'maintain';
+        }
+      }
+    }
+
+    print("GOAL AFTER SIGNUP: $goal");
+
+    if (goal == 'gain') {
+      return '/rodrigo';
+    }
+    if (goal == 'lose') {
+      return '/lucas';
+    }
+    return '/success';
+  }
+
+  Future<void> _navigateAfterSignup() async {
+    final nextRoute = await _getNextRoute();
+    if (!mounted) return;
+
+    Future.microtask(() {
+      if (!mounted) return;
+      context.pushReplacement(nextRoute);
+    });
   }
 
   Future<void> _handleGoogleSignIn() async {
@@ -39,7 +90,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         if (user != null) {
-          context.pushReplacement(_getNextRoute());
+          await _navigateAfterSignup();
         }
       }
     } catch (e) {
@@ -81,7 +132,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     // 3. Navigate Immediately
     if (!mounted) return;
     setState(() => _isLoading = false);
-    context.pushReplacement(_getNextRoute());
+    await _navigateAfterSignup();
   }
 
   void _handleEmailSignIn() {
@@ -145,7 +196,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 setState(() => _isLoading = false);
 
                 if (user != null && mounted) {
-                  context.pushReplacement(_getNextRoute());
+                  await _navigateAfterSignup();
                 }
               } catch (e) {
                 if (mounted) {

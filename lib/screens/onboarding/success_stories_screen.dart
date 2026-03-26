@@ -303,7 +303,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: () => context.push('/onboarding/notification'),
+          onPressed: () => context.push('/paywall'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,

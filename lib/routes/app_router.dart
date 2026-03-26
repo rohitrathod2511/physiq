@@ -152,9 +152,9 @@ final GoRouter router = GoRouter(
           location.startsWith('/exercise') ||
           location.startsWith('/meal-history');
 
-      // Enforce paywall/onboarding completion before app shell access.
-      if (isProtected || location == '/' || location == '/get-started') {
-        return '/onboarding/paywall-free';
+      // Keep incomplete users in the onboarding flow instead of jumping ahead to paywall.
+      if (isProtected || location == '/') {
+        return '/get-started';
       }
       return null;
     }
@@ -165,6 +165,11 @@ final GoRouter router = GoRouter(
     if (isOnboardingComplete) {
       // Redirect away from auth/onboarding screens to Home
       if (location == '/sign-in' ||
+          location == '/signup' ||
+          location == '/rodrigo' ||
+          location == '/lucas' ||
+          location == '/success' ||
+          location == '/paywall' ||
           location == '/get-started' ||
           location == '/' ||
           location.startsWith('/onboarding') ||
@@ -207,6 +212,38 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/sign-in',
       builder: (context, state) => const SignUpScreen(),
+    ),
+    GoRoute(
+      path: '/signup',
+      builder: (context, state) => const SignUpScreen(),
+    ),
+    GoRoute(
+      path: '/rodrigo',
+      redirect: (context, state) {
+        return '/onboarding/transformation-rodrigo';
+      },
+      builder: (context, state) => const SizedBox.shrink(),
+    ),
+    GoRoute(
+      path: '/lucas',
+      redirect: (context, state) {
+        return '/onboarding/transformation-lucas';
+      },
+      builder: (context, state) => const SizedBox.shrink(),
+    ),
+    GoRoute(
+      path: '/success',
+      redirect: (context, state) {
+        return '/onboarding/success-stories';
+      },
+      builder: (context, state) => const SizedBox.shrink(),
+    ),
+    GoRoute(
+      path: '/paywall',
+      redirect: (context, state) {
+        return '/onboarding/paywall-free';
+      },
+      builder: (context, state) => const SizedBox.shrink(),
     ),
 
     // Onboarding Flow

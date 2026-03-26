@@ -23,7 +23,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     store.saveStepData('waterReminders', _waterReminders);
     store.saveStepData('weighInReminders', _weighInReminders);
     
-    context.push('/sign-in');
+    context.push('/onboarding/referral');
   }
 
   Widget _buildToggle(String title, bool value, ValueChanged<bool> onChanged) {

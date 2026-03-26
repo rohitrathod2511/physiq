@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,14 +12,14 @@ class MotivationalMessageScreen extends ConsumerWidget {
 
   Future<void> _onConfirm(BuildContext context, WidgetRef ref) async {
     final store = ref.read(onboardingProvider);
-    
+
     // Generate local plan
     final profile = store.data;
     final plan = PlanGenerator.generateLocalPlan(profile);
-    
+
     // Save plan to store/draft
     await store.saveStepData('currentPlan', plan);
-    
+
     // Save to Firestore if signed in
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -35,16 +34,16 @@ class MotivationalMessageScreen extends ConsumerWidget {
       }
     }
 
-    // Navigate to referral
+    // Navigate to notification step
     if (context.mounted) {
-      context.push('/onboarding/referral');
+      context.push('/onboarding/notification');
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final store = ref.watch(onboardingProvider);
-    
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -60,7 +59,7 @@ class MotivationalMessageScreen extends ConsumerWidget {
               // Progress Bar removed
               const Spacer(),
               const Spacer(),
-              
+
               // Title
               Text(
                 "${(store.goal?.toLowerCase().contains('lose') ?? false) ? 'Lose' : 'Gain'} 10X weight with Physiq AI vs\non your own",
@@ -68,7 +67,7 @@ class MotivationalMessageScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
               const Spacer(),
-              
+
               // Graph Section (Card Removed)
               Column(
                 children: [
@@ -79,7 +78,11 @@ class MotivationalMessageScreen extends ConsumerWidget {
                       // Bar 1 (Without)
                       Column(
                         children: [
-                          Text("Without\nPhysiq AI", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
+                          Text(
+                            "Without\nPhysiq AI",
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodyBold,
+                          ),
                           const SizedBox(height: 12),
                           Container(
                             width: 80,
@@ -89,7 +92,10 @@ class MotivationalMessageScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.center,
-                            child: const Text("10%", style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              "10%",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -97,17 +103,29 @@ class MotivationalMessageScreen extends ConsumerWidget {
                       // Bar 2 (With)
                       Column(
                         children: [
-                          Text("With\nPhysiq AI", textAlign: TextAlign.center, style: AppTextStyles.bodyBold),
+                          Text(
+                            "With\nPhysiq AI",
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodyBold,
+                          ),
                           const SizedBox(height: 12),
-                          Container( 
+                          Container(
                             width: 80,
                             height: 150, // Full height
                             decoration: BoxDecoration(
-                              color: Colors.black, // Should be AppColors.primary
+                              color:
+                                  Colors.black, // Should be AppColors.primary
                               borderRadius: BorderRadius.circular(16),
                             ),
                             alignment: Alignment.center,
-                            child: const Text("10X", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
+                            child: const Text(
+                              "10X",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -116,20 +134,23 @@ class MotivationalMessageScreen extends ConsumerWidget {
                   const SizedBox(height: 32),
                   Text(
                     "Physiq AI makes it easy and holds\nyou accountable",
-                    style: AppTextStyles.h2.copyWith(color: AppColors.secondaryText),
+                    style: AppTextStyles.h2.copyWith(
+                      color: AppColors.secondaryText,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
               ),
-              
+
               const Spacer(flex: 2),
-              
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => _onConfirm(context, ref),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary, // Fixed from Colors.black to AppColors.primary for Dark Mode
+                    backgroundColor: AppColors
+                        .primary, // Fixed from Colors.black to AppColors.primary for Dark Mode
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
