@@ -5,6 +5,8 @@ import 'package:physiq/theme/design_system.dart';
 class LucasTransformationScreen extends StatelessWidget {
   const LucasTransformationScreen({super.key});
 
+  static const String _assetPath = 'assets/Lucas.jpeg';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -15,7 +17,7 @@ class LucasTransformationScreen extends StatelessWidget {
         leading: BackButton(color: AppColors.primaryText),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
@@ -33,81 +35,39 @@ class LucasTransformationScreen extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
-
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          _assetPath,
+                          height: 260,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.centerLeft,
+                        ),
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            color: Colors.grey.shade200,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.person_outline,
-                                  size: 64,
-                                  color: Colors.grey.shade400,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Before",
-                                  style: AppTextStyles.bodyBold.copyWith(
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 2,
-                          color: AppColors.primary.withOpacity(0.2),
-                        ),
-                        Expanded(
-                          child: Container(
-                            color: AppColors.primary.withOpacity(0.05),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.monitor_weight_outlined,
-                                  size: 64,
-                                  color: AppColors.primary,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "After",
-                                  style: AppTextStyles.bodyBold.copyWith(
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          _assetPath,
+                          height: 260,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.centerRight,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -116,7 +76,6 @@ class LucasTransformationScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -135,7 +94,7 @@ class LucasTransformationScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "— Lucas, Physiq AI user",
+                      "Lucas, Physiq AI user",
                       style: AppTextStyles.smallLabel.copyWith(
                         color: AppColors.secondaryText,
                       ),
@@ -144,7 +103,6 @@ class LucasTransformationScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

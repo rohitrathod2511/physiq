@@ -14,9 +14,6 @@ class SuccessStoriesScreen extends StatefulWidget {
 class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
   static const _starColor = Color(0xFFFFC107);
   static const _checkColor = Color(0xFF4CAF50);
-  static const _cardColor = Color(0xFFF5F5F5);
-  static const _accentTextColor = Color(0xFF111111);
-  static const _softTextColor = Color(0xFF666666);
   static const _avatarBorderColor = Colors.white;
   static const _rotationInterval = Duration(seconds: 3);
   static const _transitionDuration = Duration(milliseconds: 550);
@@ -25,7 +22,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
     _StoryReview(
       title: 'I impressed my doctor',
       text:
-          "Managing my health used to be a nightmare. The automated tracking made it effortless. My labs improved because I finally know exactly what I'm consuming.",
+          "Managing my health used to be a nightmare. My labs improved because I finally know exactly what I'm eating.",
     ),
     _StoryReview(
       title: 'Finally gained healthy weight',
@@ -38,7 +35,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
           'No crash dieting. Just consistency. The AI tracking made everything simple and I stayed on track.',
     ),
     _StoryReview(
-      title: 'Best fitness app I’ve used',
+      title: "Best fitness app I've used",
       text:
           'Tried many apps before, but this one actually works. The UI, tracking, and reminders are perfect.',
     ),
@@ -120,21 +117,17 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
                     Text(
                       'Thousands of users reaching their goals',
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontSize: 17,
-                        color: const Color(0xFF666666),
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.secondaryText,
                       ),
                     ),
                     const SizedBox(height: 30),
                     _buildAvatarStack(),
                     const SizedBox(height: 24),
                     Text(
-                      '+10K users with FitCal',
+                      '+10K users with Physiq AI',
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.bodyBold.copyWith(
-                        fontSize: 18,
-                        color: _accentTextColor,
-                      ),
+                      style: AppTextStyles.bodyBold,
                     ),
                     const SizedBox(height: 28),
                     _buildReviewCard(review),
@@ -158,12 +151,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
     return Text(
       'Success Stories',
       textAlign: TextAlign.center,
-      style: AppTextStyles.h1.copyWith(
-        fontSize: 36,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.8,
-        color: _accentTextColor,
-      ),
+      style: AppTextStyles.h1,
     );
   }
 
@@ -174,11 +162,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
         5,
         (index) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Icon(
-            Icons.star_rounded,
-            size: size,
-            color: _starColor,
-          ),
+          child: Icon(Icons.star_rounded, size: size, color: _starColor),
         ),
       ),
     );
@@ -197,10 +181,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
           for (int i = 0; i < _profiles.length; i++)
             Positioned(
               left: i * (avatarSize - overlap),
-              child: _AvatarBubble(
-                profile: _profiles[i],
-                size: avatarSize,
-              ),
+              child: _AvatarBubble(profile: _profiles[i], size: avatarSize),
             ),
         ],
       ),
@@ -213,16 +194,9 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
       constraints: const BoxConstraints(maxWidth: 420),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-            spreadRadius: -8,
-          ),
-        ],
+        boxShadow: [AppShadows.card],
       ),
       child: AnimatedSwitcher(
         duration: _transitionDuration,
@@ -241,14 +215,8 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
           final isIncoming =
               (child.key as ValueKey<int>).value == _currentReviewIndex;
           final offsetTween = isIncoming
-              ? Tween<Offset>(
-                  begin: const Offset(0, 0.12),
-                  end: Offset.zero,
-                )
-              : Tween<Offset>(
-                  begin: Offset.zero,
-                  end: const Offset(0, -0.12),
-                );
+              ? Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+              : Tween<Offset>(begin: Offset.zero, end: const Offset(0, -0.12));
 
           return FadeTransition(
             opacity: animation,
@@ -270,20 +238,12 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
           children: [
             _buildStars(size: 16),
             const SizedBox(height: 14),
-            Text(
-              review.title,
-              style: AppTextStyles.bodyBold.copyWith(
-                fontSize: 18,
-                color: _accentTextColor,
-              ),
-            ),
+            Text(review.title, style: AppTextStyles.bodyBold),
             const SizedBox(height: 12),
             Text(
               review.text,
               style: AppTextStyles.body.copyWith(
-                fontSize: 15,
-                height: 1.55,
-                color: _softTextColor,
+                color: AppColors.secondaryText,
               ),
             ),
           ],
@@ -319,7 +279,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
       constraints: const BoxConstraints(maxWidth: 420),
       padding: const EdgeInsets.symmetric(vertical: 26),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.58),
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Center(
@@ -330,11 +290,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
             color: _checkColor,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.check_rounded,
-            color: Colors.white,
-            size: 42,
-          ),
+          child: const Icon(Icons.check_rounded, color: Colors.white, size: 42),
         ),
       ),
     );
@@ -342,38 +298,22 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
 
   Widget _buildBottomButton(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+      color: AppColors.background,
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () => context.push('/onboarding/notification'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            elevation: 3,
-            shadowColor: Colors.black.withOpacity(0.22),
-            padding: const EdgeInsets.symmetric(vertical: 18),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(30),
             ),
           ),
-          child: Text(
-            'Next',
-            style: AppTextStyles.bodyBold.copyWith(
-              fontSize: 18,
-              color: Colors.white,
-            ),
-          ),
+          child: const Text('Continue'),
         ),
       ),
     );
@@ -381,10 +321,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
 }
 
 class _AvatarBubble extends StatelessWidget {
-  const _AvatarBubble({
-    required this.profile,
-    required this.size,
-  });
+  const _AvatarBubble({required this.profile, required this.size});
 
   final _AvatarProfile profile;
   final double size;
@@ -396,7 +333,10 @@ class _AvatarBubble extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: _SuccessStoriesScreenState._avatarBorderColor, width: 2),
+        border: Border.all(
+          color: _SuccessStoriesScreenState._avatarBorderColor,
+          width: 2,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.12),
@@ -430,10 +370,7 @@ class _AvatarBubble extends StatelessWidget {
 }
 
 class _StoryReview {
-  const _StoryReview({
-    required this.title,
-    required this.text,
-  });
+  const _StoryReview({required this.title, required this.text});
 
   final String title;
   final String text;

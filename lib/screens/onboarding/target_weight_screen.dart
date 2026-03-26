@@ -1,12 +1,11 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/providers/onboarding_provider.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/utils/conversions.dart';
-import 'package:physiq/widgets/unit_toggle.dart';
 import 'package:physiq/widgets/slider_weight.dart';
+import 'package:physiq/widgets/unit_toggle.dart';
 
 class TargetWeightScreen extends ConsumerStatefulWidget {
   const TargetWeightScreen({super.key});
@@ -19,7 +18,23 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
   String _unitSystem = 'Metric';
   double _targetWeightKg = 80.0;
   double _currentWeightKg = 80.0;
-  String? _goal;
+
+  String? _normalizeGoal(String? goal) {
+    final normalizedGoal = goal?.trim().toLowerCase();
+    if (normalizedGoal == null || normalizedGoal.isEmpty) {
+      return null;
+    }
+    if (normalizedGoal.contains('gain')) {
+      return 'gain';
+    }
+    if (normalizedGoal.contains('lose') || normalizedGoal.contains('loss')) {
+      return 'lose';
+    }
+    if (normalizedGoal.contains('maintain')) {
+      return 'maintain';
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -28,19 +43,20 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
       final store = ref.read(onboardingProvider);
       if (store.weightKg != null) {
         _currentWeightKg = store.weightKg!;
-        // Default target slightly different based on goal
-        if (store.goal == 'Lose') {
-          _targetWeightKg = _currentWeightKg * 0.9;
-        } else if (store.goal == 'Gain') {
-          _targetWeightKg = _currentWeightKg * 1.1;
-        } else {
-          _targetWeightKg = _currentWeightKg;
+        switch (_normalizeGoal(store.goal)) {
+          case 'gain':
+            _targetWeightKg = _currentWeightKg + 5;
+            break;
+          case 'lose':
+            _targetWeightKg = _currentWeightKg - 5;
+            break;
+          default:
+            _targetWeightKg = _currentWeightKg;
         }
       }
       if (store.targetWeightKg != null) {
         _targetWeightKg = store.targetWeightKg!;
       }
-      _goal = store.goal;
       setState(() {});
     });
   }
@@ -59,8 +75,10 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
   @override
   Widget build(BuildContext context) {
     final isMetric = _unitSystem == 'Metric';
-    double displayVal = isMetric ? _targetWeightKg : Conversions.kgToLbs(_targetWeightKg);
-    String unit = isMetric ? 'kg' : 'lbs';
+    final double displayVal = isMetric
+        ? _targetWeightKg
+        : Conversions.kgToLbs(_targetWeightKg);
+    final String unit = isMetric ? 'kg' : 'lbs';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -106,7 +124,6 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
                         leftLabel: 'Metric',
                         rightLabel: 'Imperial',
                       ),
-                
                     ],
                   ),
                 ),
