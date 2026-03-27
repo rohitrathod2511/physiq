@@ -486,27 +486,26 @@ class RecentMealsList extends ConsumerWidget {
                     )
                   else
                     Wrap(
-                      spacing: 8,
+                      spacing: 6,
                       runSpacing: 6,
                       children: [
                         _buildMacroChip(
                           'P',
                           '${displayP.round()}g',
-                          theme.colorScheme.errorContainer,
-                          theme.colorScheme.onErrorContainer,
+                          const Color(0xFFF7B5C6),
+                          const Color(0xFF7A1630),
                         ),
-                        const SizedBox(width: 8),
                         _buildMacroChip(
                           'C',
                           '${displayC.round()}g',
-                          theme.colorScheme.secondaryContainer,
-                          theme.colorScheme.onSurface,
+                          const Color(0xFFFFF1B8),
+                          const Color(0xFF6F4E00),
                         ),
                         _buildMacroChip(
                           'F',
                           '${displayF.round()}g',
-                          theme.colorScheme.tertiaryContainer,
-                          theme.colorScheme.onSurface,
+                          const Color(0xFFCFE1FF),
+                          const Color(0xFF123C8C),
                         ),
                       ],
                     ),
@@ -649,20 +648,24 @@ class RecentMealsList extends ConsumerWidget {
     );
   }
 
-  Widget _buildMacroChip(String label, String value, Color bg, Color text) {
+  Widget _buildMacroChip(
+    String label,
+    String value,
+    Color bg,
+    Color textColor,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: text.withValues(alpha: 0.14)),
       ),
       child: Text(
         '$label $value',
-        style: AppTextStyles.smallLabel.copyWith(
-          color: text,
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: textColor,
           fontSize: 11,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
