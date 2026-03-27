@@ -35,9 +35,11 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
   final FoodService _foodService = FoodService();
 
   List<Food> _searchResults = [];
+  final Map<String, double> _usdaCaloriesById = {};
   bool _isLoading = false;
   bool _hasSearched = false;
   Timer? _debounce;
+  int _searchVersion = 0;
 
   final List<String> _tabs = ['All', 'My Meals', 'My Foods', 'Saved Food'];
 
@@ -79,6 +81,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
         _searchResults = [];
         _isLoading = false;
         _hasSearched = false;
+        _searchVersion++;
       });
       return;
     }
@@ -89,6 +92,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
     });
 
     _debounce = Timer(const Duration(milliseconds: 500), () async {
+      final currentVersion = ++_searchVersion;
       try {
         final results = await _foodService.searchFoods(query);
         if (!mounted) return;
@@ -97,6 +101,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
           _isLoading = false;
           _hasSearched = true;
         });
+        _hydrateUsdaCalories(results, currentVersion);
       } catch (error) {
         debugPrint('Search error: $error');
         if (!mounted) return;
@@ -116,14 +121,26 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
     });
   }
 
+  Future<void> _hydrateUsdaCalories(List<Food> results, int version) async {
+    for (final food in results) {
+      if (version != _searchVersion || !mounted) return;
+      if (food.source != 'usda' || !food.isPartial) continue;
+      if ((food.fdcId ?? '').isEmpty) continue;
+      if (_usdaCaloriesById.containsKey(food.id)) continue;
+
+      final detailedFood = await _foodService.getFoodDetails(food.fdcId!);
+      if (!mounted || version != _searchVersion) return;
+
+      setState(() {
+        _usdaCaloriesById[food.id] = detailedFood?.calories ?? 0;
+      });
+    }
+  }
+
   Future<void> _onFoodTap(Food food) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => FoodNutritionScreen(
-          food: food,
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => FoodNutritionScreen(food: food)),
     );
 
     if (result != null && widget.isSelectionMode && mounted) {
@@ -187,9 +204,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                         theme.brightness == Brightness.dark
                                     ? Border.all(
                                         color: theme.colorScheme.onSurface
-                                            .withValues(
-                                          alpha: 0.24,
-                                        ),
+                                            .withValues(alpha: 0.24),
                                         width: 1,
                                       )
                                     : null,
@@ -352,6 +367,13 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                               itemCount: _searchResults.length,
                               itemBuilder: (context, index) {
                                 final food = _searchResults[index];
+                                final displayCalories = food.source == 'usda'
+                                    ? (_usdaCaloriesById[food.id] ??
+                                          food.calories)
+                                    : food.calories;
+                                final caloriesText = food.source == 'usda'
+                                    ? '${displayCalories.toInt()} cal - 100g'
+                                    : '${displayCalories.toInt()} cal - ${food.unit}';
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   elevation: 0,
@@ -393,7 +415,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
                                     subtitle: Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Text(
-                                        '${food.calories.toInt()} cal - ${food.unit}',
+                                        caloriesText,
                                         style: AppTextStyles.label.copyWith(
                                           color: textSecondary,
                                         ),
