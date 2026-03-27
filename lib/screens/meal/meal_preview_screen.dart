@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/models/saved_food_model.dart';
@@ -14,7 +14,6 @@ import 'package:physiq/services/food_service.dart';
 import 'package:physiq/services/saved_food_service.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
 import 'package:physiq/widgets/macro_icons.dart';
-import 'package:intl/intl.dart';
 
 class MealPreviewScreen extends ConsumerStatefulWidget {
   final Food initialFood;
@@ -274,6 +273,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _currentMeal == null) return;
 
+    final theme = Theme.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -286,7 +286,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
           ),
         ],
       ),
@@ -295,12 +298,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     if (confirm != true) return;
 
     try {
-      // 1. Delete from HomeViewModel (handles Today's Log recalculation)
       await ref
           .read(homeViewModelProvider.notifier)
           .deleteMeal(_currentMeal!.id, _currentMeal!.createdAt);
 
-      // 2. Also ensure raw scan is deleted if it exists separately
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -319,8 +320,11 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final textPrimary = Colors.black;
-    final textSecondary = Colors.grey[600]!;
+    final textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     final calories = _getNutrient(_food.calories).round();
     final protein = _getNutrient(_food.protein).round();
@@ -328,7 +332,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final fat = _getNutrient(_food.fat).round();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.background,
       body: Stack(
         children: [
           _buildHeroImage(context),
@@ -350,13 +354,19 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   }
 
   Widget _buildHeroImage(BuildContext context) {
+    final theme = Theme.of(context);
+
     if ((widget.imagePath == null || widget.imagePath!.isEmpty) &&
         (_currentMeal?.imageUrl.isEmpty ?? true)) {
       return Container(
         height: 380,
-        color: Colors.grey[200],
-        child: const Center(
-          child: Icon(Icons.image_not_supported_outlined, size: 50),
+        color: theme.colorScheme.surfaceContainerHighest,
+        child: Center(
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            size: 50,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+          ),
         ),
       );
     }
@@ -371,6 +381,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   }
 
   Widget _buildTopNavButtons(BuildContext context) {
+    final theme = Theme.of(context);
+    final overlayColor = theme.colorScheme.scrim.withValues(alpha: 0.35);
+    final overlayIconColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.background;
+
     return Positioned(
       top: 0,
       left: 0,
@@ -391,10 +407,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: overlayColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, color: Colors.white, size: 22),
+                child: Icon(Icons.close, color: overlayIconColor, size: 22),
               ),
             ),
             PopupMenuButton<String>(
@@ -404,23 +420,29 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: overlayColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.more_vert,
-                  color: Colors.white,
+                  color: overlayIconColor,
                   size: 22,
                 ),
               ),
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_outline, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Delete Meal', style: TextStyle(color: Colors.red)),
+                      Icon(
+                        Icons.delete_outline,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Delete Meal',
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
                     ],
                   ),
                 ),
@@ -450,9 +472,9 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 140),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.background,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(32),
                 topRight: Radius.circular(32),
               ),
@@ -475,17 +497,13 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                 const SizedBox(height: 16),
                 _buildMacrosRow(protein, carbs, fat, theme),
                 const SizedBox(height: 32),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Ingredients',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                Text(
+                  'Ingredients',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 _buildIngredientsList(),
@@ -506,13 +524,17 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       children: [
         GestureDetector(
           onTap: _isSavingToSaved ? null : _saveToSavedFoods,
-          child: const Icon(Icons.bookmark_border, color: Colors.black, size: 24),
+          child: Icon(
+            Icons.bookmark_border,
+            color: theme.colorScheme.onSurface,
+            size: 24,
+          ),
         ),
         const SizedBox(width: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -548,27 +570,28 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: theme.dividerColor),
             borderRadius: BorderRadius.circular(22),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.remove, size: 20),
+                icon: Icon(Icons.remove, size: 20, color: textPrimary),
                 onPressed: () => _updateQuantity(-1),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 40),
               ),
               Text(
                 _quantity.toInt().toString(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: textPrimary,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.add, size: 20),
+                icon: Icon(Icons.add, size: 20, color: textPrimary),
                 onPressed: () => _updateQuantity(1),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 40),
@@ -590,12 +613,14 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.35)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: theme.shadowColor.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.24 : 0.08,
+            ),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -606,12 +631,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F9),
+              color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.local_fire_department,
-              color: Colors.black,
+              color: theme.colorScheme.primary,
               size: 24,
             ),
           ),
@@ -622,7 +647,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               Text(
                 'Calories',
                 style: TextStyle(
-                  color: Colors.grey[500],
+                  color: textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -630,10 +655,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               const SizedBox(height: 4),
               Text(
                 '$calories',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: textPrimary,
                 ),
               ),
             ],
@@ -677,17 +702,25 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   }
 
   Widget _buildIngredientsList() {
+    final theme = Theme.of(context);
+    final textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     if (_currentMeal == null || _currentMeal!.ingredients.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F7F9),
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
         ),
-        child: const Text(
+        child: Text(
           'Detecting ingredients...',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: textSecondary),
         ),
       );
     }
@@ -699,8 +732,11 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F7F9),
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: theme.dividerColor.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
@@ -710,17 +746,17 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                         children: [
                           TextSpan(
                             text: item.name,
-                            style: const TextStyle(
-                              color: Colors.black,
+                            style: TextStyle(
+                              color: textPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
                           ),
                           TextSpan(
                             text:
-                                ' • ${item.caloriesEstimate.round()} cal, ${item.amount}',
+                                ' - ${item.caloriesEstimate.round()} cal, ${item.amount}',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: textSecondary,
                               fontSize: 14,
                             ),
                           ),
@@ -729,7 +765,11 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
                     ),
                   ),
                   if (item.source == 'usda' || item.source == 'off')
-                    const Icon(Icons.verified, color: Colors.green, size: 20),
+                    Icon(
+                      Icons.verified,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
                 ],
               ),
             ),
@@ -740,6 +780,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
   Widget _buildEnrichmentStatus(ThemeData theme) {
     if (_currentMeal == null) return const SizedBox.shrink();
+
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
     final total = _currentMeal!.ingredients.length;
     final enriched = _currentMeal!.ingredients
         .where(
@@ -752,20 +796,20 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 14,
             height: 14,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Colors.black,
+              color: theme.colorScheme.primary,
             ),
           ),
           const SizedBox(width: 8),
           Text(
             'Verifying nutrition ($enriched/$total)...',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Colors.grey,
+              color: textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -782,10 +826,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.background,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: theme.shadowColor.withValues(
+                alpha: theme.brightness == Brightness.dark ? 0.3 : 0.12,
+              ),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -794,17 +840,21 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
         child: ElevatedButton(
           onPressed: _saveMeal,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 18),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
             ),
           ),
-          child: const Text(
+          child: Text(
             'Log Meal',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimary,
+            ),
           ),
         ),
       ),
@@ -827,12 +877,19 @@ class _MacroItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F1F1)),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -850,17 +907,17 @@ class _MacroItem extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                style: TextStyle(color: textSecondary, fontSize: 13),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: textPrimary,
             ),
           ),
         ],

@@ -1,15 +1,20 @@
 import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:physiq/theme/design_system.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:physiq/models/custom_food_model.dart';
 import 'package:physiq/models/exercise_log_model.dart';
-import 'package:physiq/viewmodels/home_viewmodel.dart';
-import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/models/food_model.dart';
-import 'package:physiq/screens/meal/meal_preview_screen.dart';
+import 'package:physiq/models/meal_model.dart';
+import 'package:physiq/models/my_meal_model.dart';
+import 'package:physiq/screens/food/custom_food_detail_screen.dart';
 import 'package:physiq/screens/meal/food_nutrition_screen.dart';
+import 'package:physiq/screens/meal/meal_detail_screen.dart';
+import 'package:physiq/screens/meal/meal_preview_screen.dart';
+import 'package:physiq/theme/design_system.dart';
+import 'package:physiq/viewmodels/home_viewmodel.dart';
 
 class RecentMealsList extends ConsumerWidget {
   final List<dynamic>? logs;
@@ -19,7 +24,6 @@ class RecentMealsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // If logs exist and list is not empty
     final hasLogs = logs != null && logs!.isNotEmpty;
     final theme = Theme.of(context);
     final textSecondary =
@@ -33,14 +37,12 @@ class RecentMealsList extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 12.0),
           child: Text("Today's logs", style: AppTextStyles.heading2),
         ),
-
         if (!hasLogs)
-          // Placeholder Card matching the image
           Container(
             width: double.infinity,
-            height: 140, // Reduced height
+            height: 140,
             margin: const EdgeInsets.symmetric(horizontal: 4),
-            padding: const EdgeInsets.all(16), // Reduced padding
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: theme.cardColor,
               borderRadius: BorderRadius.circular(AppRadii.bigCard),
@@ -49,10 +51,9 @@ class RecentMealsList extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Mock Image of Salad Bowl
                 Container(
-                  width: 80, // Reduced size
-                  height: 50, // Reduced size
+                  width: 80,
+                  height: 50,
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
@@ -78,7 +79,6 @@ class RecentMealsList extends ConsumerWidget {
             ),
           )
         else
-          // List of Logs
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -96,14 +96,17 @@ class RecentMealsList extends ConsumerWidget {
                   false,
                   _buildWorkoutCard(context, item),
                 );
-              } else if (item is Map<String, dynamic>) {
-                final id = item['id'] as String? ?? '';
-                DateTime timestamp = DateTime.now();
-                if (item['timestamp'] is Timestamp) {
-                  timestamp = (item['timestamp'] as Timestamp).toDate();
-                } else if (item['created_at'] is Timestamp) {
-                   timestamp = (item['created_at'] as Timestamp).toDate();
-                }
+              }
+
+              if (item is Map<String, dynamic>) {
+                final id = _stringValue(item['id']);
+                final timestamp = _dateValue(
+                      item['timestamp'] ??
+                          item['created_at'] ??
+                          item['createdAt'],
+                      fallback: DateTime.now(),
+                    ) ??
+                    DateTime.now();
 
                 return _buildDismissible(
                   context,
@@ -114,6 +117,7 @@ class RecentMealsList extends ConsumerWidget {
                   _buildMealCard(context, item),
                 );
               }
+
               return const SizedBox.shrink();
             },
           ),
@@ -157,18 +161,13 @@ class RecentMealsList extends ConsumerWidget {
         ),
       ),
       onDismissed: (direction) {
-        // 1. Immediately notify ViewModel to remove locally
         final viewModel = ref.read(homeViewModelProvider.notifier);
 
-        // We perform the local removal and total recalculation immediately
-        // to avoid "Dismissed widget still in tree" error and ensure reactive UI.
         if (isMeal) {
           viewModel.deleteMealLocally(id);
-          // 2. Call Firebase delete async
           viewModel.deleteMealFirebase(id, date);
         } else {
           viewModel.deleteExerciseLocally(id);
-          // 2. Call Firebase delete async
           viewModel.deleteExerciseFirebase(id, date);
         }
 
@@ -183,7 +182,7 @@ class RecentMealsList extends ConsumerWidget {
         }
       },
       confirmDismiss: (direction) async {
-        return await showDialog(
+        return await showDialog<bool>(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
@@ -219,19 +218,24 @@ class RecentMealsList extends ConsumerWidget {
     final textSecondary =
         theme.textTheme.bodyMedium?.color ??
         theme.colorScheme.onSurface.withValues(alpha: 0.7);
-    final id = mealData['id'] as String? ?? '';
-    final name = mealData['name'] ?? mealData['meal_title'] ?? 'Meal';
-    final protein = (mealData['proteinG'] ?? 0.0);
-    final carbs = (mealData['carbsG'] ?? 0.0);
-    final fat = (mealData['fatG'] ?? 0.0);
-    final calories = (mealData['calories'] ?? 0.0);
-    final imageUrl = (mealData['imageUrl'] ?? mealData['image_url']) as String?;
+    final id = _stringValue(mealData['id']);
+    final name = _stringValue(
+      mealData['name'] ?? mealData['meal_title'],
+      fallback: 'Meal',
+    );
+    final protein = _doubleValue(mealData['proteinG'] ?? mealData['protein']);
+    final carbs = _doubleValue(mealData['carbsG'] ?? mealData['carbs']);
+    final fat = _doubleValue(
+      mealData['fatG'] ?? mealData['fat'] ?? mealData['fats'],
+    );
+    final calories = _doubleValue(mealData['calories']);
+    final imageUrl = _stringValue(mealData['imageUrl'] ?? mealData['image_url']);
+    final type = _resolveMealType(mealData);
 
-    // Unlogged scans have 'ingredients' field from AI scans
-    final bool hasMealData = mealData['ingredients'] is List;
-    final bool isUnloggedScan = hasMealData && mealData['proteinG'] == null;
-    
-    // Dynamic stats for unlogged scans
+    final hasMealData = mealData['ingredients'] is List || type == 'scan';
+    final isUnloggedScan =
+        mealData['ingredients'] is List && mealData['proteinG'] == null;
+
     double displayP = protein;
     double displayC = carbs;
     double displayF = fat;
@@ -239,116 +243,114 @@ class RecentMealsList extends ConsumerWidget {
 
     if (isUnloggedScan) {
       final ingredients = mealData['ingredients'] as List;
-      for (var i in ingredients) {
-        displayCal += (i['calories_estimate'] ?? i['calories'] ?? 0.0);
-        displayP += (i['protein_estimate'] ?? i['protein'] ?? 0.0);
-        displayC += (i['carbs_estimate'] ?? i['carbs'] ?? 0.0);
-        displayF += (i['fat_estimate'] ?? i['fat'] ?? 0.0);
+      for (final ingredient in ingredients) {
+        final normalized = _normalizeMap(ingredient);
+        if (normalized == null) continue;
+        displayCal += _doubleValue(
+          normalized['calories_estimate'] ?? normalized['calories'],
+        );
+        displayP += _doubleValue(
+          normalized['protein_estimate'] ?? normalized['protein'],
+        );
+        displayC += _doubleValue(
+          normalized['carbs_estimate'] ?? normalized['carbs'],
+        );
+        displayF += _doubleValue(normalized['fat_estimate'] ?? normalized['fat']);
       }
     }
 
-    // Show image if imageUrl is present
-    final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
-    final bool showLeadingVisual = hasMealData || hasImage;
-    final bool isLoadingScan = hasMealData &&
+    final hasImage = imageUrl.isNotEmpty;
+    final showLeadingVisual = hasMealData || hasImage;
+    final isLoadingScan = mealData['ingredients'] is List &&
         (mealData['ingredients'] as List).isEmpty &&
         displayCal == 0 &&
         displayP == 0 &&
         displayC == 0 &&
         displayF == 0;
 
-    // Time Formatting
     String timeStr = '';
-    final rawTs = mealData['timestamp'] ?? mealData['created_at'];
-    if (rawTs is Timestamp) {
-      timeStr = DateFormat('h:mm a').format(rawTs.toDate());
+    final rawTs =
+        mealData['timestamp'] ?? mealData['created_at'] ?? mealData['createdAt'];
+    final time = _dateValue(rawTs);
+    if (time != null) {
+      timeStr = DateFormat('h:mm a').format(time);
     }
 
     return InkWell(
       onTap: () {
         if (onMealTap != null) {
           onMealTap!(id);
-        } else {
-           // Direct navigation to preview screen
-           if (hasMealData) {
-               final meal = Meal.fromJson(mealData, id);
-               final dummyFood = Food(
-                 id: meal.id,
-                 name: meal.title,
-                 category: 'AI Scan',
-                 unit: 'serving',
-                baseWeightG: 100,
-                calories: displayCal,
-                protein: displayP,
-                carbs: displayC,
-                fat: displayF,
-                source: 'snap',
-               );
-               Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(
-                 meal: meal,
-                 initialFood: dummyFood,
-               )));
-             } else {
-              final source = mealData['source'] as String? ?? 'snap';
-              final servingAmount = (mealData['servingAmount'] as num?)?.toDouble() ?? 1.0;
-              final servingDescription = mealData['servingDescription'] as String? ?? 'serving';
-              
-              if (source == 'database') {
-                // Reconstruct full Food object from the logged data
-                final nutrition = mealData['fullNutritionMap'] as Map<String, dynamic>? ?? {};
-                
-                // For 'database' logs, 'calories', 'proteinG' etc are TOTALS for the logged amount.
-                // FoodNutritionScreen calculates nutrients based on servingAmount.
-                // So we need to provide PER-UNIT values to the Food object.
-                double unitScaler = servingAmount > 0 ? (1.0 / servingAmount) : 1.0;
+          return;
+        }
 
-                final food = Food(
-                  id: id,
-                  name: name,
-                  category: 'Logged',
-                  unit: servingDescription,
-                  baseWeightG: 100,
-                  calories: displayCal * unitScaler,
-                  protein: displayP * unitScaler,
-                  carbs: displayC * unitScaler,
-                  fat: displayF * unitScaler,
-                  saturatedFat: (nutrition['saturatedFat'] as num?)?.toDouble() != null ? (nutrition['saturatedFat'] as num).toDouble() * unitScaler : null,
-                  polyunsaturatedFat: (nutrition['polyunsaturatedFat'] as num?)?.toDouble() != null ? (nutrition['polyunsaturatedFat'] as num).toDouble() * unitScaler : null,
-                  monounsaturatedFat: (nutrition['monounsaturatedFat'] as num?)?.toDouble() != null ? (nutrition['monounsaturatedFat'] as num).toDouble() * unitScaler : null,
-                  cholesterol: (nutrition['cholesterol'] as num?)?.toDouble() != null ? (nutrition['cholesterol'] as num).toDouble() * unitScaler : null,
-                  sodium: (nutrition['sodium'] as num?)?.toDouble() != null ? (nutrition['sodium'] as num).toDouble() * unitScaler : null,
-                  fiber: (nutrition['fiber'] as num?)?.toDouble() != null ? (nutrition['fiber'] as num).toDouble() * unitScaler : null,
-                  sugar: (nutrition['sugar'] as num?)?.toDouble() != null ? (nutrition['sugar'] as num).toDouble() * unitScaler : null,
-                  potassium: (nutrition['potassium'] as num?)?.toDouble() != null ? (nutrition['potassium'] as num).toDouble() * unitScaler : null,
-                  vitaminA: (nutrition['vitaminA'] as num?)?.toDouble() != null ? (nutrition['vitaminA'] as num).toDouble() * unitScaler : null,
-                  vitaminC: (nutrition['vitaminC'] as num?)?.toDouble() != null ? (nutrition['vitaminC'] as num).toDouble() * unitScaler : null,
-                  calcium: (nutrition['calcium'] as num?)?.toDouble() != null ? (nutrition['calcium'] as num).toDouble() * unitScaler : null,
-                  iron: (nutrition['iron'] as num?)?.toDouble() != null ? (nutrition['iron'] as num).toDouble() * unitScaler : null,
-                  source: 'database',
-                );
+        final servingAmount = _doubleValue(
+          mealData['servingAmount'] ?? mealData['quantity'],
+          fallback: 1.0,
+        );
+        final servingDescription = _stringValue(
+          mealData['servingDescription'] ?? mealData['unit'],
+          fallback: 'serving',
+        );
 
-                Navigator.push(context, MaterialPageRoute(builder: (_) => FoodNutritionScreen(
-                  food: food,
-                  servingAmount: servingAmount,
-                  servingUnit: servingDescription,
-                )));
-              } else {
-                // Snap Meal or other -> MealPreviewScreen
-                final dummyFood = Food(
-                  id: id,
-                  name: name,
-                  category: 'Logged',
-                  unit: servingDescription,
-                  baseWeightG: 100,
-                  calories: displayCal,
-                  protein: displayP,
-                  carbs: displayC,
-                  fat: displayF,
-                  source: source,
-                );
-                Navigator.push(context, MaterialPageRoute(builder: (_) => MealPreviewScreen(initialFood: dummyFood)));
-              }
-            }
+        if (type == 'meal') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MealDetailScreen(
+                meal: _buildLoggedMeal(mealData, id),
+              ),
+            ),
+          );
+          return;
+        }
+
+        if (type == 'custom_food') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CustomFoodDetailScreen(
+                food: _buildLoggedCustomFood(mealData, id),
+              ),
+            ),
+          );
+          return;
+        }
+
+        if (type == 'usda_food') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FoodNutritionScreen(
+                food: _buildLoggedFood(mealData, id),
+                servingAmount: servingAmount,
+                servingUnit: servingDescription,
+              ),
+            ),
+          );
+          return;
+        }
+
+        if (type == 'scan') {
+          final meal = _buildLoggedScanMeal(mealData, id);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MealPreviewScreen(
+                initialFood: _buildLoggedScanFood(
+                  mealData,
+                  id,
+                  displayCal,
+                  displayP,
+                  displayC,
+                  displayF,
+                ),
+                meal: meal,
+                initialQuantity: servingAmount > 0 ? servingAmount : 1.0,
+                imagePath: _resolveImagePath(mealData, meal),
+              ),
+            ),
+          );
+          return;
         }
       },
       borderRadius: BorderRadius.circular(20),
@@ -377,9 +379,19 @@ class RecentMealsList extends ConsumerWidget {
                     ),
                   ),
                   clipBehavior: Clip.hardEdge,
-                  child: imageUrl!.startsWith('http')
-                      ? Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image))
-                      : Image.file(File(imageUrl), fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image)),
+                  child: imageUrl.startsWith('http')
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.broken_image),
+                        )
+                      : Image.file(
+                          File(imageUrl),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.broken_image),
+                        ),
                 ),
                 const SizedBox(width: 16),
               ] else ...[
@@ -434,7 +446,9 @@ class RecentMealsList extends ConsumerWidget {
                                 const SizedBox(
                                   width: 12,
                                   height: 12,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
@@ -458,7 +472,10 @@ class RecentMealsList extends ConsumerWidget {
                       if (mealData['logged'] == false) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.tertiaryContainer,
                             borderRadius: BorderRadius.circular(4),
@@ -527,41 +544,26 @@ class RecentMealsList extends ConsumerWidget {
     final name = log.name;
     final calories = log.calories.toInt();
     final source = log.source;
+    final showImage = source == 'snap';
+    final timeStr = DateFormat('h:mm a').format(log.timestamp);
 
-    // Only show image/icon if it was a "snap" (unlikely for workouts, but following the rule)
-    final bool showImage = source == 'snap';
-
-    // Time Formatting
-    String timeStr = DateFormat('h:mm a').format(log.timestamp);
-
-    // Details formatting
     String detailsText = '';
-
-    // Home Exercises (Sets & Reps)
     if (log.details.containsKey('sets') && log.details['sets'] is List) {
       final setsList = log.details['sets'] as List;
       final count = setsList.length;
       detailsText = '$count sets';
-      // Attempt to summarize reps if consistent or just show first
       if (setsList.isNotEmpty) {
         final firstReps = setsList.first['reps'];
         if (firstReps != null) {
-          detailsText += ' × $firstReps reps';
+          detailsText += ' x $firstReps reps';
         }
       }
-    }
-    // Manual/Gym sets stored as simple count?
-    // Or Timer Based
-    else if (log.details.containsKey('rounds')) {
-      // Timer: Total time, rounds
-      detailsText =
-          '${log.durationMinutes} min • ${log.details['rounds']} rounds';
-    }
-    // Cardio / Sports / Describe
-    else {
+    } else if (log.details.containsKey('rounds')) {
+      detailsText = '${log.durationMinutes} min - ${log.details['rounds']} rounds';
+    } else {
       detailsText = '${log.durationMinutes} min';
       if (log.intensity != 'medium') {
-        detailsText += ' • ${log.intensity.toUpperCase()}';
+        detailsText += ' - ${log.intensity.toUpperCase()}';
       }
     }
 
@@ -577,7 +579,6 @@ class RecentMealsList extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon/Image container only for Snap
           if (showImage) ...[
             Container(
               width: 80,
@@ -596,7 +597,6 @@ class RecentMealsList extends ConsumerWidget {
             ),
             const SizedBox(width: 16),
           ],
-          // Details - Automatically expands to full width when icon is hidden
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -668,5 +668,364 @@ class RecentMealsList extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _resolveMealType(Map<String, dynamic> mealData) {
+    final explicitType = _stringValue(mealData['type']).toLowerCase();
+    if (explicitType == 'meal' || explicitType == 'custommeal') {
+      return 'meal';
+    }
+    if (explicitType == 'custom_food') {
+      return 'custom_food';
+    }
+    if (explicitType == 'usda_food') {
+      return 'usda_food';
+    }
+    if (explicitType == 'scan') {
+      return 'scan';
+    }
+
+    final source = _stringValue(mealData['source']).toLowerCase();
+    if (source == 'custom_meal' || source == 'my_meals') {
+      return 'meal';
+    }
+    if (source == 'custom_food') {
+      return 'custom_food';
+    }
+    if (source == 'database' ||
+        source == 'usda' ||
+        source == 'off' ||
+        source == 'all' ||
+        source == 'manual' ||
+        source == 'open_food_facts') {
+      return 'usda_food';
+    }
+    if (source == 'snap' ||
+        source == 'scan' ||
+        source == 'gemini_vision' ||
+        source == 'gemini_fallback' ||
+        source == 'gemini_estimate' ||
+        source == 'open_food_facts_scan') {
+      return 'scan';
+    }
+
+    final sourceData = _normalizeMap(mealData['sourceData']);
+    final wrappedMeal = _extractMap(sourceData, 'meal');
+    final wrappedFood = _extractMap(sourceData, 'food');
+
+    if (mealData['ingredients'] is List ||
+        mealData['image_url'] != null ||
+        mealData['meal_title'] != null) {
+      return 'scan';
+    }
+    if (wrappedMeal != null || mealData['mealId'] != null) {
+      return 'meal';
+    }
+    if (wrappedFood != null) {
+      final foodSource = _stringValue(wrappedFood['source']).toLowerCase();
+      if (foodSource == 'custom_food') {
+        return 'custom_food';
+      }
+      return 'usda_food';
+    }
+
+    return 'usda_food';
+  }
+
+  MyMeal _buildLoggedMeal(Map<String, dynamic> mealData, String id) {
+    final sourceData = _normalizeMap(mealData['sourceData']);
+    final mealMap = _extractMap(sourceData, 'meal');
+    final itemsData = mealMap?['items'] as List<dynamic>? ?? const [];
+
+    return MyMeal(
+      id: _stringValue(
+        mealMap?['id'] ?? mealData['mealId'] ?? mealData['originalId'],
+        fallback: id,
+      ),
+      name: _stringValue(mealMap?['name'] ?? mealData['name'], fallback: 'Meal'),
+      totalCalories: _doubleValue(
+        mealMap?['totalCalories'] ??
+            mealData['totalCalories'] ??
+            mealData['calories'],
+      ),
+      totalProtein: _doubleValue(
+        mealMap?['totalProtein'] ?? mealData['protein'] ?? mealData['proteinG'],
+      ),
+      totalCarbs: _doubleValue(
+        mealMap?['totalCarbs'] ?? mealData['carbs'] ?? mealData['carbsG'],
+      ),
+      totalFat: _doubleValue(
+        mealMap?['totalFat'] ??
+            mealData['fat'] ??
+            mealData['fatG'] ??
+            mealData['fats'],
+      ),
+      createdAt: _dateValue(
+            mealMap?['createdAt'] ??
+                mealData['timestamp'] ??
+                mealData['createdAt'] ??
+                mealData['created_at'],
+          ) ??
+          DateTime.now(),
+      items: itemsData
+          .map(_normalizeMap)
+          .whereType<Map<String, dynamic>>()
+          .map(MealItem.fromMap)
+          .toList(),
+    );
+  }
+
+  CustomFood _buildLoggedCustomFood(Map<String, dynamic> mealData, String id) {
+    final sourceData = _normalizeMap(mealData['sourceData']);
+    final foodData = _extractMap(sourceData, 'food');
+    final nutritionData =
+        _normalizeMap(foodData?['nutrition']) ??
+        _normalizeMap(mealData['fullNutritionMap']) ??
+        {
+          'calories': _doubleValue(mealData['calories']),
+          'protein': _doubleValue(mealData['proteinG'] ?? mealData['protein']),
+          'carbs': _doubleValue(mealData['carbsG'] ?? mealData['carbs']),
+          'fat': _doubleValue(
+            mealData['fatG'] ?? mealData['fat'] ?? mealData['fats'],
+          ),
+        };
+
+    return CustomFood(
+      id: _stringValue(foodData?['id'] ?? mealData['originalId'], fallback: id),
+      userId: _stringValue(foodData?['userId']),
+      brandName: _stringValue(foodData?['brandName'] ?? mealData['brand']),
+      description: _stringValue(
+        foodData?['description'] ?? mealData['name'],
+        fallback: 'Food',
+      ),
+      servingSize: _stringValue(
+        foodData?['servingSize'] ??
+            mealData['servingDescription'] ??
+            mealData['unit'],
+        fallback: '1 serving',
+      ),
+      servingPerContainer: _doubleValue(
+        foodData?['servingPerContainer'] ??
+            mealData['servingAmount'] ??
+            mealData['quantity'],
+        fallback: 1.0,
+      ),
+      nutrition: CustomFoodNutrition.fromJson(nutritionData),
+      createdAt: _dateValue(
+            foodData?['createdAt'] ??
+                mealData['timestamp'] ??
+                mealData['createdAt'] ??
+                mealData['created_at'],
+          ) ??
+          DateTime.now(),
+    );
+  }
+
+  Food _buildLoggedFood(Map<String, dynamic> mealData, String id) {
+    final sourceData = _normalizeMap(mealData['sourceData']);
+    final foodData = _extractMap(sourceData, 'food');
+    final source = _stringValue(mealData['source'], fallback: 'database');
+    final originalId = _stringValue(
+      mealData['originalId'],
+      fallback: _stringValue(mealData['id'], fallback: id),
+    );
+
+    if (foodData != null) {
+      final foodId = _stringValue(foodData['id'], fallback: originalId);
+      return Food.fromJson(foodData, foodId).copyWith(source: source);
+    }
+
+    final servingAmount = _doubleValue(
+      mealData['servingAmount'] ?? mealData['quantity'],
+      fallback: 1.0,
+    );
+    final unitScaler = servingAmount > 0 ? 1 / servingAmount : 1.0;
+    final nutrition = _normalizeMap(mealData['fullNutritionMap']) ?? const {};
+
+    return Food(
+      id: originalId,
+      name: _stringValue(mealData['name'], fallback: 'Food'),
+      category: 'Logged',
+      unit: _stringValue(
+        mealData['servingDescription'] ?? mealData['unit'],
+        fallback: 'serving',
+      ),
+      baseWeightG: 100,
+      calories: _doubleValue(mealData['calories']) * unitScaler,
+      protein: _doubleValue(mealData['proteinG'] ?? mealData['protein']) * unitScaler,
+      carbs: _doubleValue(mealData['carbsG'] ?? mealData['carbs']) * unitScaler,
+      fat: _doubleValue(
+            mealData['fatG'] ?? mealData['fat'] ?? mealData['fats'],
+          ) *
+          unitScaler,
+      saturatedFat: _scaledOptionalNutrition(nutrition['saturatedFat'], unitScaler),
+      polyunsaturatedFat: _scaledOptionalNutrition(
+        nutrition['polyunsaturatedFat'],
+        unitScaler,
+      ),
+      monounsaturatedFat: _scaledOptionalNutrition(
+        nutrition['monounsaturatedFat'],
+        unitScaler,
+      ),
+      cholesterol: _scaledOptionalNutrition(nutrition['cholesterol'], unitScaler),
+      sodium: _scaledOptionalNutrition(nutrition['sodium'], unitScaler),
+      fiber: _scaledOptionalNutrition(nutrition['fiber'], unitScaler),
+      sugar: _scaledOptionalNutrition(nutrition['sugar'], unitScaler),
+      calcium: _scaledOptionalNutrition(nutrition['calcium'], unitScaler),
+      iron: _scaledOptionalNutrition(nutrition['iron'], unitScaler),
+      potassium: _scaledOptionalNutrition(nutrition['potassium'], unitScaler),
+      vitaminA: _scaledOptionalNutrition(nutrition['vitaminA'], unitScaler),
+      vitaminC: _scaledOptionalNutrition(nutrition['vitaminC'], unitScaler),
+      source: source,
+      fdcId: originalId,
+    );
+  }
+
+  Meal? _buildLoggedScanMeal(Map<String, dynamic> mealData, String id) {
+    final sourceData = _normalizeMap(mealData['sourceData']);
+    final mealMap = _extractMap(sourceData, 'meal');
+
+    if (mealMap != null) {
+      final mealId = _stringValue(mealMap['id'], fallback: id);
+      return Meal.fromJson(mealMap, mealId);
+    }
+
+    if (mealData['ingredients'] is List ||
+        mealData['imageUrl'] != null ||
+        mealData['image_url'] != null ||
+        mealData['meal_title'] != null) {
+      return Meal.fromJson(
+        mealData,
+        _stringValue(mealData['originalId'], fallback: id),
+      );
+    }
+
+    return null;
+  }
+
+  Food _buildLoggedScanFood(
+    Map<String, dynamic> mealData,
+    String id,
+    double displayCal,
+    double displayP,
+    double displayC,
+    double displayF,
+  ) {
+    final sourceData = _normalizeMap(mealData['sourceData']);
+    final foodData = _extractMap(sourceData, 'food');
+    final source = _stringValue(mealData['source'], fallback: 'snap');
+
+    if (foodData != null) {
+      final foodId = _stringValue(
+        foodData['id'],
+        fallback: _stringValue(mealData['originalId'], fallback: id),
+      );
+      return Food.fromJson(foodData, foodId).copyWith(source: 'scan');
+    }
+
+    final servingAmount = _doubleValue(
+      mealData['servingAmount'] ?? mealData['quantity'],
+      fallback: 1.0,
+    );
+    final unitScaler = servingAmount > 0 ? 1 / servingAmount : 1.0;
+    final nutrition = _normalizeMap(mealData['fullNutritionMap']) ?? const {};
+
+    return Food(
+      id: _stringValue(mealData['originalId'], fallback: id),
+      name: _stringValue(
+        mealData['meal_title'] ?? mealData['name'],
+        fallback: 'Meal',
+      ),
+      category: 'AI Scan',
+      unit: _stringValue(
+        mealData['servingDescription'] ??
+            mealData['container'] ??
+            mealData['unit'],
+        fallback: '1 serving',
+      ),
+      baseWeightG: 100,
+      calories: displayCal * unitScaler,
+      protein: displayP * unitScaler,
+      carbs: displayC * unitScaler,
+      fat: displayF * unitScaler,
+      fiber: _scaledOptionalNutrition(nutrition['fiber'], unitScaler),
+      sugar: _scaledOptionalNutrition(nutrition['sugar'], unitScaler),
+      sodium: _scaledOptionalNutrition(nutrition['sodium'], unitScaler),
+      cholesterol: _scaledOptionalNutrition(nutrition['cholesterol'], unitScaler),
+      calcium: _scaledOptionalNutrition(nutrition['calcium'], unitScaler),
+      iron: _scaledOptionalNutrition(nutrition['iron'], unitScaler),
+      potassium: _scaledOptionalNutrition(nutrition['potassium'], unitScaler),
+      source: source,
+    );
+  }
+
+  String? _resolveImagePath(Map<String, dynamic> mealData, Meal? meal) {
+    final sourceData = _normalizeMap(mealData['sourceData']);
+    final imagePath = _stringValue(sourceData?['imagePath']);
+    if (imagePath.isNotEmpty) {
+      return imagePath;
+    }
+
+    final imageUrl = meal?.imageUrl.isNotEmpty == true
+        ? meal!.imageUrl
+        : _stringValue(mealData['imageUrl'] ?? mealData['image_url']);
+    if (imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic>? _extractMap(Map<String, dynamic>? source, String key) {
+    if (source == null) return null;
+
+    final direct = _normalizeMap(source[key]);
+    if (direct != null) {
+      return direct;
+    }
+
+    if (source.containsKey(key)) {
+      return null;
+    }
+
+    final hasWrappedSections =
+        source.containsKey('food') ||
+        source.containsKey('meal') ||
+        source.containsKey('imagePath');
+    return hasWrappedSections ? null : source;
+  }
+
+  Map<String, dynamic>? _normalizeMap(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(key.toString(), nestedValue),
+      );
+    }
+    return null;
+  }
+
+  double _doubleValue(dynamic value, {double fallback = 0.0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? fallback;
+    return fallback;
+  }
+
+  double? _scaledOptionalNutrition(dynamic value, double scale) {
+    if (value == null) return null;
+    return _doubleValue(value) * scale;
+  }
+
+  String _stringValue(dynamic value, {String fallback = ''}) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+    return fallback;
+  }
+
+  DateTime? _dateValue(dynamic value, {DateTime? fallback}) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value) ?? fallback;
+    return fallback;
   }
 }

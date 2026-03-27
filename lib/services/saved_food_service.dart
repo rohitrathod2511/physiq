@@ -63,14 +63,18 @@ class SavedFoodService {
 
     final mealData = {
       'name': food.name,
-      'source': 'saved_scan', // or original source type
-      'calories': food.nutrition.calories.toInt(),
-      'proteinG': food.nutrition.protein.toInt(),
-      'carbsG': food.nutrition.carbs.toInt(),
-      'fatG': food.nutrition.fat.toInt(),
+      'type': food.type,
+      'source': food.sourceType,
+      'calories': food.nutrition.calories,
+      'proteinG': food.nutrition.protein,
+      'carbsG': food.nutrition.carbs,
+      'fatG': food.nutrition.fat,
       'quantity': food.servingAmount, // Using stored quantity directly
       'unit': food.servingSize, // Using stored unit
-      'originalId': food.id,
+      'originalId': food.originalId.isNotEmpty ? food.originalId : food.id,
+      'servingAmount': food.servingAmount,
+      'servingDescription': food.servingSize,
+      if (food.sourceData != null) 'sourceData': food.sourceData,
     };
 
     await _firestoreService.logMeal(uid!, mealData, date);

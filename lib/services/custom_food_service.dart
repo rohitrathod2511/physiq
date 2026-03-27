@@ -67,14 +67,23 @@ class CustomFoodService {
     final mealData = {
       'name': food.description, // Use description as primary name
       'brand': food.brandName,
-      'calories': food.nutrition.calories.toInt(),
-      'proteinG': food.nutrition.protein.toInt(),
-      'carbsG': food.nutrition.carbs.toInt(),
-      'fatG': food.nutrition.fat.toInt(),
+      'calories': food.nutrition.calories,
+      'proteinG': food.nutrition.protein,
+      'carbsG': food.nutrition.carbs,
+      'fatG': food.nutrition.fat,
       'quantity': 1, // Default to 1 serving
       'unit': food.servingSize,
+      'type': 'custom_food',
       'source': 'custom_food',
       'originalId': food.id,
+      'servingAmount': 1.0,
+      'servingDescription': food.servingSize,
+      'sourceData': {
+        'food': {
+          'id': food.id,
+          ...food.toJson(),
+        },
+      },
     };
 
     await _firestoreService.logMeal(uid!, mealData, date);

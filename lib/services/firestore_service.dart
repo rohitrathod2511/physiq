@@ -493,10 +493,19 @@ class FirestoreService {
     final imageUrl = _toNullableString(
       mealData['imageUrl'] ?? mealData['image_url'],
     );
+    final source = _toNullableString(mealData['source']) ?? 'snap';
+    final servingAmount = _toDoubleSafe(
+      mealData['servingAmount'] ?? mealData['quantity'],
+    );
+    final servingDescription =
+        _toNullableString(mealData['servingDescription'] ?? mealData['unit']);
+    final type = _resolveMealType(mealData, source);
 
     return {
       ...mealData,
       'id': id,
+      'type': type,
+      'source': source,
       'name': _toNullableString(mealData['name'] ?? mealData['meal_title']) ??
           'Meal',
       'calories': _toDoubleSafe(mealData['calories']),
@@ -516,8 +525,76 @@ class FirestoreService {
       'timestamp': Timestamp.fromDate(timestamp),
       'imageUrl': imageUrl,
       'createdAt': mealData['createdAt'] ?? Timestamp.fromDate(timestamp),
+      'originalId': _toNullableString(mealData['originalId']) ?? id,
+      'servingAmount': servingAmount > 0 ? servingAmount : 1.0,
+      'servingDescription': servingDescription ?? 'serving',
+      'sourceData': _normalizeDynamicValue(mealData['sourceData']),
       'fullNutritionMap': _normalizeDynamicValue(mealData['fullNutritionMap']),
     };
+  }
+
+  static String _resolveMealType(
+    Map<String, dynamic> mealData,
+    String source,
+  ) {
+    final explicitType = _toNullableString(mealData['type'])?.toLowerCase();
+    if (explicitType == 'meal' || explicitType == 'custommeal') {
+      return 'meal';
+    }
+    if (explicitType == 'custom_food') {
+      return 'custom_food';
+    }
+    if (explicitType == 'usda_food') {
+      return 'usda_food';
+    }
+    if (explicitType == 'scan') {
+      return 'scan';
+    }
+
+    final normalizedSource = source.toLowerCase();
+    if (normalizedSource == 'custom_meal' || normalizedSource == 'my_meals') {
+      return 'meal';
+    }
+    if (normalizedSource == 'custom_food') {
+      return 'custom_food';
+    }
+    if (normalizedSource == 'database' ||
+        normalizedSource == 'usda' ||
+        normalizedSource == 'off' ||
+        normalizedSource == 'all' ||
+        normalizedSource == 'manual' ||
+        normalizedSource == 'open_food_facts') {
+      return 'usda_food';
+    }
+    if (normalizedSource == 'snap' ||
+        normalizedSource == 'scan' ||
+        normalizedSource == 'gemini_vision' ||
+        normalizedSource == 'gemini_fallback' ||
+        normalizedSource == 'gemini_estimate' ||
+        normalizedSource == 'open_food_facts_scan' ||
+        mealData['ingredients'] is List ||
+        mealData['image_url'] != null ||
+        mealData['meal_title'] != null) {
+      return 'scan';
+    }
+
+    final sourceData = mealData['sourceData'];
+    if (sourceData is Map) {
+      if (sourceData['meal'] is Map || mealData['mealId'] != null) {
+        return 'meal';
+      }
+      if (sourceData['food'] is Map) {
+        final foodSource =
+            _toNullableString((sourceData['food'] as Map)['source'])
+                ?.toLowerCase();
+        if (foodSource == 'custom_food') {
+          return 'custom_food';
+        }
+        return 'usda_food';
+      }
+    }
+
+    return 'usda_food';
   }
 
   static DateTime? _toDateTimeSafe(dynamic value) {

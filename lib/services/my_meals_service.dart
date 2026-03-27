@@ -58,6 +58,10 @@ class MyMealsService {
     if (uid == null) return;
 
     final batch = _firestore.batch();
+    final mealPayload = {
+      'id': meal.id,
+      ...meal.toMap(),
+    };
     
     // 1. Save to users/{uid}/mealLogs/{today}/entries/{entryId} (New System)
     final dateId = _formatDateId(date);
@@ -70,13 +74,20 @@ class MyMealsService {
         .doc();
 
     final logData = {
-      "type": "customMeal",
+      "type": "meal",
       "mealId": meal.id,
       "name": meal.name,
       "totalCalories": meal.totalCalories,
       "protein": meal.totalProtein,
       "carbs": meal.totalCarbs,
       "fat": meal.totalFat,
+      "source": "custom_meal",
+      "originalId": meal.id,
+      "servingAmount": 1.0,
+      "servingDescription": "meal",
+      "sourceData": {
+        "meal": mealPayload,
+      },
       "loggedAt": Timestamp.now(),
       "timestamp": Timestamp.now(), // Ensure timestamp exists for queries
     };

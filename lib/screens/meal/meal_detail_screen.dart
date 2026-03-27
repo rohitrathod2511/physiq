@@ -220,7 +220,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.star_border, color: textPrimary),
+            icon: Icon(Icons.bookmark_border, color: textPrimary),
             onPressed: () async {
               try {
                 final user = FirebaseAuth.instance.currentUser;
@@ -330,7 +330,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                           ),
                           child: Icon(
                             Icons.local_fire_department,
-                            color: theme.colorScheme.onSecondaryContainer,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                         const SizedBox(width: 16),
