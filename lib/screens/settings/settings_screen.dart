@@ -221,9 +221,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children.add(rows[i]);
       if (i < rows.length - 1) {
         children.add(
-          const Divider(
+          Divider(
             height: 1,
-            color: Color(0xFFF1F1F3),
+            color: Theme.of(context).dividerColor.withOpacity(0.3),
             indent: 16,
             endIndent: 16,
           ),

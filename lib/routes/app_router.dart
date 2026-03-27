@@ -40,6 +40,7 @@ import 'package:physiq/screens/onboarding/paywall_main_screen.dart';
 import 'package:physiq/screens/onboarding/paywall_spinner_screen.dart';
 import 'package:physiq/screens/onboarding/paywall_offer_screen.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
+import 'package:physiq/services/onboarding_store.dart';
 import 'package:physiq/widgets/scaffold_with_nav_bar.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -49,10 +50,13 @@ class AuthSubscription extends ChangeNotifier {
   late final StreamSubscription<User?> _authSubscription;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   User? currentUser;
+  String? resumeRoute;
   bool?
   onboardingCompleted; // null = loading/unknown, false = new user, true = existing
 
   AuthSubscription() {
+    _loadResumeRoute();
+
     // 1. Initialize with current values if available synchronously
     currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
@@ -75,6 +79,21 @@ class AuthSubscription extends ChangeNotifier {
         }
       }
     });
+  }
+
+  Future<void> _loadResumeRoute() async {
+    await OnboardingStore.loadResumeState();
+    resumeRoute = OnboardingStore.currentResumeRoute;
+    notifyListeners();
+  }
+
+  Future<void> updateResumeRoute(String route) async {
+    if (!OnboardingStore.isOnboardingRoute(route)) return;
+    if (resumeRoute == route) return;
+
+    await OnboardingStore.saveResumeRoute(route);
+    resumeRoute = route;
+    notifyListeners();
   }
 
   void _startUserSubscription(User user) {
@@ -112,6 +131,7 @@ final GoRouter router = GoRouter(
     final isAuthenticated = authSubscription.currentUser != null;
     final isOnboardingComplete = authSubscription.onboardingCompleted;
     final location = state.uri.path;
+    final resumeRoute = OnboardingStore.currentResumeRoute;
 
     // ----------------------------------------------------
     // 1. If NOT authenticated
@@ -128,6 +148,11 @@ final GoRouter router = GoRouter(
       // If trying to access protected route, kick to Get Started
       if (isProtected) {
         return '/get-started';
+      }
+      if ((location == '/' || location == '/get-started') &&
+          resumeRoute != null &&
+          resumeRoute != location) {
+        return resumeRoute;
       }
       return null; // Allow public access (splash, onboarding start, etc)
     }
@@ -154,7 +179,15 @@ final GoRouter router = GoRouter(
 
       // Keep incomplete users in the onboarding flow instead of jumping ahead to paywall.
       if (isProtected || location == '/') {
+        if (resumeRoute != null && resumeRoute != location) {
+          return resumeRoute;
+        }
         return '/get-started';
+      }
+      if (location == '/get-started' &&
+          resumeRoute != null &&
+          resumeRoute != location) {
+        return resumeRoute;
       }
       return null;
     }
@@ -207,15 +240,24 @@ final GoRouter router = GoRouter(
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(
       path: '/get-started',
-      builder: (context, state) => const GetStartedScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/get-started',
+        child: GetStartedScreen(),
+      ),
     ),
     GoRoute(
       path: '/sign-in',
-      builder: (context, state) => const SignUpScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/sign-in',
+        child: SignUpScreen(),
+      ),
     ),
     GoRoute(
       path: '/signup',
-      builder: (context, state) => const SignUpScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/signup',
+        child: SignUpScreen(),
+      ),
     ),
     GoRoute(
       path: '/rodrigo',
@@ -251,108 +293,189 @@ final GoRouter router = GoRouter(
     // GoRoute(path: '/onboarding/name', builder: (context, state) => const NameScreen()),
     GoRoute(
       path: '/onboarding/gender',
-      builder: (context, state) => const GenderScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/gender',
+        child: GenderScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/birthyear',
-      builder: (context, state) => const BirthYearScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/birthyear',
+        child: BirthYearScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/height-weight',
-      builder: (context, state) => const HeightWeightScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/height-weight',
+        child: HeightWeightScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/activity',
-      builder: (context, state) => const ActivityLifestyleScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/activity',
+        child: ActivityLifestyleScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/goal',
-      builder: (context, state) => const GoalScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/goal',
+        child: GoalScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/obstacles',
-      builder: (context, state) => const ObstaclesScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/obstacles',
+        child: ObstaclesScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/target-weight',
-      builder: (context, state) => const TargetWeightScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/target-weight',
+        child: TargetWeightScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/motivational-message',
-      builder: (context, state) => const MotivationalMessageScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/motivational-message',
+        child: MotivationalMessageScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/referral',
-      builder: (context, state) => const LongTermResultsScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/referral',
+        child: LongTermResultsScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/timeframe',
-      builder: (context, state) => const TimeframeScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/timeframe',
+        child: TimeframeScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/potential',
-      builder: (context, state) => const PotentialScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/potential',
+        child: PotentialScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/result-message',
-      builder: (context, state) => const ResultMessageScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/result-message',
+        child: ResultMessageScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/diet-preference',
-      builder: (context, state) => const DietPreferenceScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/diet-preference',
+        child: DietPreferenceScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/notification',
-      builder: (context, state) => const NotificationScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/notification',
+        child: NotificationScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/referral-step',
-      builder: (context, state) => const ReferralScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/referral-step',
+        child: ReferralScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/generate-plan',
-      builder: (context, state) => const GeneratePlanScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/generate-plan',
+        child: GeneratePlanScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/loading',
-      builder: (context, state) => const LoadingScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/loading',
+        child: LoadingScreen(),
+      ),
     ),
 
     // Review & Paywall
-    GoRoute(path: '/review', builder: (context, state) => const ReviewScreen()),
+    GoRoute(
+      path: '/review',
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/review',
+        child: ReviewScreen(),
+      ),
+    ),
 
     GoRoute(
       path: '/onboarding/transformation-rodrigo',
-      builder: (context, state) => const RodrigoTransformationScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/transformation-rodrigo',
+        child: RodrigoTransformationScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/transformation-lucas',
-      builder: (context, state) => const LucasTransformationScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/transformation-lucas',
+        child: LucasTransformationScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/success-stories',
-      builder: (context, state) => const SuccessStoriesScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/success-stories',
+        child: SuccessStoriesScreen(),
+      ),
     ),
 
     GoRoute(
       path: '/onboarding/paywall-free',
-      builder: (context, state) => const PaywallFreeScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/paywall-free',
+        child: PaywallFreeScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/paywall-notification',
-      builder: (context, state) => const PaywallNotificationScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/paywall-notification',
+        child: PaywallNotificationScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/paywall-main',
-      builder: (context, state) => const PaywallMainScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/paywall-main',
+        child: PaywallMainScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/paywall-spinner',
-      builder: (context, state) => const PaywallSpinnerScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/paywall-spinner',
+        child: PaywallSpinnerScreen(),
+      ),
     ),
     GoRoute(
       path: '/onboarding/paywall-offer',
-      builder: (context, state) => const PaywallOfferScreen(),
+      builder: (context, state) => const _TrackedOnboardingRoute(
+        route: '/onboarding/paywall-offer',
+        child: PaywallOfferScreen(),
+      ),
     ),
 
     GoRoute(
@@ -377,3 +500,41 @@ final GoRouter router = GoRouter(
     ),
   ],
 );
+
+class _TrackedOnboardingRoute extends StatefulWidget {
+  final String route;
+  final Widget child;
+
+  const _TrackedOnboardingRoute({
+    required this.route,
+    required this.child,
+  });
+
+  @override
+  State<_TrackedOnboardingRoute> createState() => _TrackedOnboardingRouteState();
+}
+
+class _TrackedOnboardingRouteState extends State<_TrackedOnboardingRoute> {
+  @override
+  void initState() {
+    super.initState();
+    _persistRoute();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TrackedOnboardingRoute oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.route != widget.route) {
+      _persistRoute();
+    }
+  }
+
+  void _persistRoute() {
+    Future.microtask(() => authSubscription.updateResumeRoute(widget.route));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
+  }
+}

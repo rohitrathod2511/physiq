@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:physiq/services/onboarding_store.dart';
 
 /// A simple configuration class to toggle between mock and real backends.
 class AppConfig {
@@ -331,6 +332,7 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
+      await OnboardingStore.clearResumeState();
       if (_googleSignIn.currentUser != null) {
         await _googleSignIn.signOut();
       }
@@ -369,6 +371,7 @@ class AuthService {
       await _firestore.collection('users').doc(user.uid).set({
         'onboardingCompleted': true,
       }, SetOptions(merge: true));
+      await OnboardingStore.clearResumeState();
     }
   }
 }

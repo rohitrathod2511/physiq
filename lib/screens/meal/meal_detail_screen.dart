@@ -254,10 +254,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   createdAt: DateTime.now(),
                   originalId: widget.meal.id,
                   sourceData: {
-                    'meal': {
-                      'id': currentMeal.id,
-                      ...currentMeal.toMap(),
-                    },
+                    'meal': {'id': currentMeal.id, ...currentMeal.toMap()},
                   },
                 );
 
@@ -325,12 +322,12 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.secondaryContainer,
+                            color: theme.colorScheme.surface,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.local_fire_department,
-                            color: theme.colorScheme.primary,
+                            color: Colors.orange,
                           ),
                         ),
                         const SizedBox(width: 16),

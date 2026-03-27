@@ -118,6 +118,12 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
           icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.help_outline, color: AppColors.primaryText),
+            onPressed: _showLegendDialog,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -325,8 +331,6 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        _buildLegend(),
-        const SizedBox(height: 92),
       ],
     );
   }
@@ -400,6 +404,33 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
           _legendItem(const Color(0xFF4ADE80), "Partial"),
           const SizedBox(width: 24),
           _legendItem(const Color(0xFFD1D5DB), "None"),
+        ],
+      ),
+    );
+  }
+
+  void _showLegendDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: const Text("Legend"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _legendItem(const Color(0xFF22C55E), "Goal Met"),
+            const SizedBox(height: 12),
+            _legendItem(const Color(0xFF4ADE80), "Partial"),
+            const SizedBox(height: 12),
+            _legendItem(const Color(0xFFD1D5DB), "None"),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
         ],
       ),
     );

@@ -14,13 +14,18 @@ class GetStartedScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (context) => const _SignInOptionsSheet(),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -44,8 +49,8 @@ class GetStartedScreen extends ConsumerWidget {
                 child: ElevatedButton(
                   onPressed: () => context.push('/onboarding/gender'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
@@ -55,7 +60,7 @@ class GetStartedScreen extends ConsumerWidget {
                   child: Text(
                     'Get Started',
                     style: AppTextStyles.button.copyWith(
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                       fontSize: 16,
                     ),
                   ),
@@ -71,7 +76,7 @@ class GetStartedScreen extends ConsumerWidget {
                   Text(
                     'Already have an account?',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.secondaryText,
+                      color: textSecondary,
                       fontSize: 14,
                     ),
                   ),
@@ -80,7 +85,7 @@ class GetStartedScreen extends ConsumerWidget {
                     child: Text(
                       'Sign in',
                       style: AppTextStyles.button.copyWith(
-                        color: Colors.blue,
+                        color: theme.colorScheme.primary,
                         fontSize: 14,
                       ),
                     ),
@@ -145,17 +150,21 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (context) => const _EmailSignInSheet(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
@@ -170,7 +179,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: theme.dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
               margin: const EdgeInsets.only(bottom: 24),
@@ -178,7 +187,7 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
           ),
           Text(
             'Welcome Back',
-            style: AppTextStyles.h2,
+            style: AppTextStyles.h2.copyWith(color: textPrimary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -188,11 +197,18 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             // Google Button
             ElevatedButton.icon(
               onPressed: _handleGoogleSignIn,
-              icon: const Icon(Icons.g_mobiledata, size: 28),
-              label: Text('Continue with Google'),
+              icon: Icon(
+                Icons.g_mobiledata,
+                size: 28,
+                color: theme.colorScheme.onPrimary,
+              ),
+              label: Text(
+                'Continue with Google',
+                style: TextStyle(color: theme.colorScheme.onPrimary),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -202,17 +218,20 @@ class _SignInOptionsSheetState extends State<_SignInOptionsSheet> {
             const SizedBox(height: 16),
 
             // Email Button
-            OutlinedButton(
+            ElevatedButton(
               onPressed: _handleEmailSignIn,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.black,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: Colors.grey.shade300),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text('Continue with Email'),
+              child: Text(
+                'Continue with Email',
+                style: TextStyle(color: theme.colorScheme.onPrimary),
+              ),
             ),
             const SizedBox(height: 24),
           ],
@@ -240,9 +259,8 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
     final email = _emailController.text.trim();
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ForgotPasswordScreen(
-          prefilledEmail: email.isEmpty ? null : email,
-        ),
+        builder: (_) =>
+            ForgotPasswordScreen(prefilledEmail: email.isEmpty ? null : email),
       ),
     );
   }
@@ -292,6 +310,13 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textPrimary =
+        theme.textTheme.bodyLarge?.color ?? theme.colorScheme.onSurface;
+    final textSecondary =
+        theme.textTheme.bodyMedium?.color ??
+        theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     // Handling keyboard overlap
     return Padding(
       padding: EdgeInsets.only(
@@ -299,8 +324,8 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
       ),
       child: Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -315,7 +340,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: theme.dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
                 margin: const EdgeInsets.only(bottom: 24),
@@ -323,17 +348,34 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
             ),
             Text(
               'Sign In',
-              style: AppTextStyles.h2,
+              style: AppTextStyles.h2.copyWith(color: textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
 
             TextField(
               controller: _emailController,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+              cursorColor: theme.colorScheme.primary,
               decoration: InputDecoration(
                 labelText: 'Email',
+                labelStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: textSecondary,
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surface,
                 border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: theme.dividerColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: theme.colorScheme.primary),
                 ),
               ),
               keyboardType: TextInputType.emailAddress,
@@ -341,10 +383,27 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
             const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+              cursorColor: theme.colorScheme.primary,
               decoration: InputDecoration(
                 labelText: 'Password',
+                labelStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: textSecondary,
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surface,
                 border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: theme.dividerColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: theme.colorScheme.primary),
                 ),
               ),
               obscureText: true,
@@ -356,7 +415,7 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
                 child: Text(
                   'Forgot Password?',
                   style: AppTextStyles.button.copyWith(
-                    color: Colors.blue,
+                    color: theme.colorScheme.primary,
                     fontSize: 14,
                   ),
                 ),
@@ -370,8 +429,8 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
               ElevatedButton(
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -379,9 +438,10 @@ class _EmailSignInSheetState extends State<_EmailSignInSheet> {
                 ),
                 child: Text(
                   'Sign in',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimary,
                   ),
                 ),
               ),
