@@ -24,6 +24,7 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
         id: '', // Service generates ID
         userId: widget.food.userId,
         name: widget.food.description,
+        type: 'custom_food',
         sourceType: 'custom_food',
         servingSize: widget.food.servingSize,
         servingAmount: 1.0,
@@ -46,6 +47,13 @@ class _CustomFoodDetailScreenState extends State<CustomFoodDetailScreen> {
           iron: widget.food.nutrition.iron,
         ),
         createdAt: DateTime.now(),
+        originalId: widget.food.id,
+        sourceData: {
+          'food': {
+            'id': widget.food.id,
+            ...widget.food.toJson(),
+          },
+        },
       );
       await SavedFoodService().saveFood(savedFood);
       if (mounted) {

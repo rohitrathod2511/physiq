@@ -8,8 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/models/meal_model.dart';
+import 'package:physiq/models/saved_food_model.dart';
 import 'package:physiq/services/ai_food_service.dart';
 import 'package:physiq/services/food_service.dart';
+import 'package:physiq/services/saved_food_service.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
 import 'package:physiq/widgets/macro_icons.dart';
 import 'package:intl/intl.dart';
@@ -41,6 +43,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   late double _servingMultiplier;
   late Food _food;
   bool _isLoadingDetails = false;
+  bool _isSavingToSaved = false;
   Meal? _currentMeal;
   StreamSubscription? _mealSubscription;
 
@@ -151,6 +154,83 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
   double _getNutrient(double? baseValue) {
     return (baseValue ?? 0.0) * _quantity * _servingMultiplier;
+  }
+
+  bool get _isScanSource {
+    if (_currentMeal != null) return true;
+    if ((widget.imagePath ?? '').isNotEmpty) return true;
+
+    final source = _food.source.toLowerCase();
+    return source.contains('scan') ||
+        source.contains('snap') ||
+        source.contains('gemini');
+  }
+
+  Future<void> _saveToSavedFoods() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _isSavingToSaved) return;
+
+    setState(() {
+      _isSavingToSaved = true;
+    });
+
+    try {
+      final savedFood = SavedFood(
+        id: '',
+        userId: user.uid,
+        name: _currentMeal?.title ?? _food.name,
+        type: _isScanSource ? 'scan' : 'usda_food',
+        sourceType: _isScanSource ? 'scan' : 'usda_food',
+        servingSize: _selectedServing,
+        servingAmount: _quantity,
+        nutrition: SavedFoodNutrition(
+          calories: _getNutrient(_food.calories),
+          protein: _getNutrient(_food.protein),
+          carbs: _getNutrient(_food.carbs),
+          fat: _getNutrient(_food.fat),
+          cholesterol: _getNutrient(_food.cholesterol),
+          sodium: _getNutrient(_food.sodium),
+          potassium: _getNutrient(_food.potassium),
+          sugar: _getNutrient(_food.sugar),
+          fiber: _getNutrient(_food.fiber),
+          vitaminA: _getNutrient(_food.vitaminA),
+          calcium: _getNutrient(_food.calcium),
+          iron: _getNutrient(_food.iron),
+        ),
+        createdAt: DateTime.now(),
+        originalId: _currentMeal?.id ?? _food.fdcId ?? _food.id,
+        sourceData: {
+          'food': {
+            ..._food.toJson(),
+            'id': _food.id,
+          },
+          if (_currentMeal != null)
+            'meal': {
+              'id': _currentMeal!.id,
+              ..._currentMeal!.toJson(),
+            },
+          if ((widget.imagePath ?? '').isNotEmpty) 'imagePath': widget.imagePath,
+        },
+      );
+
+      await SavedFoodService().saveFood(savedFood);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${savedFood.name} saved')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save item')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingToSaved = false;
+        });
+      }
+    }
   }
 
   Future<void> _saveMeal() async {
@@ -424,7 +504,10 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     ).format(_currentMeal?.createdAt ?? DateTime.now());
     return Row(
       children: [
-        const Icon(Icons.bookmark_border, color: Colors.black, size: 24),
+        GestureDetector(
+          onTap: _isSavingToSaved ? null : _saveToSavedFoods,
+          child: const Icon(Icons.bookmark_border, color: Colors.black, size: 24),
+        ),
         const SizedBox(width: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -2,12 +2,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:physiq/theme/design_system.dart';
-import 'package:physiq/models/saved_food_model.dart';
-import 'package:physiq/services/saved_food_service.dart';
-import 'package:physiq/viewmodels/home_viewmodel.dart';
+import 'package:physiq/models/custom_food_model.dart';
 import 'package:physiq/models/food_model.dart';
-import 'package:physiq/screens/meal/meal_preview_screen.dart'; // Reuse for consistency
+import 'package:physiq/models/meal_model.dart';
+import 'package:physiq/models/my_meal_model.dart';
+import 'package:physiq/models/saved_food_model.dart';
+import 'package:physiq/screens/food/custom_food_detail_screen.dart';
+import 'package:physiq/screens/meal/food_nutrition_screen.dart';
+import 'package:physiq/screens/meal/meal_detail_screen.dart';
+import 'package:physiq/screens/meal/meal_preview_screen.dart';
+import 'package:physiq/services/saved_food_service.dart';
+import 'package:physiq/theme/design_system.dart';
+import 'package:physiq/viewmodels/home_viewmodel.dart';
 
 class SavedScansScreen extends ConsumerStatefulWidget {
   const SavedScansScreen({super.key});
@@ -44,6 +50,233 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
         SnackBar(content: Text("Error deleting food: $e")),
       );
     }
+  }
+
+  Future<void> _openSavedItem(SavedFood food) async {
+    final route = _buildSavedItemRoute(food);
+    if (route == null) return;
+    await Navigator.push(context, route);
+  }
+
+  Route<dynamic>? _buildSavedItemRoute(SavedFood food) {
+    switch (food.type) {
+      case 'meal':
+        return MaterialPageRoute(
+          builder: (_) => MealDetailScreen(meal: _buildMeal(food)),
+        );
+      case 'custom_food':
+        return MaterialPageRoute(
+          builder: (_) => CustomFoodDetailScreen(food: _buildCustomFood(food)),
+        );
+      case 'usda_food':
+        final hasSourceFood = _extractMap(food.sourceData, 'food') != null;
+        return MaterialPageRoute(
+          builder: (_) => FoodNutritionScreen(
+            food: _buildFood(food, sourceOverride: 'usda_food'),
+            servingAmount: hasSourceFood ? food.servingAmount : 1,
+            servingUnit: food.servingSize,
+          ),
+        );
+      case 'scan':
+        final meal = _buildSavedMeal(food);
+        final imagePath = _resolveImagePath(food, meal);
+        return MaterialPageRoute(
+          builder: (_) => MealPreviewScreen(
+            initialFood: _buildFood(food, sourceOverride: 'scan'),
+            meal: meal,
+            initialQuantity: food.servingAmount,
+            imagePath: imagePath,
+          ),
+        );
+      default:
+        return null;
+    }
+  }
+
+  MyMeal _buildMeal(SavedFood food) {
+    final mealData = _extractMap(food.sourceData, 'meal');
+    final itemsData = mealData?['items'] as List<dynamic>? ?? const [];
+
+    return MyMeal(
+      id: _stringValue(
+        mealData?['id'],
+        fallback: food.originalId.isNotEmpty ? food.originalId : food.id,
+      ),
+      name: _stringValue(mealData?['name'], fallback: food.name),
+      totalCalories: _doubleValue(
+        mealData?['totalCalories'],
+        fallback: food.nutrition.calories,
+      ),
+      totalProtein: _doubleValue(
+        mealData?['totalProtein'],
+        fallback: food.nutrition.protein,
+      ),
+      totalCarbs: _doubleValue(
+        mealData?['totalCarbs'],
+        fallback: food.nutrition.carbs,
+      ),
+      totalFat: _doubleValue(mealData?['totalFat'], fallback: food.nutrition.fat),
+      createdAt: _dateValue(mealData?['createdAt'], fallback: food.createdAt),
+      items: itemsData
+          .map((item) => _normalizeMap(item))
+          .whereType<Map<String, dynamic>>()
+          .map(MealItem.fromMap)
+          .toList(),
+    );
+  }
+
+  CustomFood _buildCustomFood(SavedFood food) {
+    final foodData = _extractMap(food.sourceData, 'food');
+    final nutritionData =
+        _extractMap(foodData, 'nutrition') ?? food.nutrition.toJson();
+
+    return CustomFood(
+      id: _stringValue(
+        foodData?['id'],
+        fallback: food.originalId.isNotEmpty ? food.originalId : food.id,
+      ),
+      userId: _stringValue(foodData?['userId'], fallback: food.userId),
+      brandName: _stringValue(foodData?['brandName']),
+      description: _stringValue(foodData?['description'], fallback: food.name),
+      servingSize: _stringValue(foodData?['servingSize'], fallback: food.servingSize),
+      servingPerContainer: _doubleValue(
+        foodData?['servingPerContainer'],
+        fallback: food.servingAmount > 0 ? food.servingAmount : 1.0,
+      ),
+      nutrition: CustomFoodNutrition.fromJson(nutritionData),
+      createdAt: _dateValue(foodData?['createdAt'], fallback: food.createdAt),
+    );
+  }
+
+  Food _buildFood(SavedFood food, {required String sourceOverride}) {
+    final foodData = _extractMap(food.sourceData, 'food');
+    if (foodData != null) {
+      final id = _stringValue(
+        foodData['id'],
+        fallback: food.originalId.isNotEmpty ? food.originalId : food.id,
+      );
+      return Food.fromJson(foodData, id).copyWith(source: sourceOverride);
+    }
+
+    return Food(
+      id: food.originalId.isNotEmpty ? food.originalId : food.id,
+      name: food.name,
+      category: 'Saved',
+      unit: food.servingSize,
+      baseWeightG: 100,
+      calories: food.nutrition.calories,
+      protein: food.nutrition.protein,
+      carbs: food.nutrition.carbs,
+      fat: food.nutrition.fat,
+      source: sourceOverride,
+      saturatedFat:
+          food.nutrition.saturatedFat > 0 ? food.nutrition.saturatedFat : null,
+      polyunsaturatedFat: food.nutrition.polyunsaturatedFat > 0
+          ? food.nutrition.polyunsaturatedFat
+          : null,
+      monounsaturatedFat: food.nutrition.monounsaturatedFat > 0
+          ? food.nutrition.monounsaturatedFat
+          : null,
+      cholesterol:
+          food.nutrition.cholesterol > 0 ? food.nutrition.cholesterol : null,
+      sodium: food.nutrition.sodium > 0 ? food.nutrition.sodium : null,
+      fiber: food.nutrition.fiber > 0 ? food.nutrition.fiber : null,
+      sugar: food.nutrition.sugar > 0 ? food.nutrition.sugar : null,
+      calcium: food.nutrition.calcium > 0 ? food.nutrition.calcium : null,
+      iron: food.nutrition.iron > 0 ? food.nutrition.iron : null,
+      potassium: food.nutrition.potassium > 0 ? food.nutrition.potassium : null,
+      vitaminA: food.nutrition.vitaminA > 0 ? food.nutrition.vitaminA : null,
+    );
+  }
+
+  Meal? _buildSavedMeal(SavedFood food) {
+    final mealData = _extractMap(food.sourceData, 'meal');
+    if (mealData != null) {
+      final id = _stringValue(
+        mealData['id'],
+        fallback: food.originalId.isNotEmpty ? food.originalId : food.id,
+      );
+      return Meal.fromJson(mealData, id);
+    }
+
+    return Meal(
+      id: food.originalId.isNotEmpty ? food.originalId : food.id,
+      imageUrl: _stringValue(food.sourceData?['imageUrl']),
+      title: food.name,
+      container: food.servingSize,
+      ingredients: _extractIngredients(food.sourceData?['items']),
+      createdAt: food.createdAt,
+    );
+  }
+
+  List<MealIngredient> _extractIngredients(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .map((item) => _normalizeMap(item))
+        .whereType<Map<String, dynamic>>()
+        .map(MealIngredient.fromJson)
+        .toList();
+  }
+
+  String? _resolveImagePath(SavedFood food, Meal? meal) {
+    final imagePath = _stringValue(food.sourceData?['imagePath']);
+    if (imagePath.isNotEmpty) {
+      return imagePath;
+    }
+
+    final imageUrl = meal?.imageUrl ?? _stringValue(food.sourceData?['imageUrl']);
+    if (imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic>? _extractMap(Map<String, dynamic>? source, String key) {
+    if (source == null) return null;
+    final direct = _normalizeMap(source[key]);
+    if (direct != null) {
+      return direct;
+    }
+
+    if (source.containsKey(key)) {
+      return null;
+    }
+
+    final hasWrappedSections =
+        source.containsKey('food') ||
+        source.containsKey('meal') ||
+        source.containsKey('imagePath');
+    return hasWrappedSections ? null : source;
+  }
+
+  Map<String, dynamic>? _normalizeMap(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(key.toString(), nestedValue),
+      );
+    }
+    return null;
+  }
+
+  String _stringValue(dynamic value, {String fallback = ''}) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+    return fallback;
+  }
+
+  double _doubleValue(dynamic value, {double fallback = 0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? fallback;
+    return fallback;
+  }
+
+  DateTime _dateValue(dynamic value, {required DateTime fallback}) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value) ?? fallback;
+    return fallback;
   }
 
   @override
@@ -109,7 +342,7 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
                 itemBuilder: (context, index) {
                   final food = foods[index];
                   return Dismissible(
-                    key: Key(food.id.toString()),
+                    key: Key(food.id),
                     direction: DismissDirection.endToStart,
                     background: Container(
                       alignment: Alignment.centerRight,
@@ -178,33 +411,7 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            // Convert to Food model and open preview
-            final previewFood = Food(
-              id: food.originalId.isNotEmpty
-                  ? food.originalId
-                  : food.id, // Use original external ID if available
-              name: food.name,
-              category: 'Saved',
-              unit: food.servingSize,
-              baseWeightG: 0, // Not stored in SavedFood usually, but okay
-              calories: food.nutrition.calories,
-              protein: food.nutrition.protein,
-              carbs: food.nutrition.carbs,
-              fat: food.nutrition.fat,
-              source: food.sourceType,
-            );
-
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => MealPreviewScreen(
-                  initialFood: previewFood,
-                  initialQuantity: food.servingAmount,
-                ),
-              ),
-            );
-          },
+          onTap: () => _openSavedItem(food),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -236,7 +443,7 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "${food.nutrition.calories.toInt()} cal • ${food.servingSize}",
+                        "${food.nutrition.calories.toInt()} cal - ${food.servingSize}",
                         style: TextStyle(color: textSecondary, fontSize: 13),
                       ),
                     ],
@@ -270,9 +477,6 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
                             duration: const Duration(seconds: 1),
                           ),
                         );
-                        // Optional: Pop if you want to close, but requirement says "Do NOT delete",
-                        // and staying on screen is usually better for quick logging multiple items.
-                        // I will NOT pop here to allow multiple logs.
                       }
                     } catch (e) {
                       if (mounted) {

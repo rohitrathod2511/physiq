@@ -226,10 +226,22 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                 final user = FirebaseAuth.instance.currentUser;
                 if (user == null) return;
 
+                final currentMeal = MyMeal(
+                  id: widget.meal.id,
+                  name: _nameController.text,
+                  totalCalories: _totalCalories,
+                  totalProtein: _totalProtein,
+                  totalCarbs: _totalCarbs,
+                  totalFat: _totalFat,
+                  createdAt: widget.meal.createdAt,
+                  items: _items,
+                );
+
                 final savedFood = SavedFood(
                   id: '',
                   userId: user.uid,
-                  name: widget.meal.name,
+                  name: currentMeal.name,
+                  type: 'meal',
                   sourceType: 'custom_meal',
                   servingSize: 'meal',
                   servingAmount: 1.0,
@@ -240,6 +252,13 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     fat: _totalFat,
                   ),
                   createdAt: DateTime.now(),
+                  originalId: widget.meal.id,
+                  sourceData: {
+                    'meal': {
+                      'id': currentMeal.id,
+                      ...currentMeal.toMap(),
+                    },
+                  },
                 );
 
                 await SavedFoodService().saveFood(savedFood);

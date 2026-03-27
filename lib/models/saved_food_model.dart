@@ -1,40 +1,51 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SavedFood {
   final String id;
   final String userId;
   final String name;
-  final String
-  sourceType; // "database", "scan", "describe", "custom_meal", "custom_food"
-  final String servingSize; // e.g., "1 cup", "100g", "1 slice"
-  final double servingAmount; // user's selected quantity, e.g., 1.5
+  final String type;
+  final String sourceType;
+  final String servingSize;
+  final double servingAmount;
   final SavedFoodNutrition nutrition;
   final DateTime createdAt;
-  final String originalId; // ID from an external nutrition source
+  final String originalId;
+  final Map<String, dynamic>? sourceData;
 
   SavedFood({
     required this.id,
     required this.userId,
     required this.name,
+    required this.type,
     required this.sourceType,
     required this.servingSize,
     required this.servingAmount,
     required this.nutrition,
     required this.createdAt,
     this.originalId = '',
+    this.sourceData,
   });
 
   factory SavedFood.fromJson(Map<String, dynamic> json, String id) {
+    final sourceType = _safeString(json['sourceType'], fallback: 'database');
+
     return SavedFood(
       id: id,
-      userId: json['userId'] ?? '',
-      name: json['name'] ?? '',
-      sourceType: json['sourceType'] ?? 'database',
-      servingSize: json['servingSize'] ?? '1 serving',
-      servingAmount: (json['servingAmount'] ?? 1).toDouble(),
-      nutrition: SavedFoodNutrition.fromJson(json['nutrition'] ?? {}),
+      userId: _safeString(json['userId']),
+      name: _safeString(json['name']),
+      type: _resolveType(json['type'], sourceType),
+      sourceType: sourceType,
+      servingSize: _safeString(json['servingSize'], fallback: '1 serving'),
+      servingAmount: _safeDouble(json['servingAmount'], fallback: 1),
+      nutrition: SavedFoodNutrition.fromJson(
+        _safeMap(json['nutrition']) ?? const <String, dynamic>{},
+      ),
       createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      originalId: json['originalId'] ?? '',
+      originalId: _safeString(json['originalId']),
+      sourceData: _normalizeDynamicMap(
+        _safeMap(json['sourceData']) ?? _safeMap(json['data']),
+      ),
     );
   }
 
@@ -42,13 +53,100 @@ class SavedFood {
     return {
       'userId': userId,
       'name': name,
+      'type': type,
       'sourceType': sourceType,
       'servingSize': servingSize,
       'servingAmount': servingAmount,
       'nutrition': nutrition.toJson(),
       'createdAt': FieldValue.serverTimestamp(),
       'originalId': originalId,
+      if (sourceData != null) 'sourceData': sourceData,
     };
+  }
+
+  static String _resolveType(dynamic rawType, String sourceType) {
+    final normalizedType = _safeString(rawType).toLowerCase();
+    final normalizedSource = sourceType.toLowerCase();
+
+    if (normalizedType == 'meal' || normalizedSource == 'meal') {
+      return 'meal';
+    }
+    if (normalizedType == 'custom_food' || normalizedSource == 'custom_food') {
+      return 'custom_food';
+    }
+    if (normalizedType == 'usda_food' || normalizedSource == 'usda_food') {
+      return 'usda_food';
+    }
+    if (normalizedType == 'scan' || normalizedSource == 'scan') {
+      return 'scan';
+    }
+
+    switch (normalizedSource) {
+      case 'custom_meal':
+        return 'meal';
+      case 'database':
+      case 'usda':
+      case 'off':
+      case 'all':
+        return 'usda_food';
+      case 'snap':
+      case 'gemini_vision':
+      case 'saved_scan':
+        return 'scan';
+      default:
+        return normalizedType.isNotEmpty ? normalizedType : 'usda_food';
+    }
+  }
+
+  static String _safeString(dynamic value, {String fallback = ''}) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+    return fallback;
+  }
+
+  static double _safeDouble(dynamic value, {double fallback = 0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? fallback;
+    return fallback;
+  }
+
+  static Map<String, dynamic>? _safeMap(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _normalizeDynamicValue(nestedValue),
+        ),
+      );
+    }
+    return null;
+  }
+
+  static Map<String, dynamic>? _normalizeDynamicMap(Map<String, dynamic>? value) {
+    if (value == null) return null;
+    return value.map(
+      (key, nestedValue) =>
+          MapEntry(key.toString(), _normalizeDynamicValue(nestedValue)),
+    );
+  }
+
+  static dynamic _normalizeDynamicValue(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) => MapEntry(
+          key.toString(),
+          _normalizeDynamicValue(nestedValue),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_normalizeDynamicValue).toList();
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return value;
   }
 }
 
@@ -91,22 +189,22 @@ class SavedFoodNutrition {
 
   factory SavedFoodNutrition.fromJson(Map<String, dynamic> json) {
     return SavedFoodNutrition(
-      calories: (json['calories'] ?? 0).toDouble(),
-      protein: (json['protein'] ?? 0).toDouble(),
-      carbs: (json['carbs'] ?? 0).toDouble(),
-      fat: (json['fat'] ?? 0).toDouble(),
-      saturatedFat: (json['saturatedFat'] ?? 0).toDouble(),
-      polyunsaturatedFat: (json['polyunsaturatedFat'] ?? 0).toDouble(),
-      monounsaturatedFat: (json['monounsaturatedFat'] ?? 0).toDouble(),
-      transFat: (json['transFat'] ?? 0).toDouble(),
-      cholesterol: (json['cholesterol'] ?? 0).toDouble(),
-      sodium: (json['sodium'] ?? 0).toDouble(),
-      potassium: (json['potassium'] ?? 0).toDouble(),
-      sugar: (json['sugar'] ?? 0).toDouble(),
-      fiber: (json['fiber'] ?? 0).toDouble(),
-      vitaminA: (json['vitaminA'] ?? 0).toDouble(),
-      calcium: (json['calcium'] ?? 0).toDouble(),
-      iron: (json['iron'] ?? 0).toDouble(),
+      calories: _safeDouble(json['calories']),
+      protein: _safeDouble(json['protein']),
+      carbs: _safeDouble(json['carbs']),
+      fat: _safeDouble(json['fat']),
+      saturatedFat: _safeDouble(json['saturatedFat']),
+      polyunsaturatedFat: _safeDouble(json['polyunsaturatedFat']),
+      monounsaturatedFat: _safeDouble(json['monounsaturatedFat']),
+      transFat: _safeDouble(json['transFat']),
+      cholesterol: _safeDouble(json['cholesterol']),
+      sodium: _safeDouble(json['sodium']),
+      potassium: _safeDouble(json['potassium']),
+      sugar: _safeDouble(json['sugar']),
+      fiber: _safeDouble(json['fiber']),
+      vitaminA: _safeDouble(json['vitaminA']),
+      calcium: _safeDouble(json['calcium']),
+      iron: _safeDouble(json['iron']),
     );
   }
 
@@ -129,5 +227,11 @@ class SavedFoodNutrition {
       'calcium': calcium,
       'iron': iron,
     };
+  }
+
+  static double _safeDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? 0.0;
+    return 0.0;
   }
 }

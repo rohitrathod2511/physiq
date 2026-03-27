@@ -249,8 +249,7 @@ class RecentMealsList extends ConsumerWidget {
 
     // Show image if imageUrl is present
     final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
-    final sourceType = mealData['source'] as String? ?? 'snap';
-    final bool isDatabaseMeal = sourceType == 'database';
+    final bool showLeadingVisual = hasMealData || hasImage;
     final bool isLoadingScan = hasMealData &&
         (mealData['ingredients'] as List).isEmpty &&
         displayCal == 0 &&
@@ -365,7 +364,7 @@ class RecentMealsList extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (!isDatabaseMeal) ...[
+            if (showLeadingVisual) ...[
               if (hasImage) ...[
                 Container(
                   width: 70,

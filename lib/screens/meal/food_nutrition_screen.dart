@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/models/meal_model.dart';
+import 'package:physiq/models/saved_food_model.dart';
 import 'package:physiq/services/food_service.dart';
+import 'package:physiq/services/saved_food_service.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
 import 'package:physiq/widgets/macro_icons.dart';
 
@@ -32,6 +34,7 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
   late ServingOption _selectedServing;
   int _servingAmount = 1;
   bool _isLoadingDetails = false;
+  bool _isSavingToSaved = false;
   String? _detailsError;
 
   @override
@@ -166,6 +169,69 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
   String _formatOptionalValue(double? value, {required String suffix}) {
     if (value == null) return 'Nutrition unavailable';
     return '${_formatQuantity(value)}$suffix';
+  }
+
+  Future<void> _saveToSavedFoods() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _isSavingToSaved) return;
+
+    setState(() {
+      _isSavingToSaved = true;
+    });
+
+    try {
+      final savedFood = SavedFood(
+        id: '',
+        userId: user.uid,
+        name: _baseFood.name,
+        type: 'usda_food',
+        sourceType: 'usda_food',
+        servingSize: _selectedServing.label,
+        servingAmount: _servingAmount.toDouble(),
+        nutrition: SavedFoodNutrition(
+          calories: _calculateNutrient(_baseFood.calories),
+          protein: _calculateNutrient(_baseFood.protein),
+          carbs: _calculateNutrient(_baseFood.carbs),
+          fat: _calculateNutrient(_baseFood.fat),
+          saturatedFat: _calculateOptionalNutrient(_baseFood.saturatedFat) ?? 0,
+          polyunsaturatedFat:
+              _calculateOptionalNutrient(_baseFood.polyunsaturatedFat) ?? 0,
+          monounsaturatedFat:
+              _calculateOptionalNutrient(_baseFood.monounsaturatedFat) ?? 0,
+          cholesterol: _calculateOptionalNutrient(_baseFood.cholesterol) ?? 0,
+          sodium: _calculateOptionalNutrient(_baseFood.sodium) ?? 0,
+          potassium: _calculateOptionalNutrient(_baseFood.potassium) ?? 0,
+          sugar: _calculateOptionalNutrient(_baseFood.sugar) ?? 0,
+          fiber: _calculateOptionalNutrient(_baseFood.fiber) ?? 0,
+          vitaminA: _calculateOptionalNutrient(_baseFood.vitaminA) ?? 0,
+          calcium: _calculateOptionalNutrient(_baseFood.calcium) ?? 0,
+          iron: _calculateOptionalNutrient(_baseFood.iron) ?? 0,
+        ),
+        createdAt: DateTime.now(),
+        originalId: _baseFood.fdcId ?? _baseFood.id,
+        sourceData: {
+          'food': {..._baseFood.toJson(), 'id': _baseFood.id},
+        },
+      );
+
+      await SavedFoodService().saveFood(savedFood);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${_baseFood.name} saved')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save ${_baseFood.name}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingToSaved = false;
+        });
+      }
+    }
   }
 
   Future<void> _onSave() async {
@@ -349,10 +415,13 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
                           ),
                         ),
                       ),
-                      Icon(
-                        Icons.bookmark_border,
-                        size: 28,
-                        color: theme.iconTheme.color ?? textPrimary,
+                      IconButton(
+                        onPressed: _isSavingToSaved ? null : _saveToSavedFoods,
+                        icon: Icon(
+                          Icons.bookmark_border,
+                          size: 28,
+                          color: theme.iconTheme.color ?? textPrimary,
+                        ),
                       ),
                     ],
                   ),
