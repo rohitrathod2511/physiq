@@ -79,14 +79,16 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
     final options = <ServingOption>[];
 
     void addOption(ServingOption option) {
-      if (option.grams <= 0) return;
+      final normalizedOption = _normalizeServingOption(option);
+      if (normalizedOption.grams <= 0) return;
       final alreadyExists = options.any(
         (existing) =>
-            existing.label.toLowerCase() == option.label.toLowerCase() &&
-            (existing.grams - option.grams).abs() < 0.01,
+            existing.label.toLowerCase() ==
+                normalizedOption.label.toLowerCase() &&
+            (existing.grams - normalizedOption.grams).abs() < 0.01,
       );
       if (!alreadyExists) {
-        options.add(option);
+        options.add(normalizedOption);
       }
     }
 
@@ -98,8 +100,7 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
     _servingOptions = options;
     _selectedServing = _servingOptions.firstWhere(
       (option) =>
-          preferredLabel != null &&
-          option.label.toLowerCase() == preferredLabel.toLowerCase(),
+          preferredLabel != null && _matchesPreferredServing(option, preferredLabel),
       orElse: () => _servingOptions.first,
     );
   }
@@ -148,11 +149,237 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
     });
   }
 
-  String _formatServingLabel(ServingOption option) {
-    if (option.label.trim().toLowerCase() == '100g') {
+  bool _matchesPreferredServing(ServingOption option, String preferredLabel) {
+    final normalizedPreferred = _normalizeText(preferredLabel);
+    return _normalizeText(option.label) == normalizedPreferred ||
+        _normalizeText(_formatServingLabel(option)) == normalizedPreferred;
+  }
+
+  ServingOption _normalizeServingOption(ServingOption option) {
+    final normalizedLabel = _normalizeServingBaseLabel(option.label, option.grams);
+    return ServingOption(label: normalizedLabel, grams: option.grams);
+  }
+
+  String _normalizeServingBaseLabel(String rawLabel, double grams) {
+    final cleaned = _stripTrailingMeasure(_normalizeText(rawLabel));
+    final cleanedLower = cleaned.toLowerCase();
+
+    if (grams <= 0) return cleaned;
+    if (cleanedLower == '100g' || cleanedLower == '100 g') {
       return '100g';
     }
-    return '${option.label} (${_formatQuantity(option.grams)}g)';
+    if (cleaned.isEmpty ||
+        cleanedLower == 'custom serving' ||
+        _isNumericId(cleaned)) {
+      return _inferServingLabelFromFood(grams);
+    }
+    if (_isWeightOnlyLabel(cleanedLower)) {
+      return _compactMeasureLabel(
+        grams,
+        useMilliliters: _shouldDisplayMilliliters(cleanedLower),
+      );
+    }
+    if (_startsWithQuantity(cleanedLower)) {
+      return cleaned;
+    }
+    if (_isDescriptorOnly(cleanedLower)) {
+      final foodName = _primaryFoodName();
+      if (foodName.isNotEmpty) {
+        return '1 $cleanedLower $foodName';
+      }
+      return '1 $cleanedLower';
+    }
+    if (_isSingleUnitLabel(cleanedLower)) {
+      return '1 $cleanedLower';
+    }
+    if (_startsWithDescriptorPhrase(cleanedLower) ||
+        _startsWithUnitPhrase(cleanedLower)) {
+      return '1 $cleanedLower';
+    }
+
+    return cleaned;
+  }
+
+  String _stripTrailingMeasure(String label) {
+    return label
+        .replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  bool _isNumericId(String label) {
+    return RegExp(r'^\d+(?:\.\d+)?$').hasMatch(label);
+  }
+
+  bool _isWeightOnlyLabel(String label) {
+    return RegExp(
+      r'^\d+(?:\.\d+)?\s*(g|gram|grams|ml|milliliter|milliliters)$',
+    ).hasMatch(label);
+  }
+
+  bool _startsWithQuantity(String label) {
+    return RegExp(
+          r'^(a|an|one|half|quarter|\d+(?:\.\d+)?|\d+/\d+)\b',
+        ).hasMatch(label) ||
+        label.startsWith('1 ');
+  }
+
+  bool _isDescriptorOnly(String label) {
+    const descriptors = {
+      'small',
+      'medium',
+      'large',
+      'extra large',
+      'jumbo',
+      'mini',
+    };
+    return descriptors.contains(label);
+  }
+
+  bool _startsWithDescriptorPhrase(String label) {
+    return RegExp(
+      r'^(small|medium|large|extra large|jumbo|mini)\b',
+    ).hasMatch(label);
+  }
+
+  bool _isSingleUnitLabel(String label) {
+    const units = {
+      'tbsp',
+      'tablespoon',
+      'tablespoons',
+      'tsp',
+      'teaspoon',
+      'teaspoons',
+      'cup',
+      'cups',
+      'slice',
+      'slices',
+      'piece',
+      'pieces',
+      'glass',
+      'glasses',
+      'bowl',
+      'bowls',
+      'serving',
+      'wedge',
+      'stick',
+      'packet',
+      'container',
+      'can',
+      'bottle',
+    };
+    return units.contains(label);
+  }
+
+  bool _startsWithUnitPhrase(String label) {
+    return RegExp(
+      r'^(tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|cup|cups|slice|slices|piece|pieces|glass|glasses|bowl|bowls|serving|wedge|stick|packet|container|can|bottle)\b',
+    ).hasMatch(label);
+  }
+
+  String _primaryFoodName() {
+    final primarySegment = _baseFood.name.split(',').first.trim().toLowerCase();
+    final tokens = primarySegment
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where(
+          (token) =>
+              token.isNotEmpty &&
+              !{
+                'raw',
+                'fresh',
+                'cooked',
+                'boiled',
+                'baked',
+                'fried',
+                'grilled',
+                'dried',
+                'with',
+                'without',
+                'skin',
+              }.contains(token),
+        )
+        .toList();
+
+    if (tokens.isEmpty) return '';
+    return tokens.take(2).join(' ');
+  }
+
+  String _inferServingLabelFromFood(double grams) {
+    final name = _baseFood.name.toLowerCase();
+
+    if (name.contains('apple') && grams >= 150 && grams <= 220) {
+      return '1 medium apple';
+    }
+    if (name.contains('banana') && grams >= 90 && grams <= 140) {
+      return '1 medium banana';
+    }
+    if ((name.contains('peanut butter') ||
+            name.contains('almond butter') ||
+            name.contains('nut butter')) &&
+        grams >= 10 &&
+        grams <= 25) {
+      return '1 tbsp';
+    }
+    if (name.contains('pizza') && grams >= 70 && grams <= 180) {
+      return '1 slice';
+    }
+    if (_looksLikeLiquid(name) && grams >= 180 && grams <= 300) {
+      return '1 cup';
+    }
+    if (grams >= 10 && grams <= 25) {
+      return '1 tbsp';
+    }
+
+    return _compactMeasureLabel(
+      grams,
+      useMilliliters: _shouldDisplayMilliliters(name),
+    );
+  }
+
+  bool _looksLikeLiquid(String name) {
+    return name.contains('juice') ||
+        name.contains('milk') ||
+        name.contains('water') ||
+        name.contains('drink') ||
+        name.contains('beverage') ||
+        name.contains('tea') ||
+        name.contains('coffee') ||
+        name.contains('smoothie') ||
+        name.contains('soda');
+  }
+
+  bool _shouldDisplayMilliliters(String label) {
+    final normalizedLabel = label.toLowerCase();
+    final mentionsVolume = normalizedLabel.contains('cup') ||
+        normalizedLabel.contains('glass') ||
+        normalizedLabel.contains('ml') ||
+        normalizedLabel.contains('liter') ||
+        normalizedLabel.contains('litre');
+    return mentionsVolume && _looksLikeLiquid(_baseFood.name.toLowerCase());
+  }
+
+  String _compactMeasureLabel(double grams, {required bool useMilliliters}) {
+    final suffix = useMilliliters ? 'ml' : 'g';
+    return '${_formatQuantity(grams)}$suffix';
+  }
+
+  String _formatServingLabel(ServingOption option) {
+    final label = _normalizeText(option.label);
+    if (label.isEmpty) {
+      return _compactMeasureLabel(
+        option.grams,
+        useMilliliters: _shouldDisplayMilliliters(_baseFood.name),
+      );
+    }
+    final lowerLabel = label.toLowerCase();
+    if (lowerLabel == '100g' || lowerLabel == '100 g') {
+      return '100g';
+    }
+    if (_isWeightOnlyLabel(lowerLabel)) {
+      return label;
+    }
+    final suffix = _shouldDisplayMilliliters(label) ? 'ml' : 'g';
+    return '$label (${_formatQuantity(option.grams)}$suffix)';
   }
 
   String _formatQuantity(double value) {
@@ -160,6 +387,10 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
       return value.round().toString();
     }
     return value.toStringAsFixed(1);
+  }
+
+  String _normalizeText(String value) {
+    return value.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   String _formatMacro(double value, {String suffix = 'g'}) {
