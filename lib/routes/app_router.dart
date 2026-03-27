@@ -149,7 +149,7 @@ final GoRouter router = GoRouter(
       if (isProtected) {
         return '/get-started';
       }
-      if ((location == '/' || location == '/get-started') &&
+      if (location == '/' &&
           resumeRoute != null &&
           resumeRoute != location) {
         return resumeRoute;
@@ -183,11 +183,6 @@ final GoRouter router = GoRouter(
           return resumeRoute;
         }
         return '/get-started';
-      }
-      if (location == '/get-started' &&
-          resumeRoute != null &&
-          resumeRoute != location) {
-        return resumeRoute;
       }
       return null;
     }

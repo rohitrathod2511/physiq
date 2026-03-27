@@ -44,7 +44,45 @@ class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
               style: AppTextStyles.h1.copyWith(fontSize: 32),
               textAlign: TextAlign.center,
             ),
-            const Spacer(),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Center(
+                child: FractionallySizedBox(
+                  widthFactor: 0.80,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 40,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
+                    ),
+                    child: ShaderMask(
+                      shaderCallback: (rect) {
+                        return LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black,
+                            Colors.black,
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.85, 1.0],
+                        ).createShader(rect);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child: Image.asset(
+                        'assets/Physique.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

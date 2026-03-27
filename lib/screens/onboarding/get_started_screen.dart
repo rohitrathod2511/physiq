@@ -33,15 +33,57 @@ class GetStartedScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
             children: [
-              const SizedBox(height: 48),
-              const Spacer(),
+              const SizedBox(height: 16),
+              // Physique Image
+              Expanded(
+                child: Center(
+                  child: FractionallySizedBox(
+                    widthFactor: 0.85,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 50,
+                            offset: const Offset(0, 20),
+                          ),
+                        ],
+                      ),
+                      child: ShaderMask(
+                        shaderCallback: (rect) {
+                          return LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black,
+                              Colors.black,
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.90, 1.0],
+                          ).createShader(rect);
+                        },
+                        blendMode: BlendMode.dstIn,
+                        child: Image.asset(
+                          'assets/Physique.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               // Headline
               Text(
-                'Build Your Dream Body',
+                'Get Your Dream Body',
                 textAlign: TextAlign.center,
-                style: AppTextStyles.h1.copyWith(fontSize: 32),
+                style: AppTextStyles.h1.copyWith(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
               // Primary Button
               SizedBox(
