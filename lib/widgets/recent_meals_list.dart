@@ -332,8 +332,7 @@ class RecentMealsList extends ConsumerWidget {
 
         if (type == 'scan') {
           final meal = _buildLoggedScanMeal(mealData, id);
-          Navigator.push(
-            context,
+          Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
               builder: (_) => MealPreviewScreen(
                 initialFood: _buildLoggedScanFood(
@@ -495,7 +494,7 @@ class RecentMealsList extends ConsumerWidget {
                   const SizedBox(height: 8),
                   if (isLoadingScan)
                     Text(
-                      'Waiting for Gemini + USDA nutrition',
+                      'Calculating Calories & Macronutrients',
                       style: AppTextStyles.smallLabel.copyWith(
                         color: textSecondary,
                       ),

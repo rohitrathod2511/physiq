@@ -73,6 +73,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
 
     final mealId = DateTime.now().millisecondsSinceEpoch.toString();
     final nav = Navigator.of(context);
+    final rootNav = Navigator.of(context, rootNavigator: true);
     final scaffoldMsg = ScaffoldMessenger.of(context);
 
     setState(() {
@@ -145,7 +146,7 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
       );
 
       print('🏁 STEP 8: All calculations done. Navigating to preview screen with ${meal.ingredients.length} ingredients.');
-      nav.push(
+      rootNav.push(
         MaterialPageRoute(
           builder: (_) => MealPreviewScreen(
             initialFood: dummyFood,

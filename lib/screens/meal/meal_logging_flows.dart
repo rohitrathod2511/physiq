@@ -132,8 +132,7 @@ void showMealPreview(
     isIndian: false,
   );
 
-  Navigator.push(
-    context,
+  Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute(
       builder: (context) =>
           MealPreviewScreen(initialFood: food, initialQuantity: quantity),

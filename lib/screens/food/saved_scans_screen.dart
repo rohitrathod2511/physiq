@@ -55,7 +55,11 @@ class _SavedScansScreenState extends ConsumerState<SavedScansScreen> {
   Future<void> _openSavedItem(SavedFood food) async {
     final route = _buildSavedItemRoute(food);
     if (route == null) return;
-    await Navigator.push(context, route);
+    if (food.type == 'scan') {
+      await Navigator.of(context, rootNavigator: true).push(route);
+    } else {
+      await Navigator.push(context, route);
+    }
   }
 
   Route<dynamic>? _buildSavedItemRoute(SavedFood food) {

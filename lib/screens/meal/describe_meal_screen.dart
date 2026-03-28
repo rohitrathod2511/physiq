@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -169,8 +169,7 @@ class _DescribeMealScreenState extends ConsumerState<DescribeMealScreen> {
               return;
             }
 
-            Navigator.push(
-              context,
+            Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(
                 builder: (_) => MealPreviewScreen(
                   initialFood: previewFood,

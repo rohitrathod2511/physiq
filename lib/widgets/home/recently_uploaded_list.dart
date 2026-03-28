@@ -117,8 +117,7 @@ class _MealCard extends StatelessWidget {
           aliases: meal.ingredients.map((i) => "${i.name} (${i.amount})").toList(),
         );
 
-        Navigator.push(
-          context,
+        Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             builder: (_) => MealPreviewScreen(
               initialFood: dummyFood,
