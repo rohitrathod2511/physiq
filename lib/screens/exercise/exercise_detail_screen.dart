@@ -50,6 +50,9 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
   void initState() {
     super.initState();
     _tabController = TabController(length: widget.category == 'home' ? 2 : 1, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -299,7 +302,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(widget.name, style: AppTextStyles.heading2),
+        title: Text((_tabController.length > 1 && _tabController.index == 1) ? 'Workout' : widget.name, style: AppTextStyles.heading2),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: BackButton(color: AppColors.primaryText),
@@ -388,86 +391,275 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
               ],
             ),
           ),
-            // Timer Tab (Now Second)
+          // Timer Tab (Now Second)
           if (widget.category == 'home')
-            Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_isWork ? 'Start' : 'Rest', style: AppTextStyles.heading1.copyWith(color: _isWork ? Colors.green : Colors.orange)),
-              const SizedBox(height: 20),
-              
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('$_timeLeft', style: AppTextStyles.largeNumber.copyWith(fontSize: 80)),
-                  IconButton(
-                    icon: Icon(Icons.edit, color: AppColors.secondaryText),
-                    onPressed: _editSettings,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              
-              // Rounds Display with Target
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.secondaryText.withOpacity(0.1)),
-                ),
-                child: Text('Round $_rounds / $_targetRounds', style: AppTextStyles.bodyBold),
-              ),
-
-              const SizedBox(height: 40),
-
-              // Enhanced Start Button (Replaces FAB)
-              SizedBox(
-                width: 200,
-                child: ElevatedButton(
-                  onPressed: _toggleTimer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+            Container(
+              color: const Color(0xFFF5F5F4),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 24),
+                    // MAIN TIMER (CENTERPIECE)
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Background full ring
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.60,
+                          height: MediaQuery.of(context).size.width * 0.60,
+                          child: CircularProgressIndicator(
+                            value: 1.0,
+                            strokeWidth: 10,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.withOpacity(0.15)),
+                          ),
+                        ),
+                        // Animated progress ring
+                        TweenAnimationBuilder<double>(
+                          tween: Tween<double>(
+                            begin: 1.0,
+                            end: (_isWork ? _workDuration : _restDuration) == 0 
+                                ? 0.0 
+                                : _timeLeft / (_isWork ? _workDuration : _restDuration),
+                          ),
+                          duration: const Duration(seconds: 1),
+                          curve: Curves.linear,
+                          builder: (context, value, _) => SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.60,
+                            height: MediaQuery.of(context).size.width * 0.60,
+                            child: CircularProgressIndicator(
+                              value: value,
+                              strokeWidth: 10,
+                              backgroundColor: Colors.transparent,
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF16A34A)),
+                              strokeCap: StrokeCap.round,
+                            ),
+                          ),
+                        ),
+                        // Number and label
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$_timeLeft', 
+                              style: AppTextStyles.largeNumber.copyWith(
+                                fontSize: 80,
+                                height: 1.0,
+                                color: const Color(0xFF1E1E1E),
+                              ),
+                            ),
+                            Text(
+                              'SECONDS', 
+                              style: AppTextStyles.smallLabel.copyWith(
+                                fontSize: 13, 
+                                fontWeight: FontWeight.bold, 
+                                letterSpacing: 2.0, 
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    elevation: 5,
-                    shadowColor: AppColors.primary.withOpacity(0.4),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(_isRunning ? Icons.pause : Icons.play_arrow),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isRunning ? 'Pause' : 'Start', 
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                    
+                    const SizedBox(height: 48),
+                    
+                    // ROUND INDICATOR
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E5E5).withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ],
-                  ),
+                      child: Text(
+                        'ROUND $_rounds / $_targetRounds', 
+                        style: AppTextStyles.bodyBold.copyWith(
+                          color: const Color(0xFF4A4A4A), 
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // EXERCISE INFO
+                    Text(
+                      widget.name, 
+                      style: AppTextStyles.heading1.copyWith(
+                        fontSize: 28, 
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${_restDuration}s Rest', 
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 15, 
+                            color: Colors.grey, 
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // PRIMARY BUTTON (CTA)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 64,
+                      child: OutlinedButton(
+                        onPressed: _toggleTimer,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.black, width: 2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                          elevation: 2,
+                          shadowColor: Colors.black.withOpacity(0.1),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Spacer(flex: 3),
+                            Text(
+                              _isRunning ? 'PAUSE SET' : 'START SET', 
+                              style: AppTextStyles.button.copyWith(
+                                color: Colors.black, 
+                                fontSize: 18, 
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const Spacer(flex: 2),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                border: Border.all(color: Colors.black, width: 2),
+                              ),
+                              child: Icon(
+                                _isRunning ? Icons.pause : Icons.play_arrow, 
+                                color: Colors.black, 
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // SECONDARY OPTIONS: Timer & Reset
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _editSettings,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white.withOpacity(0.5),
+                              side: BorderSide(color: Colors.grey.shade300, width: 1),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: Text(
+                              'Timer', 
+                              style: AppTextStyles.bodyBold.copyWith(
+                                color: Colors.black87, 
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _timer?.cancel();
+                              setState(() {
+                                _timeLeft = _workDuration;
+                                _rounds = 0;
+                                _isRunning = false;
+                                _isWork = true;
+                                _totalDurationSec = 0;
+                              });
+                            },
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white.withOpacity(0.5),
+                              side: BorderSide(color: Colors.grey.shade300, width: 1),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: Text(
+                              'Reset', 
+                              style: AppTextStyles.bodyBold.copyWith(
+                                color: Colors.black87, 
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // LOG WORKOUT
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: _onSave,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.5),
+                          side: BorderSide(color: Colors.grey.shade300, width: 1),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.black87, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Log Workout', 
+                              style: AppTextStyles.bodyBold.copyWith(
+                                color: Colors.black87, 
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 100), // Extra space to clear global navbar
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 96), // Lifted up
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _onSave,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      bottomNavigationBar: (_tabController.length > 1 && _tabController.index == 1) 
+          ? null 
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 96), // Lifted up
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _onSave,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: Text('Finish & Save', style: AppTextStyles.button.copyWith(color: Colors.white)),
+                ),
+              ),
             ),
-            child: Text('Finish & Save', style: AppTextStyles.button.copyWith(color: Colors.white)),
-          ),
-        ),
-      ),
     );
   }
 }

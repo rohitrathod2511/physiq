@@ -69,8 +69,8 @@ class CalorieAndMacrosPage extends StatelessWidget {
 
               // Center Ring
               CircularPercentIndicator(
-                radius: 80.0,
-                lineWidth: 14.0,
+                radius: 85.0,
+                lineWidth: 18.0,
                 animation: true,
                 percent: caloriesPercent,
                 circularStrokeCap: CircularStrokeCap.butt,
