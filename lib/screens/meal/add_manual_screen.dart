@@ -1,6 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:physiq/models/food_model.dart';
+import 'package:physiq/models/meal_model.dart';
+import 'package:physiq/models/saved_food_model.dart';
+import 'package:physiq/services/saved_food_service.dart';
+import 'package:physiq/viewmodels/home_viewmodel.dart';
 
 class AddManualScreen extends ConsumerStatefulWidget {
   const AddManualScreen({super.key});
@@ -111,10 +115,11 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.bookmark_border, color: textPrimary),
-            onPressed: () {
-              // Placeholder for bookmark action
-            },
+            onPressed: _isSavingToSaved ? null : _saveToSavedFoods,
+            icon: Icon(
+              Icons.bookmark_border,
+              color: textPrimary,
+            ),
           ),
         ],
       ),
@@ -417,40 +422,115 @@ class _AddManualScreenState extends ConsumerState<AddManualScreen> {
     );
   }
 
-  void _logMeal() {
+  bool _isSavingToSaved = false;
+
+  Future<void> _saveToSavedFoods() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _isSavingToSaved) return;
+
     final String name = _nameController.text.isEmpty
         ? "Manual Meal"
         : _nameController.text;
 
-    // Create a Food object with the calculated totals
-    // Note: The app likely expects 'unit' to be the serving size name, e.g., "1 serving"
-    // and nutrition per unit. We have the total per quantity.
-    // If quantity is 1, it's exact. Use base values for nutrition per unit.
+    setState(() {
+      _isSavingToSaved = true;
+    });
 
-    final food = Food(
-      id: DateTime.now().millisecondsSinceEpoch.toString(), // Simple unique ID
+    try {
+      final savedFood = SavedFood(
+        id: '',
+        userId: user.uid,
+        name: name,
+        type: 'usda_food', // treated as a basic food object in our lists
+        sourceType: 'manual',
+        servingSize: 'serving',
+        servingAmount: _quantity.toDouble(),
+        nutrition: SavedFoodNutrition(
+          calories: _baseCalories * _quantity,
+          protein: _baseProtein * _quantity,
+          carbs: _baseCarbs * _quantity,
+          fat: _baseFat * _quantity,
+          saturatedFat: 0,
+          polyunsaturatedFat: 0,
+          monounsaturatedFat: 0,
+          cholesterol: 0,
+          sodium: 0,
+          potassium: 0,
+          sugar: 0,
+          fiber: 0,
+          vitaminA: 0,
+          calcium: 0,
+          iron: 0,
+        ),
+        createdAt: DateTime.now(),
+        originalId: DateTime.now().millisecondsSinceEpoch.toString(),
+        sourceData: {
+          'food': {
+            'id': DateTime.now().millisecondsSinceEpoch.toString(),
+            'name': name,
+            'category': 'Manual',
+            'unit': 'serving',
+            'baseWeightG': 0,
+            'calories': _baseCalories * _quantity,
+            'protein': _baseProtein * _quantity,
+            'carbs': _baseCarbs * _quantity,
+            'fat': _baseFat * _quantity,
+            'source': 'manual',
+          }
+        },
+      );
+
+      await SavedFoodService().saveFood(savedFood);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$name saved')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save $name')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingToSaved = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _logMeal() async {
+    final String name = _nameController.text.isEmpty
+        ? "Manual Meal"
+        : _nameController.text;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final mealModel = MealModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: user.uid,
       name: name,
-      category: "Manual",
-      unit: "serving",
-      baseWeightG: 0, // Unknown
-      calories: _baseCalories, // Store per serving
-      protein: _baseProtein,
-      carbs: _baseCarbs,
-      fat: _baseFat,
+      calories: _baseCalories * _quantity,
+      proteinG: _baseProtein * _quantity,
+      carbsG: _baseCarbs * _quantity,
+      fatG: _baseFat * _quantity,
+      timestamp: DateTime.now(),
+      imageUrl: null,
       source: 'manual',
+      servingAmount: _quantity.toDouble(),
+      servingDescription: 'serving',
+      fullNutritionMap: {},
     );
 
-    // Return the food and quantity.
-    // The previous screen needs to know quantity too.
-    // We can assume the calling screen handles the 'Food' object and quantity separately or as a MealItem.
-    // Since we don't know the exact return contract, we'll return a Map or similar.
-    // Ideally we return the Food object, and the caller asks for quantity.
-    // Or we return {food, quantity}.
+    await ref.read(homeViewModelProvider.notifier).logMeal(mealModel);
 
-    // For now, let's return the food object, assuming the quantity sets the *default* serving count?
-    // Actually, if we pass the Food object with base nutrition, and pass quantity back,
-    // the receiver can multiply.
+    if (!mounted) return;
 
-    Navigator.pop(context, {'food': food, 'quantity': _quantity});
+    Navigator.popUntil(context, (route) => route.isFirst);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$name logged successfully!')),
+    );
   }
 }
