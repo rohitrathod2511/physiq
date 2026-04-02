@@ -298,7 +298,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
 
   Widget _buildBottomButton(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 44),
       color: AppColors.background,
       child: SizedBox(
         width: double.infinity,

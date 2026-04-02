@@ -17,93 +17,103 @@ class RodrigoTransformationScreen extends StatelessWidget {
         leading: BackButton(color: AppColors.primaryText),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              Text(
-                "Build a body like this",
-                style: AppTextStyles.h1,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Gain muscle and transform your physique with Physiq AI",
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.secondaryText,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.asset(
-                          _assetPath,
-                          height: 260,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.centerLeft,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.asset(
-                          _assetPath,
-                          height: 260,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.centerRight,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildHighlightChip("+10kg Muscle", Icons.fitness_center),
-                  _buildHighlightChip("3 Months", Icons.calendar_today),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(20),
-                ),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
+                    const SizedBox(height: 16),
                     Text(
-                      '"Finally gained muscle and feel confident."',
-                      style: AppTextStyles.body.copyWith(
-                        fontStyle: FontStyle.italic,
-                        height: 1.4,
-                      ),
+                      "Build a body like this",
+                      style: AppTextStyles.h1,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Rodrigo, Physiq AI user",
-                      style: AppTextStyles.smallLabel.copyWith(
+                      "Gain muscle and transform your physique with Physiq AI",
+                      style: AppTextStyles.body.copyWith(
                         color: AppColors.secondaryText,
                       ),
+                      textAlign: TextAlign.center,
                     ),
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.asset(
+                                _assetPath,
+                                height: 260,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.centerLeft,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.asset(
+                                _assetPath,
+                                height: 260,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.centerRight,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildHighlightChip("+10kg Muscle", Icons.fitness_center),
+                        _buildHighlightChip("3 Months", Icons.calendar_today),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '"Finally gained muscle and feel confident."',
+                            style: AppTextStyles.body.copyWith(
+                              fontStyle: FontStyle.italic,
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Rodrigo, Physiq AI user",
+                            style: AppTextStyles.smallLabel.copyWith(
+                              color: AppColors.secondaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              SizedBox(
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 44),
+              color: AppColors.background,
+              child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => context.push('/success'),
@@ -118,9 +128,8 @@ class RodrigoTransformationScreen extends StatelessWidget {
                   child: const Text('Continue'),
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
