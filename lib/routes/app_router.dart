@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Added for Firestore
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Added for FirebaseAuth
+import 'package:physiq/config/app_config.dart';
 import 'package:physiq/screens/home_screen.dart';
 import 'package:physiq/screens/progress_screen.dart';
 import 'package:physiq/screens/exercise/exercise_list_screen.dart';
@@ -11,7 +12,6 @@ import 'package:physiq/screens/meal_history_screen.dart';
 import 'package:physiq/screens/onboarding/splash_screen.dart';
 import 'package:physiq/screens/onboarding/get_started_screen.dart';
 import 'package:physiq/screens/onboarding/sign_up_screen.dart';
-import 'package:physiq/screens/onboarding/name_screen.dart';
 import 'package:physiq/screens/onboarding/gender_screen.dart';
 import 'package:physiq/screens/onboarding/birthyear_screen.dart';
 import 'package:physiq/screens/onboarding/height_weight_screen.dart';
@@ -45,6 +45,10 @@ import 'package:physiq/widgets/scaffold_with_nav_bar.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
+
+bool _isPaywallRoute(String location) {
+  return location == '/paywall' || location.startsWith('/onboarding/paywall');
+}
 
 class AuthSubscription extends ChangeNotifier {
   late final StreamSubscription<User?> _authSubscription;
@@ -133,6 +137,12 @@ final GoRouter router = GoRouter(
     final location = state.uri.path;
     final resumeRoute = OnboardingStore.currentResumeRoute;
 
+    if (!isPaywallEnabled && _isPaywallRoute(location)) {
+      return isOnboardingComplete == true
+          ? '/home'
+          : '/onboarding/success-stories';
+    }
+
     // ----------------------------------------------------
     // 1. If NOT authenticated
     // ----------------------------------------------------
@@ -149,9 +159,7 @@ final GoRouter router = GoRouter(
       if (isProtected) {
         return '/get-started';
       }
-      if (location == '/' &&
-          resumeRoute != null &&
-          resumeRoute != location) {
+      if (location == '/' && resumeRoute != null && resumeRoute != location) {
         return resumeRoute;
       }
       return null; // Allow public access (splash, onboarding start, etc)
@@ -278,6 +286,9 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/paywall',
       redirect: (context, state) {
+        if (!isPaywallEnabled) {
+          return '/onboarding/success-stories';
+        }
         return '/onboarding/paywall-free';
       },
       builder: (context, state) => const SizedBox.shrink(),
@@ -500,13 +511,11 @@ class _TrackedOnboardingRoute extends StatefulWidget {
   final String route;
   final Widget child;
 
-  const _TrackedOnboardingRoute({
-    required this.route,
-    required this.child,
-  });
+  const _TrackedOnboardingRoute({required this.route, required this.child});
 
   @override
-  State<_TrackedOnboardingRoute> createState() => _TrackedOnboardingRouteState();
+  State<_TrackedOnboardingRoute> createState() =>
+      _TrackedOnboardingRouteState();
 }
 
 class _TrackedOnboardingRouteState extends State<_TrackedOnboardingRoute> {

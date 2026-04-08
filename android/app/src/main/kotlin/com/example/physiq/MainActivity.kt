@@ -1,4 +1,4 @@
-package com.physiqai.app
+package com.example.physiq
 
 import io.flutter.embedding.android.FlutterActivity
 

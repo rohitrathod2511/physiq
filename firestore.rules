@@ -3,17 +3,562 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function hasField(data, field) {
+      return data.keys().hasAny([field]);
+    }
+
+    function optionalString(data, field) {
+      return !hasField(data, field) || data[field] == null || data[field] is string;
+    }
+
+    function optionalNumber(data, field) {
+      return !hasField(data, field) || data[field] == null || data[field] is number;
+    }
+
+    function optionalBool(data, field) {
+      return !hasField(data, field) || data[field] == null || data[field] is bool;
+    }
+
+    function optionalTimestamp(data, field) {
+      return !hasField(data, field) || data[field] == null || data[field] is timestamp;
+    }
+
+    function optionalMap(data, field) {
+      return !hasField(data, field) || data[field] == null || data[field] is map;
+    }
+
+    function optionalList(data, field) {
+      return !hasField(data, field) || data[field] == null || data[field] is list;
+    }
+
+    function optionalStringOrTimestamp(data, field) {
+      return !hasField(data, field) ||
+        data[field] == null ||
+        data[field] is string ||
+        data[field] is timestamp;
+    }
+
+    function validNutritionMap(data) {
+      return data is map &&
+        optionalNumber(data, 'calories') &&
+        optionalNumber(data, 'protein') &&
+        optionalNumber(data, 'carbs') &&
+        optionalNumber(data, 'fat') &&
+        optionalNumber(data, 'fats') &&
+        optionalNumber(data, 'saturatedFat') &&
+        optionalNumber(data, 'polyunsaturatedFat') &&
+        optionalNumber(data, 'monounsaturatedFat') &&
+        optionalNumber(data, 'transFat') &&
+        optionalNumber(data, 'cholesterol') &&
+        optionalNumber(data, 'sodium') &&
+        optionalNumber(data, 'potassium') &&
+        optionalNumber(data, 'sugar') &&
+        optionalNumber(data, 'fiber') &&
+        optionalNumber(data, 'vitaminA') &&
+        optionalNumber(data, 'vitaminC') &&
+        optionalNumber(data, 'calcium') &&
+        optionalNumber(data, 'iron');
+    }
+
+    function validUserProfile(data) {
+      return data is map &&
+        optionalString(data, 'name') &&
+        optionalString(data, 'email') &&
+        optionalString(data, 'gender') &&
+        optionalString(data, 'activityLevel') &&
+        optionalString(data, 'displayId') &&
+        optionalNumber(data, 'birthYear') &&
+        optionalNumber(data, 'birthMonth') &&
+        optionalNumber(data, 'birthDay') &&
+        optionalNumber(data, 'height') &&
+        optionalNumber(data, 'weight');
+    }
+
+    function validUserPreferences(data) {
+      return data is map &&
+        optionalString(data, 'language') &&
+        optionalString(data, 'theme') &&
+        optionalString(data, 'units');
+    }
+
+    function validUserMeta(data) {
+      return data is map &&
+        optionalTimestamp(data, 'created_at') &&
+        optionalTimestamp(data, 'last_login') &&
+        optionalString(data, 'auth_provider') &&
+        optionalBool(data, 'isAnonymous') &&
+        optionalBool(data, 'onboardingCompleted');
+    }
+
+    function validUserAuth(data, userId) {
+      return data is map &&
+        optionalString(data, 'uid') &&
+        (!hasField(data, 'uid') || data.uid == userId) &&
+        optionalString(data, 'provider') &&
+        optionalString(data, 'email') &&
+        optionalTimestamp(data, 'createdAt');
+    }
+
+    function validUserGoals(data) {
+      return data is map &&
+        optionalString(data, 'goal') &&
+        optionalString(data, 'goalType') &&
+        optionalString(data, 'type') &&
+        optionalNumber(data, 'targetWeight') &&
+        optionalNumber(data, 'timeFrame');
+    }
+
+    function validCurrentPlan(data) {
+      return data is map &&
+        optionalNumber(data, 'calories') &&
+        optionalNumber(data, 'goalCalories') &&
+        optionalNumber(data, 'protein') &&
+        optionalNumber(data, 'proteinG') &&
+        optionalNumber(data, 'carbs') &&
+        optionalNumber(data, 'carbsG') &&
+        optionalNumber(data, 'fat') &&
+        optionalNumber(data, 'fatG') &&
+        optionalNumber(data, 'fats') &&
+        optionalNumber(data, 'waterMl') &&
+        optionalString(data, 'source') &&
+        optionalTimestamp(data, 'generatedAt') &&
+        optionalTimestamp(data, 'updatedAt');
+    }
+
+    function validInvitesMap(data) {
+      return data is map &&
+        optionalString(data, 'code') &&
+        optionalTimestamp(data, 'createdAt') &&
+        optionalNumber(data, 'redeemedCount') &&
+        optionalNumber(data, 'creditedAmount');
+    }
+
+    function validUserDoc(userId) {
+      return optionalString(request.resource.data, 'uid') &&
+        (!hasField(request.resource.data, 'uid') || request.resource.data.uid == userId) &&
+        optionalString(request.resource.data, 'name') &&
+        optionalString(request.resource.data, 'displayName') &&
+        optionalString(request.resource.data, 'displayId') &&
+        optionalString(request.resource.data, 'email') &&
+        optionalString(request.resource.data, 'gender') &&
+        optionalString(request.resource.data, 'goal') &&
+        optionalString(request.resource.data, 'activityLevel') &&
+        optionalString(request.resource.data, 'dietPreference') &&
+        optionalString(request.resource.data, 'promoCode') &&
+        optionalString(request.resource.data, 'fcmToken') &&
+        optionalNumber(request.resource.data, 'birthYear') &&
+        optionalNumber(request.resource.data, 'birthMonth') &&
+        optionalNumber(request.resource.data, 'birthDay') &&
+        optionalNumber(request.resource.data, 'heightCm') &&
+        optionalNumber(request.resource.data, 'weightKg') &&
+        optionalNumber(request.resource.data, 'targetWeightKg') &&
+        optionalNumber(request.resource.data, 'goalWeightKg') &&
+        optionalNumber(request.resource.data, 'dailyStepGoal') &&
+        optionalNumber(request.resource.data, 'timeframeMonths') &&
+        optionalBool(request.resource.data, 'onboardingCompleted') &&
+        optionalBool(request.resource.data, 'isPremium') &&
+        optionalBool(request.resource.data, 'mealReminders') &&
+        optionalBool(request.resource.data, 'waterReminders') &&
+        optionalBool(request.resource.data, 'weighInReminders') &&
+        optionalBool(request.resource.data, 'isGuest') &&
+        optionalTimestamp(request.resource.data, 'createdAt') &&
+        optionalTimestamp(request.resource.data, 'updatedAt') &&
+        optionalMap(request.resource.data, 'profile') &&
+        (!hasField(request.resource.data, 'profile') ||
+          request.resource.data.profile == null ||
+          validUserProfile(request.resource.data.profile)) &&
+        optionalMap(request.resource.data, 'preferences') &&
+        (!hasField(request.resource.data, 'preferences') ||
+          request.resource.data.preferences == null ||
+          validUserPreferences(request.resource.data.preferences)) &&
+        optionalMap(request.resource.data, 'meta') &&
+        (!hasField(request.resource.data, 'meta') ||
+          request.resource.data.meta == null ||
+          validUserMeta(request.resource.data.meta)) &&
+        optionalMap(request.resource.data, 'auth') &&
+        (!hasField(request.resource.data, 'auth') ||
+          request.resource.data.auth == null ||
+          validUserAuth(request.resource.data.auth, userId)) &&
+        optionalMap(request.resource.data, 'goals') &&
+        (!hasField(request.resource.data, 'goals') ||
+          request.resource.data.goals == null ||
+          validUserGoals(request.resource.data.goals)) &&
+        optionalMap(request.resource.data, 'nutrition') &&
+        (!hasField(request.resource.data, 'nutrition') ||
+          request.resource.data.nutrition == null ||
+          validNutritionMap(request.resource.data.nutrition)) &&
+        optionalMap(request.resource.data, 'nutritionGoals') &&
+        (!hasField(request.resource.data, 'nutritionGoals') ||
+          request.resource.data.nutritionGoals == null ||
+          validNutritionMap(request.resource.data.nutritionGoals)) &&
+        optionalMap(request.resource.data, 'currentPlan') &&
+        (!hasField(request.resource.data, 'currentPlan') ||
+          request.resource.data.currentPlan == null ||
+          validCurrentPlan(request.resource.data.currentPlan)) &&
+        optionalMap(request.resource.data, 'invites') &&
+        (!hasField(request.resource.data, 'invites') ||
+          request.resource.data.invites == null ||
+          validInvitesMap(request.resource.data.invites)) &&
+        optionalList(request.resource.data, 'referrals') &&
+        optionalList(request.resource.data, 'planHistory') &&
+        optionalList(request.resource.data, 'obstacles');
+    }
+
+    function validMacrosDoc() {
+      return optionalNumber(request.resource.data, 'calories') &&
+        optionalNumber(request.resource.data, 'protein') &&
+        optionalNumber(request.resource.data, 'carbs') &&
+        optionalNumber(request.resource.data, 'fat') &&
+        optionalNumber(request.resource.data, 'fats') &&
+        optionalNumber(request.resource.data, 'waterMl') &&
+        optionalTimestamp(request.resource.data, 'lastUpdatedAt');
+    }
+
+    function validDailySummary(dateId) {
+      return optionalString(request.resource.data, 'date') &&
+        (!hasField(request.resource.data, 'date') || request.resource.data.date == dateId) &&
+        optionalNumber(request.resource.data, 'calories') &&
+        optionalNumber(request.resource.data, 'caloriesConsumed') &&
+        optionalNumber(request.resource.data, 'caloriesGoal') &&
+        optionalNumber(request.resource.data, 'protein') &&
+        optionalNumber(request.resource.data, 'proteinConsumed') &&
+        optionalNumber(request.resource.data, 'carbs') &&
+        optionalNumber(request.resource.data, 'carbsConsumed') &&
+        optionalNumber(request.resource.data, 'fat') &&
+        optionalNumber(request.resource.data, 'fatConsumed') &&
+        optionalNumber(request.resource.data, 'exerciseCalories') &&
+        optionalNumber(request.resource.data, 'caloriesBurned') &&
+        optionalNumber(request.resource.data, 'waterMl') &&
+        optionalNumber(request.resource.data, 'waterConsumed') &&
+        optionalNumber(request.resource.data, 'waterGoal') &&
+        optionalNumber(request.resource.data, 'steps') &&
+        optionalTimestamp(request.resource.data, 'lastUpdated') &&
+        optionalTimestamp(request.resource.data, 'lastUpdatedAt') &&
+        optionalTimestamp(request.resource.data, 'updatedAt');
+    }
+
+    function validMealDoc(userId, mealId) {
+      return optionalString(request.resource.data, 'id') &&
+        (!hasField(request.resource.data, 'id') || request.resource.data.id == mealId) &&
+        optionalString(request.resource.data, 'userId') &&
+        (!hasField(request.resource.data, 'userId') || request.resource.data.userId == userId) &&
+        optionalString(request.resource.data, 'name') &&
+        optionalString(request.resource.data, 'meal_title') &&
+        optionalString(request.resource.data, 'imageUrl') &&
+        optionalString(request.resource.data, 'image_url') &&
+        optionalString(request.resource.data, 'container') &&
+        optionalString(request.resource.data, 'type') &&
+        optionalString(request.resource.data, 'source') &&
+        optionalString(request.resource.data, 'originalId') &&
+        optionalString(request.resource.data, 'servingDescription') &&
+        optionalString(request.resource.data, 'unit') &&
+        optionalNumber(request.resource.data, 'calories') &&
+        optionalNumber(request.resource.data, 'protein') &&
+        optionalNumber(request.resource.data, 'proteinG') &&
+        optionalNumber(request.resource.data, 'carbs') &&
+        optionalNumber(request.resource.data, 'carbsG') &&
+        optionalNumber(request.resource.data, 'fat') &&
+        optionalNumber(request.resource.data, 'fatG') &&
+        optionalNumber(request.resource.data, 'fats') &&
+        optionalNumber(request.resource.data, 'quantity') &&
+        optionalNumber(request.resource.data, 'servingAmount') &&
+        optionalBool(request.resource.data, 'bookmarked') &&
+        optionalBool(request.resource.data, 'logged') &&
+        optionalTimestamp(request.resource.data, 'timestamp') &&
+        optionalTimestamp(request.resource.data, 'createdAt') &&
+        optionalTimestamp(request.resource.data, 'created_at') &&
+        optionalList(request.resource.data, 'ingredients') &&
+        optionalMap(request.resource.data, 'sourceData') &&
+        optionalMap(request.resource.data, 'fullNutritionMap');
+    }
+
+    function validExerciseLog(userId, logId) {
+      return optionalString(request.resource.data, 'id') &&
+        (!hasField(request.resource.data, 'id') || request.resource.data.id == logId) &&
+        hasField(request.resource.data, 'userId') &&
+        request.resource.data.userId == userId &&
+        optionalString(request.resource.data, 'exerciseId') &&
+        optionalString(request.resource.data, 'name') &&
+        optionalString(request.resource.data, 'type') &&
+        optionalString(request.resource.data, 'intensity') &&
+        optionalString(request.resource.data, 'source') &&
+        optionalNumber(request.resource.data, 'durationMinutes') &&
+        optionalNumber(request.resource.data, 'calories') &&
+        optionalBool(request.resource.data, 'isManualOverride') &&
+        optionalTimestamp(request.resource.data, 'timestamp') &&
+        optionalMap(request.resource.data, 'details');
+    }
+
+    function validWeightHistoryDoc(entryId) {
+      return optionalString(request.resource.data, 'id') &&
+        (!hasField(request.resource.data, 'id') || request.resource.data.id == entryId) &&
+        optionalNumber(request.resource.data, 'weightKg') &&
+        optionalTimestamp(request.resource.data, 'date') &&
+        optionalTimestamp(request.resource.data, 'loggedAt');
+    }
+
+    function validProgressPhotoDoc(photoId) {
+      return optionalString(request.resource.data, 'id') &&
+        (!hasField(request.resource.data, 'id') || request.resource.data.id == photoId) &&
+        optionalString(request.resource.data, 'imageUrl') &&
+        optionalNumber(request.resource.data, 'weightKg') &&
+        optionalString(request.resource.data, 'dateKey') &&
+        optionalStringOrTimestamp(request.resource.data, 'date') &&
+        optionalStringOrTimestamp(request.resource.data, 'uploadedAt');
+    }
+
+    function validMyMealDoc() {
+      return optionalString(request.resource.data, 'name') &&
+        optionalNumber(request.resource.data, 'totalCalories') &&
+        optionalNumber(request.resource.data, 'totalProtein') &&
+        optionalNumber(request.resource.data, 'totalCarbs') &&
+        optionalNumber(request.resource.data, 'totalFat') &&
+        optionalTimestamp(request.resource.data, 'createdAt') &&
+        optionalList(request.resource.data, 'items');
+    }
+
+    function validMealLogEntry(userId) {
+      return optionalString(request.resource.data, 'id') &&
+        optionalString(request.resource.data, 'userId') &&
+        (!hasField(request.resource.data, 'userId') || request.resource.data.userId == userId) &&
+        optionalString(request.resource.data, 'type') &&
+        optionalString(request.resource.data, 'mealId') &&
+        optionalString(request.resource.data, 'name') &&
+        optionalString(request.resource.data, 'source') &&
+        optionalString(request.resource.data, 'originalId') &&
+        optionalString(request.resource.data, 'servingDescription') &&
+        optionalNumber(request.resource.data, 'totalCalories') &&
+        optionalNumber(request.resource.data, 'protein') &&
+        optionalNumber(request.resource.data, 'carbs') &&
+        optionalNumber(request.resource.data, 'fat') &&
+        optionalNumber(request.resource.data, 'calories') &&
+        optionalNumber(request.resource.data, 'proteinG') &&
+        optionalNumber(request.resource.data, 'carbsG') &&
+        optionalNumber(request.resource.data, 'fatG') &&
+        optionalNumber(request.resource.data, 'servingAmount') &&
+        optionalTimestamp(request.resource.data, 'loggedAt') &&
+        optionalTimestamp(request.resource.data, 'timestamp') &&
+        optionalMap(request.resource.data, 'sourceData');
+    }
+
+    function validCustomMealDoc(mealId) {
+      return optionalString(request.resource.data, 'id') &&
+        (!hasField(request.resource.data, 'id') || request.resource.data.id == mealId) &&
+        optionalString(request.resource.data, 'name') &&
+        optionalList(request.resource.data, 'items') &&
+        optionalMap(request.resource.data, 'total_nutrition') &&
+        optionalMap(request.resource.data, 'totalNutrition');
+    }
+
+    function validSupportRequestDoc() {
+      return optionalString(request.resource.data, 'type') &&
+        optionalTimestamp(request.resource.data, 'createdAt');
+    }
+
+    function validFeatureRequestDoc(userId) {
+      return optionalString(request.resource.data, 'id') &&
+        optionalString(request.resource.data, 'userId') &&
+        (!hasField(request.resource.data, 'userId') || request.resource.data.userId == userId) &&
+        optionalString(request.resource.data, 'userReqId') &&
+        optionalString(request.resource.data, 'title') &&
+        optionalString(request.resource.data, 'description') &&
+        optionalString(request.resource.data, 'status') &&
+        optionalTimestamp(request.resource.data, 'createdAt');
+    }
+
+    function validSavedScanItem(userId) {
+      return hasField(request.resource.data, 'userId') &&
+        request.resource.data.userId == userId &&
+        optionalString(request.resource.data, 'name') &&
+        optionalString(request.resource.data, 'type') &&
+        optionalString(request.resource.data, 'sourceType') &&
+        optionalString(request.resource.data, 'servingSize') &&
+        optionalString(request.resource.data, 'originalId') &&
+        optionalNumber(request.resource.data, 'servingAmount') &&
+        optionalTimestamp(request.resource.data, 'createdAt') &&
+        optionalMap(request.resource.data, 'nutrition') &&
+        (!hasField(request.resource.data, 'nutrition') ||
+          request.resource.data.nutrition == null ||
+          validNutritionMap(request.resource.data.nutrition)) &&
+        optionalMap(request.resource.data, 'sourceData');
+    }
+
+    function validCustomFoodDoc(userId) {
+      return hasField(request.resource.data, 'userId') &&
+        request.resource.data.userId == userId &&
+        optionalString(request.resource.data, 'brandName') &&
+        optionalString(request.resource.data, 'description') &&
+        optionalString(request.resource.data, 'servingSize') &&
+        optionalNumber(request.resource.data, 'servingPerContainer') &&
+        optionalTimestamp(request.resource.data, 'createdAt') &&
+        optionalMap(request.resource.data, 'nutrition') &&
+        (!hasField(request.resource.data, 'nutrition') ||
+          request.resource.data.nutrition == null ||
+          validNutritionMap(request.resource.data.nutrition));
+    }
+
+    function validPromoCodeDoc() {
+      return hasField(request.resource.data, 'ownerUid') &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        optionalTimestamp(request.resource.data, 'createdAt');
+    }
+
+    function validInviteShareLog(inviteId) {
+      return hasField(request.resource.data, 'code') &&
+        inviteId != request.resource.data.code &&
+        hasField(request.resource.data, 'referrerUid') &&
+        request.resource.data.referrerUid == request.auth.uid &&
+        optionalString(request.resource.data, 'code') &&
+        optionalString(request.resource.data, 'status') &&
+        optionalTimestamp(request.resource.data, 'createdAt');
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validUserDoc(userId);
+      allow delete: if false;
+
+      match /macros/{macroId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validMacrosDoc();
+        allow delete: if isOwner(userId);
+      }
+
+      match /daily_summaries/{dateId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validDailySummary(dateId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /meals/{mealId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validMealDoc(userId, mealId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /exerciseLogs/{logId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validExerciseLog(userId, logId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /weight_history/{entryId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validWeightHistoryDoc(entryId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /progressPhotos/{photoId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validProgressPhotoDoc(photoId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /myMeals/{mealId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validMyMealDoc();
+        allow delete: if isOwner(userId);
+      }
+
+      match /mealLogs/{dateId}/entries/{entryId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validMealLogEntry(userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /custom_meals/{mealId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validCustomMealDoc(mealId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /supportRequests/{requestId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && validSupportRequestDoc();
+        allow update, delete: if isOwner(userId);
+      }
+
+      match /featureRequests/{requestId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validFeatureRequestDoc(userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /saved_scans/{userId}/items/{itemId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validSavedScanItem(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /custom_foods/{foodId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && validCustomFoodDoc(request.auth.uid);
+      allow update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid &&
+        validCustomFoodDoc(request.auth.uid);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /appFeatureRequests/{requestId} {
+      allow create: if isSignedIn() &&
+        hasField(request.resource.data, 'userId') &&
+        request.resource.data.userId == request.auth.uid &&
+        validFeatureRequestDoc(request.auth.uid);
+      allow read, update, delete: if false;
+    }
+
+    match /promoCodes/{code} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn() && validPromoCodeDoc();
+      allow update: if isSignedIn() &&
+        resource.data.ownerUid == request.auth.uid &&
+        validPromoCodeDoc();
+      allow delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /invites/{inviteId} {
+      allow create: if isSignedIn() && validInviteShareLog(inviteId);
+      allow read, update, delete: if false;
+    }
+
+    match /logs/settingsChanges/{userId}/{logId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        hasField(request.resource.data, 'changedByUid') &&
+        request.resource.data.changedByUid == userId &&
+        optionalTimestamp(request.resource.data, 'changedAt') &&
+        optionalString(request.resource.data, 'source') &&
+        optionalMap(request.resource.data, 'changes');
+      allow update, delete: if false;
+    }
+
+    match /exercise_metadata/{exerciseId} {
+      allow get, list: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /foods/{foodId} {
+      allow get, list: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /food_aliases/{aliasId} {
+      allow get, list: if isSignedIn();
+      allow write: if false;
+    }
+
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2030, 2, 13);
+      allow read, write: if false;
     }
   }
 }

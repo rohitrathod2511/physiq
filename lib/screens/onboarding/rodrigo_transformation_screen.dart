@@ -74,7 +74,10 @@ class RodrigoTransformationScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildHighlightChip("+10kg Muscle", Icons.fitness_center),
+                        _buildHighlightChip(
+                          "+10kg Muscle",
+                          Icons.fitness_center,
+                        ),
                         _buildHighlightChip("3 Months", Icons.calendar_today),
                       ],
                     ),
@@ -97,7 +100,7 @@ class RodrigoTransformationScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "Rodrigo, Physiq AI user",
+                            "Sam, Physiq AI user",
                             style: AppTextStyles.smallLabel.copyWith(
                               color: AppColors.secondaryText,
                             ),

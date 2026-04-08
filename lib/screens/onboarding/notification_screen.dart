@@ -1,8 +1,9 @@
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:physiq/providers/onboarding_provider.dart';
 import 'package:physiq/theme/design_system.dart';
 
 class NotificationScreen extends ConsumerStatefulWidget {
@@ -13,46 +14,52 @@ class NotificationScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationScreenState extends ConsumerState<NotificationScreen> {
-  bool _mealReminders = true;
-  bool _waterReminders = true;
-  bool _weighInReminders = true;
+  bool _isRequestingPermission = false;
 
-  void _onContinue() {
-    final store = ref.read(onboardingProvider);
-    store.saveStepData('mealReminders', _mealReminders);
-    store.saveStepData('waterReminders', _waterReminders);
-    store.saveStepData('weighInReminders', _weighInReminders);
-    
+  void _goToNextScreen() {
     context.push('/onboarding/referral');
   }
 
-  Widget _buildToggle(String title, bool value, ValueChanged<bool> onChanged) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: AppTextStyles.bodyBold),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: Colors.black,
-          ),
-        ],
-      ),
-    );
+  Future<void> _handleAllow() async {
+    if (_isRequestingPermission) return;
+
+    setState(() {
+      _isRequestingPermission = true;
+    });
+
+    try {
+      final FirebaseMessaging messaging = FirebaseMessaging.instance;
+      final NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (!mounted) return;
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
+        final user = FirebaseAuth.instance.currentUser;
+        final String? token = await messaging.getToken();
+
+        if (user != null && token != null) {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            'fcmToken': token,
+          }, SetOptions(merge: true));
+        }
+      }
+
+      if (!mounted) return;
+
+      _goToNextScreen();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRequestingPermission = false;
+        });
+      }
+    }
+
   }
 
   @override
@@ -83,33 +90,39 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.notifications_active_rounded, size: 64, color: AppColors.primaryText),
+                Icon(
+                  Icons.notifications_active_rounded,
+                  size: 64,
+                  color: AppColors.primaryText,
+                ),
                 const SizedBox(height: 24),
-                
+
                 Text(
                   "Physiq AI would like to send you Notifications",
                   style: TextStyle(
-                    fontSize: 20, 
-                    fontWeight: FontWeight.bold, 
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                     color: AppColors.primaryText,
                     height: 1.3,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
-                
+
                 Text(
                   "Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.",
-                  style: AppTextStyles.body.copyWith(color: AppColors.secondaryText),
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.secondaryText,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Allow Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _onContinue,
+                    onPressed: _isRequestingPermission ? null : _handleAllow,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -119,23 +132,31 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text('Allow', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: _isRequestingPermission
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Allow',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Don't Allow Button
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _mealReminders = false;
-                        _waterReminders = false;
-                        _weighInReminders = false;
-                      });
-                      _onContinue();
-                    },
+                    onPressed: () => context.push('/onboarding/referral'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.secondaryText,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -143,7 +164,13 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text("Don't Allow", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      "Don't Allow",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -153,5 +180,4 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       ),
     );
   }
-
 }

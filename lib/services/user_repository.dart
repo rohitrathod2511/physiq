@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:physiq/models/user_model.dart';
 import 'package:physiq/services/auth_service.dart';
 
@@ -9,6 +11,8 @@ final userRepositoryProvider = Provider((ref) => UserRepository());
 class UserRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Stream user data
   Stream<UserModel?> streamUser(String uid) {
@@ -177,27 +181,126 @@ class UserRepository {
       print('Mock delete account data');
       return;
     }
-    
-    // 1. Delete Firestore Data
-    await _firestore.collection('users').doc(uid).delete();
 
-    // 2. Delete Storage Data (Conceptually)
-    // Note: Client SDK cannot easily delete a folder. 
-    // Usually this is done via Cloud Functions to ensure full cleanup.
-    // For this implementation, we will try to call the Cloud Function as requested 
-    // or fallback to client delete if specific paths are known.
-    // Since the original code called a cloud function 'deleteUserData', 
-    // we should ideally stick to that or replicate its logic client-side if we are replacing it.
-    // The prompt explicitly said: "Call Cloud Function OR client logic". 
-    // I will try to use the Cloud Function if available, or just delete the doc here.
-    
+    if (_auth.currentUser?.uid != uid) {
+      throw 'You must be signed in as the account you are trying to delete.';
+    }
+
+    // Legacy entry-point kept for compatibility with older call sites.
+    await _functions.httpsCallable('deleteUserData').call();
+  }
+
+  // Re-authenticates the current user, refreshes the ID token, and then lets the
+  // server delete Auth + all related backend data in one trusted flow.
+  Future<String> deleteAccount({String? currentPassword}) async {
+    if (AppConfig.useMockBackend) {
+      return 'Mock account deletion completed successfully.';
+    }
+
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw 'No authenticated user found.';
+    }
+
     try {
-      await _functions.httpsCallable('deleteUserData').call();
+      await _reauthenticateBeforeDelete(
+        user,
+        currentPassword: currentPassword,
+      );
+
+      // Refresh the ID token so the callable function can validate a recent auth_time.
+      await user.getIdToken(true);
+
+      final result = await _functions.httpsCallable('deleteUserData').call();
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final message =
+          (data['message'] as String?) ??
+          'Your account and all associated data were permanently deleted.';
+
+      return message;
+    } on FirebaseAuthException catch (e) {
+      throw e.message ?? 'Re-authentication failed. Please try again.';
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw e.message ?? 'Please re-authenticate and try again.';
+      }
+      if (e.code == 'unauthenticated') {
+        throw 'Your session expired. Please sign in again and retry.';
+      }
+      throw e.message ?? 'Failed to delete your account. Please try again.';
     } catch (e) {
-      print("Cloud function delete failed (maybe not deployed), skipping strict storage cleanup: $e");
+      if (e is String) {
+        throw e;
+      }
+      throw 'Failed to delete your account. Please try again.';
     }
   }
 
+  Future<void> _reauthenticateBeforeDelete(
+    User user, {
+    String? currentPassword,
+  }) async {
+    // A linked account can re-authenticate with any linked provider; we prefer
+    // password when supplied, otherwise fall back to Google for Google accounts.
+    final providerIds = user.providerData
+        .map((provider) => provider.providerId)
+        .where((providerId) => providerId.isNotEmpty)
+        .toSet();
 
-  Future<void> deleteAccount() async {}
+    try {
+      // Anonymous users do not have reusable credentials to prompt for here.
+      // We still rely on the authenticated callable + server-side validation.
+      if (user.isAnonymous || providerIds.contains('anonymous')) {
+        return;
+      }
+
+      if (providerIds.contains('password') &&
+          currentPassword != null &&
+          currentPassword.trim().isNotEmpty) {
+        final email = user.email;
+        if (email == null || email.isEmpty) {
+          throw 'Your email address is missing. Please sign in again and retry.';
+        }
+
+        final credential = EmailAuthProvider.credential(
+          email: email,
+          password: currentPassword.trim(),
+        );
+        await user.reauthenticateWithCredential(credential);
+        return;
+      }
+
+      if (providerIds.contains('google.com')) {
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          throw 'Google re-authentication was cancelled.';
+        }
+
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await user.reauthenticateWithCredential(credential);
+        return;
+      }
+
+      if (providerIds.contains('password')) {
+        throw 'Enter your current password to permanently delete your account.';
+      }
+
+      throw 'Re-authentication is not supported for this sign-in method. Please sign in again and retry.';
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        throw 'The current password is incorrect.';
+      }
+      if (e.code == 'user-mismatch') {
+        throw 'The selected account does not match the current signed-in user.';
+      }
+      if (e.code == 'too-many-requests') {
+        throw 'Too many attempts. Please wait a moment and try again.';
+      }
+      throw e.message ?? 'Re-authentication failed. Please try again.';
+    }
+  }
 }

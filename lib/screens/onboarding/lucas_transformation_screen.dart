@@ -74,7 +74,10 @@ class LucasTransformationScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildHighlightChip("-20kg Weight Loss", Icons.trending_down),
+                        _buildHighlightChip(
+                          "-20kg Weight Loss",
+                          Icons.trending_down,
+                        ),
                         _buildHighlightChip("3 Months", Icons.calendar_today),
                       ],
                     ),
@@ -97,7 +100,7 @@ class LucasTransformationScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "Lucas, Physiq AI user",
+                            "Nick, Physiq AI user",
                             style: AppTextStyles.smallLabel.copyWith(
                               color: AppColors.secondaryText,
                             ),

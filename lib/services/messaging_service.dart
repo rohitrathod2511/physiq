@@ -33,52 +33,29 @@ class MessagingService {
       'This channel is used for important notifications.';
 
   Future<void> initialize() async {
-    // 1. Request Permission
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+    await _initializeLocalNotifications();
+    _setupMessageListeners();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      if (kDebugMode) print('User granted permission');
-      
-      // 2. Initialize Local Notifications (for foreground display)
-      await _initializeLocalNotifications();
-
-      // 3. Setup message listeners
-      _setupMessageListeners();
-
-      // 4. Background Handler
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-      
-      // 5. Subscribe to Topic (when logged in)
-      FirebaseAuth.instance.authStateChanges().listen((User? user) {
-        if (user != null) {
-          _subscribeToTopic();
-        }
-      });
-      // Try initializing subscription if already logged in
-      if (FirebaseAuth.instance.currentUser != null) {
-          await _subscribeToTopic();
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user != null) {
+        _subscribeToTopic();
       }
+    });
 
-      // 6. Token logic
-      if (kDebugMode) {
-        String? token = await _firebaseMessaging.getToken();
-        print("FCM Token: $token");
-      }
-      
-      // Handle token setup/refresh if needed (e.g., sending to backend)
-      _firebaseMessaging.onTokenRefresh.listen((newToken) {
-        if (kDebugMode) print("FCM Token Refreshed: $newToken");
-        // TODO: specific backend update logic if user had one
-      });
-
-    } else {
-      if (kDebugMode) print('User declined or has not accepted permission');
+    if (FirebaseAuth.instance.currentUser != null) {
+      await _subscribeToTopic();
     }
+
+    if (kDebugMode) {
+      String? token = await _firebaseMessaging.getToken();
+      print("FCM Token: $token");
+    }
+
+    _firebaseMessaging.onTokenRefresh.listen((newToken) {
+      if (kDebugMode) print("FCM Token Refreshed: $newToken");
+      // TODO: specific backend update logic if user had one
+    });
   }
 
   Future<void> _initializeLocalNotifications() async {
@@ -91,15 +68,16 @@ class MessagingService {
     // User requested flutter_local_notifications for iOS display explicitly.
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
-      requestAlertPermission: false, // Already requested by FCM
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
+          requestAlertPermission: false, // Already requested by FCM
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        );
 
-    final InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsDarwin,
-    );
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsDarwin,
+        );
 
     await _flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
@@ -119,14 +97,15 @@ class MessagingService {
 
     await _flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
-        
+
     // Allow iOS to show foreground notifications natively as well (backup/alternative)
     // This allows heads-up notifications on iOS even without local notifications plugin explicitly triggering it
     // IF the message comes as a notification message.
     await _firebaseMessaging.setForegroundNotificationPresentationOptions(
-      alert: true, 
+      alert: true,
       badge: true,
       sound: true,
     );
@@ -157,11 +136,11 @@ class MessagingService {
               icon: '@mipmap/ic_launcher',
               // other properties...
             ),
-             // iOS details can be simple or omitted if reliance is on presentation options,
-             // but if we want to FORCE a local notification:
+            // iOS details can be simple or omitted if reliance is on presentation options,
+            // but if we want to FORCE a local notification:
             iOS: const DarwinNotificationDetails(
               presentAlert: true,
-              presentBadge: true, 
+              presentBadge: true,
               presentSound: true,
             ),
           ),
@@ -172,7 +151,8 @@ class MessagingService {
     // Handle when app is opened from a terminated state
     _firebaseMessaging.getInitialMessage().then((RemoteMessage? message) {
       if (message != null) {
-        if (kDebugMode) print('App opened from terminated state by notification');
+        if (kDebugMode)
+          print('App opened from terminated state by notification');
         // Handle navigation if payload exists, adhering to "Open the app when tapped"
       }
     });
@@ -180,7 +160,7 @@ class MessagingService {
     // Handle when app is opened from background state
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       if (kDebugMode) print('App opened from background state by notification');
-       // Handle navigation
+      // Handle navigation
     });
   }
 

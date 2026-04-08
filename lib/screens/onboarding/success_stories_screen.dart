@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:physiq/config/app_config.dart';
+import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/theme/design_system.dart';
 
 class SuccessStoriesScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
   static const _rotationInterval = Duration(seconds: 3);
   static const _transitionDuration = Duration(milliseconds: 550);
 
+  final AuthService _authService = AuthService();
   final List<_StoryReview> _reviews = const [
     _StoryReview(
       title: 'I impressed my doctor',
@@ -71,6 +74,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
 
   Timer? _rotationTimer;
   int _currentReviewIndex = 0;
+  bool _isContinuing = false;
 
   @override
   void initState() {
@@ -87,6 +91,25 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
   void dispose() {
     _rotationTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _handleContinue() async {
+    if (_isContinuing) return;
+
+    if (isPaywallEnabled) {
+      context.push('/paywall');
+      return;
+    }
+
+    setState(() => _isContinuing = true);
+    try {
+      await _authService.completeOnboarding();
+      // Router redirects completed users away from onboarding to /home.
+    } finally {
+      if (mounted) {
+        setState(() => _isContinuing = false);
+      }
+    }
   }
 
   @override
@@ -125,7 +148,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
                     _buildAvatarStack(),
                     const SizedBox(height: 24),
                     Text(
-                      '+10K users with Physiq AI',
+                      'Users of Physiq AI',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyBold,
                     ),
@@ -303,7 +326,7 @@ class _SuccessStoriesScreenState extends State<SuccessStoriesScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: () => context.push('/paywall'),
+          onPressed: _handleContinue,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,

@@ -1,7 +1,9 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
-
     id("com.google.gms.google-services")
     id("com.google.firebase.firebase-perf")
     id("com.google.firebase.crashlytics")
@@ -18,8 +20,8 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.physiqai.app"
-    compileSdk = 35
+    namespace = "com.example.physiq"
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -35,10 +37,10 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.physiqai.app"
+        applicationId = "com.example.physiq"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -50,7 +52,7 @@ android {
         create("release") {
             keyAlias = keystoreProperties["keyAlias"] as? String
             keyPassword = keystoreProperties["keyPassword"] as? String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storeFile = keystoreProperties["storeFile"]?.toString()?.let(::file)
             storePassword = keystoreProperties["storePassword"] as? String
         }
     }
