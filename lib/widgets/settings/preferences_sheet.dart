@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/utils/design_system.dart';
-import 'package:physiq/providers/preferences_provider.dart';
 
 
 class PreferencesSheet extends ConsumerStatefulWidget {

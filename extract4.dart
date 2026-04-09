@@ -9,6 +9,6 @@ void main() {
   List<String> keywords = ['weight', 'fire', 'energy', 'muscle', 'drop', 'water', 'oil', 'leaf', 'tree', 'plant'];
   for (final kw in keywords) {
     var found = matches.where((icon) => icon.toLowerCase().contains(kw)).toList();
-    if (found.isNotEmpty) print(kw + ': ' + found.join(", "));
+    if (found.isNotEmpty) print('$kw: ${found.join(", ")}');
   }
 }

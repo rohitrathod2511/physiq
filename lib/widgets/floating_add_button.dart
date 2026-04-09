@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
-import 'package:physiq/viewmodels/home_viewmodel.dart';
 import 'package:physiq/screens/meal/meal_logging_flows.dart';
 
 class FloatingAddButton extends ConsumerWidget {
@@ -26,9 +25,9 @@ class FloatingAddButton extends ConsumerWidget {
         backgroundColor: const Color(0xFF111827), // Dark/Black color
         foregroundColor: Colors.white,
         elevation: 10.0,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 36, weight: 400), // Thinner plus icon
-        heroTag: null, // Avoids tag conflicts
+        shape: const CircleBorder(), // Thinner plus icon
+        heroTag: null,
+        child: const Icon(Icons.add, size: 36, weight: 400), // Avoids tag conflicts
       ),
     );
   }

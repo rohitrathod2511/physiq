@@ -3,7 +3,6 @@ import 'package:physiq/widgets/slider_weight.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:physiq/utils/conversions.dart';
 
 // Reusing widgets internally to avoid dependency on onboarding screen classes directly
 // but using same visual style.
@@ -135,7 +134,7 @@ class EditGoalWeightPage extends StatefulWidget {
 class _EditGoalWeightPageState extends State<EditGoalWeightPage> {
   late double _currentValue;
   final _firestoreService = FirestoreService();
-  String _unitSystem = 'Metric';
+  final String _unitSystem = 'Metric';
 
   @override
   void initState() {
@@ -397,7 +396,7 @@ class _EditDOBPageState extends State<EditDOBPage> {
     final years = List.generate(101, (index) => (_currentYear - 110) + index);
 
     _yearController = FixedExtentScrollController(
-      initialItem: years.indexOf(_selectedYear) != -1
+      initialItem: years.contains(_selectedYear)
           ? years.indexOf(_selectedYear)
           : years.indexOf(2000),
     );

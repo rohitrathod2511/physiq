@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

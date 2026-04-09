@@ -5,7 +5,6 @@ import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/screens/onboarding/forgot_password_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:physiq/providers/preferences_provider.dart';
 
 class GetStartedScreen extends ConsumerWidget {
   const GetStartedScreen({super.key});

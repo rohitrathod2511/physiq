@@ -15,6 +15,11 @@ class SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final content = ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+    );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -31,24 +36,13 @@ class SettingsCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Padding(
-              // If padding is provided, use it. Otherwise default to 0 to allow full-width rows.
-              // The spec says "Card padding: 16 dp inside the card", but also "Make each row full-width and tappable".
-              // To achieve both, we apply padding to the content of the rows, not the card container, 
-              // OR we accept that the ripple is constrained by padding.
-              // However, "full-width and tappable" usually implies edge-to-edge ripple.
-              // We will default to 0 here and let the child handle padding if needed, 
-              // but for the lists, we want 0.
-              padding: padding ?? EdgeInsets.zero,
-              child: child,
-            ),
-          ),
-        ),
+        child: onTap == null
+            ? content
+            : InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(18),
+                child: content,
+              ),
       ),
     );
   }
@@ -76,52 +70,58 @@ class SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        height: 72,
-        padding: const EdgeInsets.symmetric(horizontal: 16), // Match card padding spec
-        child: Row(
-          children: [
-            // Icon with padding
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0), // "Left icon padding: 12 dp" (interpreted as gap)
-              child: Icon(icon, size: 20, color: AppColors.primaryText),
-            ),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    final content = Container(
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Icon(icon, size: 20, color: AppColors.primaryText),
+          ),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        titleColor ??
+                        Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
                   Text(
-                    title,
+                    subtitle!,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: titleColor ?? Theme.of(context).textTheme.bodyMedium?.color,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color:
+                          Theme.of(context).textTheme.bodySmall?.color ??
+                          const Color(0xFF666666),
                     ),
                   ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF666666),
-                      ),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
-            if (trailing != null) trailing!,
-            if (trailing == null && showChevron)
-              const Icon(Icons.chevron_right, color: Color(0xFF999999), size: 20),
-          ],
-        ),
+          ),
+          if (trailing != null) trailing!,
+          if (trailing == null && showChevron)
+            const Icon(Icons.chevron_right, color: Color(0xFF999999), size: 20),
+        ],
       ),
     );
+
+    if (onTap == null) {
+      return content;
+    }
+
+    return InkWell(onTap: onTap, child: content);
   }
 }
 
@@ -139,7 +139,9 @@ class InviteBannerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         image: const DecorationImage(
           // Using a placeholder image that fits the "journey" theme
-          image: NetworkImage('https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1350&q=80'),
+          image: NetworkImage(
+            'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1350&q=80',
+          ),
           fit: BoxFit.cover,
         ),
         boxShadow: [
@@ -189,7 +191,10 @@ class InviteBannerCard extends StatelessWidget {
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF111111),
                       shape: const StadiumBorder(),
-                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 12,
+                      ),
                       elevation: 2,
                     ),
                     child: const Text(

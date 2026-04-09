@@ -739,7 +739,7 @@ class _DayDetailSheetState extends State<_DayDetailSheet> {
                         style: AppTextStyles.body.copyWith(color: Colors.grey),
                       ),
                     ),
-                  ...meals.map((m) => _buildMealRow(m)).toList(),
+                  ...meals.map((m) => _buildMealRow(m)),
 
                   const SizedBox(height: 24),
 
@@ -754,7 +754,7 @@ class _DayDetailSheetState extends State<_DayDetailSheet> {
                         style: AppTextStyles.body.copyWith(color: Colors.grey),
                       ),
                     ),
-                  ...exercises.map((e) => _buildExerciseRow(e)).toList(),
+                  ...exercises.map((e) => _buildExerciseRow(e)),
 
                   const SizedBox(height: 24),
                   Text("Movement", style: AppTextStyles.h3),

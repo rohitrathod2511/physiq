@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:physiq/services/onboarding_store.dart';
 
 /// A simple configuration class to toggle between mock and real backends.
@@ -119,13 +120,15 @@ class AuthService {
       return credential;
     } on FirebaseAuthException catch (e) {
       // Throw meaningful error messages for UI to catch
-      if (e.code == 'user-not-found')
+      if (e.code == 'user-not-found') {
         throw 'No account found. Please sign up first.';
+      }
       if (e.code == 'wrong-password') throw 'Wrong password provided.';
       if (e.code == 'invalid-credential') throw 'Invalid email or password.';
       if (e.code == 'invalid-email') throw 'The email address is invalid.';
-      if (e.code == 'user-disabled')
+      if (e.code == 'user-disabled') {
         throw 'This user account has been disabled.';
+      }
       throw e.message ?? 'Sign in failed.';
     } catch (e) {
       if (e is String) rethrow;
@@ -167,8 +170,9 @@ class AuthService {
       return credential;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') throw 'The password provided is too weak.';
-      if (e.code == 'email-already-in-use')
+      if (e.code == 'email-already-in-use') {
         throw 'The account already exists for that email.';
+      }
       throw e.message ?? 'Sign up failed.';
     } catch (e) {
       throw 'An unexpected error occurred: $e';
@@ -332,13 +336,13 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
-      await OnboardingStore.clearResumeState();
-      if (_googleSignIn.currentUser != null) {
+      await OnboardingStore.clearPersistedDraft();
+      if (await _googleSignIn.isSignedIn()) {
         await _googleSignIn.signOut();
       }
       await _firebaseAuth.signOut();
     } catch (e) {
-      print("Sign Out Error: $e");
+      debugPrint('Sign Out Error: $e');
     }
   }
 

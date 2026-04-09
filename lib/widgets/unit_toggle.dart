@@ -9,12 +9,12 @@ class UnitToggle extends StatelessWidget {
   final String rightLabel;
 
   const UnitToggle({
-    Key? key,
+    super.key,
     required this.value,
     required this.onChanged,
     this.leftLabel = 'Metric',
     this.rightLabel = 'Imperial',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/providers/onboarding_provider.dart';
 import 'package:physiq/theme/design_system.dart';
-import 'package:physiq/widgets/central_pill_buttons.dart';
 
 class DietPreferenceScreen extends ConsumerStatefulWidget {
   const DietPreferenceScreen({super.key});

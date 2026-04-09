@@ -6,7 +6,6 @@ import 'package:physiq/widgets/exercise/intensity_slider.dart';
 import 'package:physiq/widgets/exercise/duration_selector.dart';
 import 'package:physiq/screens/exercise/add_burned_calories_screen.dart';
 import 'package:physiq/viewmodels/exercise_viewmodel.dart';
-import 'package:physiq/services/user_repository.dart';
 import 'package:physiq/models/exercise_log_model.dart';
 
 class CardioScreen extends ConsumerStatefulWidget {

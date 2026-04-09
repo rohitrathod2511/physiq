@@ -141,7 +141,7 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
                         Expanded(
                           child: ListWheelScrollView.useDelegate(
                             controller: FixedExtentScrollController(
-                              initialItem: years.indexOf(_selectedYear) != -1 ? years.indexOf(_selectedYear) : years.indexOf(2000),
+                              initialItem: years.contains(_selectedYear) ? years.indexOf(_selectedYear) : years.indexOf(2000),
                             ),
                             itemExtent: 50,
                             perspective: 0.005,

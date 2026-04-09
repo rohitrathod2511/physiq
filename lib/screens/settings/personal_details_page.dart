@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/user_repository.dart';
-import 'package:physiq/widgets/settings/settings_widgets.dart';
 import 'package:physiq/screens/settings/edit_personal_details_pages.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 

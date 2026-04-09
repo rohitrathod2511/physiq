@@ -7,12 +7,10 @@ import 'package:physiq/widgets/date_slider.dart';
 import 'package:physiq/widgets/calorie_and_macros_page.dart';
 import 'package:physiq/widgets/water_steps_card.dart';
 import 'package:physiq/widgets/recent_meals_list.dart';
-import 'package:physiq/widgets/home/recent_workouts_list.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:physiq/models/exercise_log_model.dart';
 
 
-import 'package:physiq/widgets/home/recently_uploaded_list.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});

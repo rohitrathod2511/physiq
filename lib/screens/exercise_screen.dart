@@ -22,7 +22,7 @@ class ExerciseScreen extends StatelessWidget {
               toolbarHeight: 70,
               titleSpacing: 0,
               title: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: EdgeInsets.symmetric(horizontal: 24.0),
                 child: HeaderWidget(title: 'Exercise', showActions: false),
               ),
             ),

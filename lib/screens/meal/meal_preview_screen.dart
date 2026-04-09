@@ -9,8 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:physiq/models/food_model.dart';
 import 'package:physiq/models/meal_model.dart';
 import 'package:physiq/models/saved_food_model.dart';
-import 'package:physiq/services/ai_food_service.dart';
-import 'package:physiq/services/food_service.dart';
 import 'package:physiq/services/saved_food_service.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
 import 'package:physiq/widgets/macro_icons.dart';
@@ -41,7 +39,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
   late String _selectedServing;
   late double _servingMultiplier;
   late Food _food;
-  bool _isLoadingDetails = false;
+  final bool _isLoadingDetails = false;
   bool _isSavingToSaved = false;
   Meal? _currentMeal;
   StreamSubscription? _mealSubscription;
@@ -332,7 +330,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final fat = _getNutrient(_food.fat).round();
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       body: Stack(
         children: [
           _buildHeroImage(context),
@@ -385,7 +383,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     final overlayColor = theme.colorScheme.scrim.withValues(alpha: 0.35);
     final overlayIconColor = theme.brightness == Brightness.dark
         ? theme.colorScheme.onSurface
-        : theme.colorScheme.background;
+        : theme.colorScheme.surface;
 
     return Positioned(
       top: 0,
@@ -473,7 +471,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 140),
             decoration: BoxDecoration(
-              color: theme.colorScheme.background,
+              color: theme.colorScheme.surface,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(32),
                 topRight: Radius.circular(32),
@@ -826,7 +824,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         decoration: BoxDecoration(
-          color: theme.colorScheme.background,
+          color: theme.colorScheme.surface,
           boxShadow: [
             BoxShadow(
               color: theme.shadowColor.withValues(

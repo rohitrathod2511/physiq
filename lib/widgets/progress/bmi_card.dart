@@ -104,7 +104,7 @@ class BmiCard extends StatelessWidget {
 
   Widget _buildVisualIndicator() {
     // Helper to create the text labels
-    Widget _buildLabel(String text, int flex, Color color) {
+    Widget buildLabel(String text, int flex, Color color) {
       return Expanded(
         flex: flex,
         child: Text(
@@ -167,10 +167,10 @@ class BmiCard extends StatelessWidget {
         // 3. ADDED LABELS: New Row with text labels below the bar.
         Row(
           children: [
-            _buildLabel('Underweight', 18, Colors.blue),
-            _buildLabel('Healthy', 7, Colors.green),
-            _buildLabel('Overweight', 5, Colors.orange),
-            _buildLabel('Obese', 10, Colors.red),
+            buildLabel('Underweight', 18, Colors.blue),
+            buildLabel('Healthy', 7, Colors.green),
+            buildLabel('Overweight', 5, Colors.orange),
+            buildLabel('Obese', 10, Colors.red),
           ],
         ),
       ],

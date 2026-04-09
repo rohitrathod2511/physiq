@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/services/user_repository.dart';
 import 'package:physiq/utils/design_system.dart';
-import 'package:share_plus/share_plus.dart'; // Need to add this dependency or mock it
+// Need to add this dependency or mock it
 
 class InviteSheet extends ConsumerStatefulWidget {
   const InviteSheet({super.key});

@@ -151,8 +151,9 @@ class MessagingService {
     // Handle when app is opened from a terminated state
     _firebaseMessaging.getInitialMessage().then((RemoteMessage? message) {
       if (message != null) {
-        if (kDebugMode)
+        if (kDebugMode) {
           print('App opened from terminated state by notification');
+        }
         // Handle navigation if payload exists, adhering to "Open the app when tapped"
       }
     });

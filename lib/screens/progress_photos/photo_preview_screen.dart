@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/viewmodels/progress_viewmodel.dart';
-import 'package:physiq/widgets/header_widget.dart';
 
 class PhotoPreviewScreen extends ConsumerStatefulWidget {
   final XFile imageFile;

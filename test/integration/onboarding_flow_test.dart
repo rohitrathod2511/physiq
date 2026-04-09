@@ -2,10 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:physiq/main.dart'; // Assuming MyApp is here or I can import AppRouter
+// Assuming MyApp is here or I can import AppRouter
 import 'package:physiq/routes/app_router.dart';
 import 'package:physiq/screens/onboarding/splash_screen.dart';
-import 'package:physiq/screens/onboarding/get_started_screen.dart';
 
 void main() {
   testWidgets('Onboarding flow starts at Splash and goes to Get Started', (WidgetTester tester) async {

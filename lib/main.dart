@@ -92,10 +92,10 @@ class MyApp extends ConsumerWidget {
               backgroundColor: const Color(0xFFF5F1ED),
               surfaceTintColor: Colors.transparent,
               indicatorColor: Colors.black.withOpacity(0.05),
-              labelTextStyle: MaterialStateProperty.all(
+              labelTextStyle: WidgetStateProperty.all(
                 const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
               ),
-              iconTheme: MaterialStateProperty.all(
+              iconTheme: WidgetStateProperty.all(
                 const IconThemeData(size: 22),
               ),
             ),
@@ -116,8 +116,6 @@ class MyApp extends ConsumerWidget {
               onPrimary: Colors.black,
               surface: Color(0xFF1E1E1E), // Surfaces like Cards
               onSurface: Colors.white,
-              background: Color(0xFF121212),
-              onBackground: Colors.white,
               secondary: Colors.white,
               onSecondary: Colors.black,
               error: Color(0xFFCF6679),
@@ -139,10 +137,10 @@ class MyApp extends ConsumerWidget {
               backgroundColor: const Color(0xFF1E1E1E),
               surfaceTintColor: Colors.transparent,
               indicatorColor: Colors.white.withOpacity(0.1),
-              labelTextStyle: MaterialStateProperty.all(
+              labelTextStyle: WidgetStateProperty.all(
                 const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white70),
               ),
-              iconTheme: MaterialStateProperty.all(
+              iconTheme: WidgetStateProperty.all(
                 const IconThemeData(size: 22, color: Colors.white70),
               ),
             ),
@@ -190,8 +188,8 @@ class MyApp extends ConsumerWidget {
               backgroundColor: const Color(0xFF1E1E1E),
               headerBackgroundColor: const Color(0xFF2C2C2C),
               surfaceTintColor: Colors.transparent,
-              dayForegroundColor: MaterialStateProperty.all(Colors.white),
-              yearForegroundColor: MaterialStateProperty.all(Colors.white),
+              dayForegroundColor: WidgetStateProperty.all(Colors.white),
+              yearForegroundColor: WidgetStateProperty.all(Colors.white),
               dayStyle: AppTextStyles.body,
               weekdayStyle: AppTextStyles.smallLabel.copyWith(color: Colors.white70),
             ),

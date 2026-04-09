@@ -44,7 +44,7 @@ class WeightGoalCard extends StatelessWidget {
             const SizedBox(height: 30),
             Text(
               'Goal: ${goalWeight.toStringAsFixed(1)} kg',
-              style: AppTextStyles.bodyMedium?.copyWith(color: AppColors.secondaryText),
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondaryText),
             ),
           ],
         ),

@@ -19,8 +19,8 @@ class ProgressRepository {
   // Mock Data (unused)
   final List<WeightEntry> _mockWeights = [];
   final List<ProgressPhoto> _mockPhotos = [];
-  double _mockGoalWeight = 70.0;
-  double _mockInitialWeight = 85.0;
+  final double _mockGoalWeight = 70.0;
+  final double _mockInitialWeight = 85.0;
 
   Future<List<WeightEntry>> getWeightHistory(String range) async {
     if (AppConfig.useMockBackend) {

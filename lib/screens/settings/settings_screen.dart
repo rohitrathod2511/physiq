@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/user_repository.dart';
@@ -9,8 +8,8 @@ import 'package:physiq/screens/settings/invite_friends_page.dart';
 import 'package:physiq/screens/settings/personal_details_page.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/screens/settings/weight_history_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:physiq/providers/preferences_provider.dart';
+import 'package:physiq/providers/onboarding_provider.dart';
 import 'package:physiq/services/support_service.dart';
 import 'package:physiq/services/cloud_functions_client.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -39,11 +38,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _cloudFunctions = CloudFunctionsClient();
   final _auth = FirebaseAuth.instance;
   bool _isDeletingAccount = false;
+  bool _isLoggingOut = false;
 
   @override
   Widget build(BuildContext context) {
-    final prefsState = ref.watch(preferencesProvider);
-    final isDarkMode = prefsState.themeMode == ThemeMode.dark;
+    final isDarkMode = themeNotifier.value == ThemeMode.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -65,9 +64,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: HeaderWidget(title: 'Settings', showActions: false),
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
+                SliverPadding(
+                  padding: const EdgeInsets.all(24.0),
+                  sliver: SliverToBoxAdapter(
                     child: Column(
                       children: [
                         // Invite Banner
@@ -119,32 +118,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ),
                               ),
                             ),
-
-                            ValueListenableBuilder<ThemeMode>(
-                              valueListenable: themeNotifier,
-                              builder: (context, mode, child) {
-                                final isDark = mode == ThemeMode.dark;
-                                return SettingsRow(
-                                  icon: isDark
-                                      ? Icons.brightness_2
-                                      : Icons.wb_sunny,
-                                  title: 'Dark Mode',
-                                  showChevron: false,
-                                  trailing: Switch(
-                                    value: isDark,
-                                    activeColor: AppColors.primary,
-                                    onChanged: (val) async {
-                                      final newMode = val
-                                          ? ThemeMode.dark
-                                          : ThemeMode.light;
-                                      themeNotifier.value = newMode;
-                                      await ref
-                                          .read(preferencesProvider.notifier)
-                                          .setThemeMode(newMode);
-                                    },
-                                  ),
-                                );
-                              },
+                            SettingsRow(
+                              icon: isDarkMode
+                                  ? Icons.brightness_2
+                                  : Icons.wb_sunny,
+                              title: 'Dark Mode',
+                              showChevron: false,
+                              trailing: Switch(
+                                value: isDarkMode,
+                                activeThumbColor: AppColors.primary,
+                                onChanged: _handleThemeToggle,
+                              ),
                             ),
                           ]),
                         ),
@@ -280,6 +264,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  void _handleThemeToggle(bool value) {
+    final newMode = value ? ThemeMode.dark : ThemeMode.light;
+    if (themeNotifier.value == newMode) {
+      return;
+    }
+
+    // Defer the app-wide theme rebuild until the UX animations (InkSplash)
+    // completely finish. This completely eliminates 1-frame _dependents.isEmpty 
+    // assertion crashes caused by unmounting inherited themes mid-animation.
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (!mounted) {
+        return;
+      }
+      themeNotifier.value = newMode;
+      ref.read(preferencesProvider.notifier).setThemeMode(newMode);
+    });
+  }
+
   void _showFeatureRequestDialog() {
     final controller = TextEditingController();
     showDialog(
@@ -341,289 +343,303 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _confirmDeleteAccount() async {
-    if (_isDeletingAccount) {
+    if (_isDeletingAccount || _isLoggingOut) {
       return;
     }
 
+    final result = await _showDeleteAccountDialog();
+
+    if (result == null || result['confirmed'] != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isDeletingAccount = true;
+    });
+
+    // CRITICAL FIX: Allow the Dialog's Navigator.pop transition completely 
+    // finish its animation frame BEFORE initiating auth state teardown. 
+    // Prevents GoRouter from severing InheritedElements while mid-disposal.
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    try {
+      await _deleteAccountFlow(currentPassword: result['password'] as String?);
+      // Stop here. Auth state teardown already drives the redirect away from
+      // Settings, so touching UI after delete risks acting on a disposed tree.
+      return;
+    } catch (e) {
+      debugPrint('Delete account failed: $e');
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_formatDeleteAccountError(e))));
+      setState(() {
+        _isDeletingAccount = false;
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>?> _showDeleteAccountDialog() async {
     final user = _auth.currentUser;
     if (user == null) {
       _showErrorDialog('No authenticated user found.');
-      return;
+      return null;
     }
 
-    // We only ask for the credential type that can actually re-authenticate this user.
     final providerIds = user.providerData
         .map((provider) => provider.providerId)
         .where((providerId) => providerId.isNotEmpty)
         .toSet();
-    final requiresPassword = providerIds.contains('password');
-    final usesGoogle = providerIds.contains('google.com');
-
+    final isEmailUser = providerIds.contains('password');
+    final isGoogleUser = providerIds.contains('google.com');
     final confirmationController = TextEditingController();
     final passwordController = TextEditingController();
 
-    final request = await showDialog<_DeleteAccountRequest>(
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) {
+      builder: (dialogContext) {
         bool obscurePassword = true;
-        bool isSubmitting = false;
         String? validationMessage;
 
         return StatefulBuilder(
-          builder: (dialogContext, setDialogState) => Dialog(
-            backgroundColor: AppColors.background,
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 24,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadii.bigCard),
-            ),
-            child: AnimatedPadding(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
+          builder: (dialogContext, setDialogState) {
+            final isDeleteTextValid = confirmationController.text == 'DELETE';
+            final hasPassword = passwordController.text.trim().isNotEmpty;
+            final canSubmit =
+                isDeleteTextValid && (!isEmailUser || hasPassword);
+
+            return Dialog(
+              backgroundColor: AppColors.background,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 24,
               ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.red,
-                          size: 32,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text('Delete account', style: AppTextStyles.heading2),
-                      const SizedBox(height: 8),
-                      Text(
-                        'This permanently deletes your account, profile, meal history, progress photos, cloud-stored images, and related Firebase data. This cannot be undone.',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.body.copyWith(
-                          color: AppColors.secondaryText,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Typed confirmation reduces accidental destructive actions.
-                      TextField(
-                        controller: confirmationController,
-                        textCapitalization: TextCapitalization.characters,
-                        textInputAction: requiresPassword
-                            ? TextInputAction.next
-                            : TextInputAction.done,
-                        decoration: const InputDecoration(
-                          labelText: 'Type DELETE to confirm',
-                        ),
-                      ),
-                      if (requiresPassword) ...[
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: passwordController,
-                          obscureText: obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) async {
-                            FocusScope.of(dialogContext).unfocus();
-                          },
-                          decoration: InputDecoration(
-                            labelText: 'Current password',
-                            suffixIcon: IconButton(
-                              onPressed: () => setDialogState(() {
-                                obscurePassword = !obscurePassword;
-                              }),
-                              icon: Icon(
-                                obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                            ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.bigCard),
+              ),
+              child: AnimatedPadding(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                            size: 32,
                           ),
                         ),
-                      ] else if (usesGoogle) ...[
                         const SizedBox(height: 16),
+                        Text('Delete Account', style: AppTextStyles.heading2),
+                        const SizedBox(height: 8),
                         Text(
-                          'You will be asked to re-authenticate with Google before the account is deleted.',
+                          'This will permanently delete your account, including all progress, history, photos, and data. This action cannot be undone.',
                           textAlign: TextAlign.center,
-                          style: AppTextStyles.smallLabel.copyWith(
+                          style: AppTextStyles.body.copyWith(
                             color: AppColors.secondaryText,
                           ),
                         ),
-                      ],
-                      if (validationMessage != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          validationMessage!,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.smallLabel.copyWith(
-                            color: Colors.red,
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: confirmationController,
+                          textCapitalization: TextCapitalization.characters,
+                          textInputAction: isEmailUser
+                              ? TextInputAction.next
+                              : TextInputAction.done,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              validationMessage =
+                                  value.isEmpty || value == 'DELETE'
+                                  ? null
+                                  : 'Type DELETE exactly to continue.';
+                            });
+                          },
+                          decoration: const InputDecoration(
+                            labelText: 'Type DELETE to confirm',
                           ),
                         ),
-                      ],
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              onPressed: isSubmitting
-                                  ? null
-                                  : () => Navigator.pop(ctx),
-                              child: Text(
-                                'Cancel',
-                                style: AppTextStyles.button.copyWith(
-                                  color: AppColors.secondaryText,
-                                ),
-                              ),
+                        if (isEmailUser || isGoogleUser) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                if (isSubmitting) {
-                                  return;
-                                }
-
-                                final typedConfirmation = confirmationController
-                                    .text
-                                    .trim()
-                                    .toUpperCase();
-                                final password = passwordController.text.trim();
-
-                                if (typedConfirmation != 'DELETE') {
-                                  setDialogState(() {
-                                    validationMessage =
-                                        'Type DELETE exactly to continue.';
-                                  });
-                                  return;
-                                }
-
-                                if (requiresPassword && password.isEmpty) {
-                                  setDialogState(() {
-                                    validationMessage =
-                                        'Enter your current password to continue.';
-                                  });
-                                  return;
-                                }
-
-                                setDialogState(() {
-                                  isSubmitting = true;
-                                  validationMessage = null;
-                                });
-
-                                FocusScope.of(dialogContext).unfocus();
-                                await Future<void>.delayed(
-                                  const Duration(milliseconds: 150),
-                                );
-                                if (!dialogContext.mounted) return;
-
-                                Navigator.of(
-                                  dialogContext,
-                                  rootNavigator: true,
-                                ).pop(
-                                  _DeleteAccountRequest(
-                                    currentPassword: requiresPassword
-                                        ? password
-                                        : null,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                dialogContext,
+                              ).inputDecorationTheme.fillColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Email',
+                                  style: AppTextStyles.smallLabel.copyWith(
+                                    color: AppColors.secondaryText,
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
+                                const SizedBox(height: 4),
+                                Text(
+                                  user.email ?? 'No email available',
+                                  style: AppTextStyles.body,
                                 ),
-                              ),
-                              child: Text(
-                                'Delete',
-                                style: AppTextStyles.button.copyWith(
-                                  color: Colors.white,
-                                ),
-                              ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ],
+                        if (isEmailUser) ...[
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: passwordController,
+                            obscureText: obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            onChanged: (_) => setDialogState(() {}),
+                            onSubmitted: (_) async {
+                              FocusScope.of(dialogContext).unfocus();
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Current password',
+                              suffixIcon: IconButton(
+                                onPressed: () => setDialogState(() {
+                                  obscurePassword = !obscurePassword;
+                                }),
+                                icon: Icon(
+                                  obscurePassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else if (isGoogleUser) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            'You will be asked to re-authenticate with Google before the account is deleted.',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.smallLabel.copyWith(
+                              color: AppColors.secondaryText,
+                            ),
+                          ),
+                        ],
+                        if (validationMessage != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            validationMessage!,
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.smallLabel.copyWith(
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(dialogContext, {
+                                  'confirmed': false,
+                                }),
+                                child: Text(
+                                  'Cancel',
+                                  style: AppTextStyles.button.copyWith(
+                                    color: AppColors.secondaryText,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: canSubmit
+                                    ? () {
+                                        Navigator.pop(dialogContext, {
+                                          'confirmed': true,
+                                          'password': isEmailUser
+                                              ? passwordController.text.trim()
+                                              : null,
+                                        });
+                                      }
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  disabledBackgroundColor: Colors.red
+                                      .withOpacity(0.35),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Delete Account',
+                                  style: AppTextStyles.button.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
 
     confirmationController.dispose();
     passwordController.dispose();
-
-    if (request == null || !mounted) {
-      return;
-    }
-
-    await _deleteAccount(currentPassword: request.currentPassword);
+    return result;
   }
 
-  Future<void> _deleteAccount({String? currentPassword}) async {
-    if (_isDeletingAccount) {
-      return;
-    }
-
+  Future<void> _deleteAccountFlow({String? currentPassword}) async {
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() {
-      _isDeletingAccount = true;
-    });
-
-    final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
-
-    try {
-      final message = await ref
-          .read(userRepositoryProvider)
-          .deleteAccount(currentPassword: currentPassword);
-
-      if (!mounted) return;
-      await ref.read(preferencesProvider.notifier).clear();
-
-      if (!mounted) return;
-      scaffoldMessenger?.hideCurrentSnackBar();
-      scaffoldMessenger?.showSnackBar(SnackBar(content: Text(message)));
-
-      await Future<void>.delayed(const Duration(milliseconds: 350));
-      if (!mounted) return;
-
-      await AuthService().signOut();
-      if (!mounted) return;
-    } catch (e) {
-      if (!mounted) return;
-      scaffoldMessenger?.hideCurrentSnackBar();
-      scaffoldMessenger?.showSnackBar(
-        SnackBar(content: Text(_formatDeleteAccountError(e))),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isDeletingAccount = false;
-        });
-      }
-    }
+    final onboardingStore = ref.read(onboardingProvider);
+    final preferencesNotifier = ref.read(preferencesProvider.notifier);
+    debugPrint('Delete account flow started.');
+    await ref
+        .read(userRepositoryProvider)
+        .deleteAccount(currentPassword: currentPassword);
+    await onboardingStore.clearDraft();
+    await preferencesNotifier.clear();
+    await AuthService().signOut();
   }
 
   String _formatDeleteAccountError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '').trim();
+    if (message.contains('re-login') || message.contains('re-authenticate')) {
+      return 'Please re-login to confirm deletion.';
+    }
+    if (message.contains('network') || message.contains('unavailable')) {
+      return 'Something went wrong. Please try again.';
+    }
     if (message.isEmpty) {
-      return 'Failed to delete your account. Please try again.';
+      return 'Something went wrong. Please try again.';
     }
     return message;
   }
@@ -677,11 +693,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
+                        if (_isLoggingOut || _isDeletingAccount) {
+                          return;
+                        }
+
+                        setState(() {
+                          _isLoggingOut = true;
+                        });
                         Navigator.pop(ctx);
-                        await ref.read(preferencesProvider.notifier).clear();
-                        await AuthService().signOut();
-                        if (mounted) {
-                          context.go('/get-started');
+                        try {
+                          await _clearLocalSessionState();
+                          await AuthService().signOut();
+                        } catch (e) {
+                          debugPrint('Logout failed: $e');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Something went wrong. Please try again.',
+                                ),
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() {
+                              _isLoggingOut = false;
+                            });
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -720,10 +759,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
-}
 
-class _DeleteAccountRequest {
-  const _DeleteAccountRequest({this.currentPassword});
-
-  final String? currentPassword;
+  Future<void> _clearLocalSessionState() async {
+    await ref.read(onboardingProvider).clearDraft();
+    ref.invalidate(onboardingProvider);
+    await ref.read(preferencesProvider.notifier).clear();
+  }
 }

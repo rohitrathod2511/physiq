@@ -86,6 +86,10 @@ class OnboardingStore extends ChangeNotifier {
   Future<void> clearDraft() async {
     _data = {};
     notifyListeners();
+    await clearPersistedDraft();
+  }
+
+  static Future<void> clearPersistedDraft() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
     await prefs.remove(_goalStorageKey);

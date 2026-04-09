@@ -55,8 +55,7 @@ class AuthSubscription extends ChangeNotifier {
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   User? currentUser;
   String? resumeRoute;
-  bool?
-  onboardingCompleted; // null = loading/unknown, false = new user, true = existing
+  bool? onboardingCompleted; // null = loading/unknown, false = new user, true = existing
 
   AuthSubscription() {
     _loadResumeRoute();
@@ -71,15 +70,20 @@ class AuthSubscription extends ChangeNotifier {
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((
       user,
     ) async {
-      if (currentUser?.uid != user?.uid) {
+      if (currentUser?.uid != user?.uid || (user == null && currentUser != null)) {
         currentUser = user;
         if (user != null) {
           _startUserSubscription(user);
         } else {
           _userSubscription?.cancel();
           _userSubscription = null;
-          onboardingCompleted = null;
-          notifyListeners();
+          
+          if (onboardingCompleted != null) {
+            onboardingCompleted = null;
+            notifyListeners();
+          } else {
+            notifyListeners();
+          }
         }
       }
     });
@@ -88,6 +92,7 @@ class AuthSubscription extends ChangeNotifier {
   Future<void> _loadResumeRoute() async {
     await OnboardingStore.loadResumeState();
     resumeRoute = OnboardingStore.currentResumeRoute;
+    // Safe to notify during initial load
     notifyListeners();
   }
 
@@ -97,7 +102,7 @@ class AuthSubscription extends ChangeNotifier {
 
     await OnboardingStore.saveResumeRoute(route);
     resumeRoute = route;
-    notifyListeners();
+    // DO NOT notifyListeners() here. Updating the tracker shouldn't rebuild the entire Router.
   }
 
   void _startUserSubscription(User user) {
@@ -109,11 +114,16 @@ class AuthSubscription extends ChangeNotifier {
         .listen((snapshot) {
           if (snapshot.exists) {
             final data = snapshot.data();
-            onboardingCompleted = data?['onboardingCompleted'] ?? true;
+            final completed = data?['onboardingCompleted'] ?? true;
+            if (onboardingCompleted != completed) {
+              onboardingCompleted = completed;
+              notifyListeners();
+            }
           } else {
-            onboardingCompleted = false;
+             // Document missing. During account deletion, Firestore doc is deleted shortly 
+             // before user.delete() completes. Do not update state or notify here, to 
+             // prevent a conflicting double-redirect that causes widget crashes.
           }
-          notifyListeners();
         });
   }
 

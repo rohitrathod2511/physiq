@@ -15,7 +15,7 @@ class _CreateMealScreenState extends State<CreateMealScreen> {
   final TextEditingController _nameController = TextEditingController();
   final MyMealsService _service = MyMealsService();
 
-  List<MealItem> _items = [];
+  final List<MealItem> _items = [];
   double _totalCalories = 0;
   double _totalProtein = 0;
   double _totalCarbs = 0;

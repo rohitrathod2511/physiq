@@ -96,8 +96,9 @@ class _DescribeExerciseScreenState extends ConsumerState<DescribeExerciseScreen>
     if (text.contains('low')) intensity = 'low';
 
     // Map common keywords to types
-    if (text.contains('run')) type = 'run';
-    else if (text.contains('cycle') || text.contains('bike')) type = 'cycling';
+    if (text.contains('run')) {
+      type = 'run';
+    } else if (text.contains('cycle') || text.contains('bike')) type = 'cycling';
     else if (text.contains('lift') || text.contains('weight')) type = 'weightlifting';
     else if (text.contains('yoga')) type = 'generic'; // fallback
 

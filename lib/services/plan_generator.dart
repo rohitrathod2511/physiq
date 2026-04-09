@@ -1,4 +1,3 @@
-import 'dart:math';
 
 class PlanGenerator {
   /// Generates a plan based on the user's profile.

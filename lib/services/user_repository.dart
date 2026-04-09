@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:physiq/models/user_model.dart';
@@ -191,7 +192,7 @@ class UserRepository {
   }
 
   // Re-authenticates the current user, refreshes the ID token, and then lets the
-  // server delete Auth + all related backend data in one trusted flow.
+  // client delete Auth after the correct provider-specific re-authentication.
   Future<String> deleteAccount({String? currentPassword}) async {
     if (AppConfig.useMockBackend) {
       return 'Mock account deletion completed successfully.';
@@ -203,36 +204,35 @@ class UserRepository {
     }
 
     try {
+      debugPrint('Delete account request started for ${user.uid}.');
       await _reauthenticateBeforeDelete(
         user,
         currentPassword: currentPassword,
       );
 
-      // Refresh the ID token so the callable function can validate a recent auth_time.
-      await user.getIdToken(true);
+      await _firestore.collection('users').doc(user.uid).delete().catchError((_) {
+        debugPrint('User document already missing for ${user.uid}.');
+      });
 
-      final result = await _functions.httpsCallable('deleteUserData').call();
-      final data = Map<String, dynamic>.from(result.data as Map);
-      final message =
-          (data['message'] as String?) ??
-          'Your account and all associated data were permanently deleted.';
+      await user.delete();
 
-      return message;
+      if (await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.signOut();
+      }
+
+      return 'Account deleted successfully.';
     } on FirebaseAuthException catch (e) {
-      throw e.message ?? 'Re-authentication failed. Please try again.';
-    } on FirebaseFunctionsException catch (e) {
-      if (e.code == 'permission-denied') {
-        throw e.message ?? 'Please re-authenticate and try again.';
+      debugPrint('Delete account re-authentication failed: ${e.code}');
+      if (e.code == 'requires-recent-login') {
+        throw 'Please re-login to confirm deletion.';
       }
-      if (e.code == 'unauthenticated') {
-        throw 'Your session expired. Please sign in again and retry.';
-      }
-      throw e.message ?? 'Failed to delete your account. Please try again.';
+      throw e.message ?? 'Please re-login to confirm deletion.';
     } catch (e) {
+      debugPrint('Delete account failed: $e');
       if (e is String) {
-        throw e;
+        rethrow;
       }
-      throw 'Failed to delete your account. Please try again.';
+      throw 'Something went wrong. Please try again.';
     }
   }
 

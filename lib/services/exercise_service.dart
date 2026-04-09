@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:physiq/models/exercise_log_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:physiq/services/user_repository.dart'; // Assuming this exists for user data
+// Assuming this exists for user data
 
 class ExerciseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
