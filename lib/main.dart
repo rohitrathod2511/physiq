@@ -10,6 +10,7 @@ import 'package:physiq/routes/app_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/providers/preferences_provider.dart';
 import 'package:physiq/services/messaging_service.dart';
+import 'package:go_router/go_router.dart';
 import 'firebase_options.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
@@ -29,22 +30,6 @@ void main() async {
 
   // Initialize Firebase Messaging
   await MessagingService().initialize();
-
-  // 🔹 FIX: Sign in anonymously ONLY IF NOT ALREADY AUTHENTICATED
-  try {
-    if (FirebaseAuth.instance.currentUser == null) {
-      final userCredential = await FirebaseAuth.instance.signInAnonymously();
-      print(
-        "✅ Signed in anonymously. Current user: ${userCredential.user?.uid}",
-      );
-    } else {
-      print(
-        "✅ Already authenticated: ${FirebaseAuth.instance.currentUser?.uid}",
-      );
-    }
-  } catch (e) {
-    print("❌ Failed to sign in anonymously: $e");
-  }
 
   final sharedPrefs = await SharedPreferences.getInstance();
 
@@ -72,52 +57,60 @@ class MyApp extends ConsumerWidget {
       builder: (_, mode, __) {
         return MaterialApp.router(
           title: 'Physiq AI',
-
           debugShowCheckedModeBanner: false,
           themeMode: mode,
-          theme: ThemeData(
-            useMaterial3: true,
-            // Light Theme Definition
-            // Even if AppColors is dynamic, we define the structure here.
-            // When in Light Mode, AppColors returns Light values, so this is correct.
-            scaffoldBackgroundColor: AppColors.background,
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
-              surface: AppColors.background,
-              onSurface: AppColors.primaryText,
-              secondary: AppColors.accent,
-            ),
-            textTheme: TextTheme(
-              bodyMedium: AppTextStyles.body,
-              bodyLarge: AppTextStyles.body,
-              titleLarge: AppTextStyles.heading1,
-              titleMedium: AppTextStyles.heading2,
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFFF5F1ED),
-              surfaceTintColor: Colors.transparent,
-              elevation: 0,
-              iconTheme: IconThemeData(color: Color(0xFF000000)),
-              titleTextStyle: TextStyle(
-                color: Color(0xFF000000),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            navigationBarTheme: NavigationBarThemeData(
-              height: 60,
-              backgroundColor: const Color(0xFFF5F1ED),
-              surfaceTintColor: Colors.transparent,
-              indicatorColor: Colors.black.withOpacity(0.05),
-              labelTextStyle: WidgetStateProperty.all(
-                const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-              iconTheme: WidgetStateProperty.all(const IconThemeData(size: 22)),
-            ),
-            cardColor: Colors.white,
-            dividerColor: Colors.grey[300],
-          ),
-          darkTheme: ThemeData(
+          theme: _buildLightTheme(),
+          darkTheme: _buildDarkTheme(),
+          routerConfig: router,
+        );
+      },
+    );
+  }
+
+  ThemeData _buildLightTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: AppColors.background,
+      colorScheme: ColorScheme.light(
+        primary: AppColors.primary,
+        surface: AppColors.background,
+        onSurface: AppColors.primaryText,
+        secondary: AppColors.accent,
+      ),
+      textTheme: TextTheme(
+        bodyMedium: AppTextStyles.body,
+        bodyLarge: AppTextStyles.body,
+        titleLarge: AppTextStyles.heading1,
+        titleMedium: AppTextStyles.heading2,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFFF5F1ED),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Color(0xFF000000)),
+        titleTextStyle: TextStyle(
+          color: Color(0xFF000000),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 60,
+        backgroundColor: const Color(0xFFF5F1ED),
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: Colors.black.withOpacity(0.05),
+        labelTextStyle: WidgetStateProperty.all(
+          const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        ),
+        iconTheme: WidgetStateProperty.all(const IconThemeData(size: 22)),
+      ),
+      cardColor: Colors.white,
+      dividerColor: Colors.grey[300],
+    );
+  }
+
+  ThemeData _buildDarkTheme() {
+    return ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
             // Explicit Dark Theme Colors
@@ -237,10 +230,6 @@ class MyApp extends ConsumerWidget {
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
             ),
-          ),
-          routerConfig: router,
-        );
-      },
-    );
+          );
   }
 }

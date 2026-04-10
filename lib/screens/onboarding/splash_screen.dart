@@ -20,15 +20,9 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkAuth() async {
     // Keep a slight delay for brand visibility
     await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (mounted) {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        context.go('/home');
-      } else {
-        context.go('/get-started');
-      }
-    }
+    // The GoRouter and AuthGate handle the navigation automatically based on auth state.
+    // Instead of forcing a jump here, we do nothing and let the StreamBuilder in AuthGate 
+    // or the router's redirect logic handle it.
   }
 
   @override

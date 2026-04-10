@@ -165,10 +165,11 @@ class AuthSubscription extends ChangeNotifier {
 final authSubscription = AuthSubscription();
 
 final GoRouter router = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  refreshListenable: authSubscription,
-  initialLocation: '/',
-  redirect: (context, state) {
+    navigatorKey: _rootNavigatorKey,
+    // Listens to auth changes and onboarding changes
+    refreshListenable: authSubscription,
+    initialLocation: '/',
+    redirect: (context, state) {
     final isAuthenticated = authSubscription.currentUser != null;
     final isOnboardingComplete = authSubscription.onboardingCompleted;
     final location = state.uri.path;
@@ -196,10 +197,13 @@ final GoRouter router = GoRouter(
       if (isProtected) {
         return '/get-started';
       }
-      if (location == '/' && resumeRoute != null && resumeRoute != location) {
-        return resumeRoute;
+      if (location == '/') {
+        if (resumeRoute != null && resumeRoute != location) {
+          return resumeRoute;
+        }
+        return '/get-started';
       }
-      return null; // Allow public access (splash, onboarding start, etc)
+      return null; // Allow public access (onboarding steps)
     }
 
     // ----------------------------------------------------
