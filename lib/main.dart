@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -14,8 +16,17 @@ final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Global Flutter error logging
+  FlutterError.onError = (FlutterErrorDetails details) {
+    print('🚨 FLUTTER_ERROR: ${details.exceptionAsString()}');
+    print('🚨 STACK_TRACE: ${details.stack}');
+    print('🚨 LIBRARY: ${details.library}');
+    print('🚨 CONTEXT: ${details.context}');
+  };
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  
+
   // Initialize Firebase Messaging
   await MessagingService().initialize();
 
@@ -23,16 +34,20 @@ void main() async {
   try {
     if (FirebaseAuth.instance.currentUser == null) {
       final userCredential = await FirebaseAuth.instance.signInAnonymously();
-      print("✅ Signed in anonymously. Current user: ${userCredential.user?.uid}");
+      print(
+        "✅ Signed in anonymously. Current user: ${userCredential.user?.uid}",
+      );
     } else {
-      print("✅ Already authenticated: ${FirebaseAuth.instance.currentUser?.uid}");
+      print(
+        "✅ Already authenticated: ${FirebaseAuth.instance.currentUser?.uid}",
+      );
     }
   } catch (e) {
     print("❌ Failed to sign in anonymously: $e");
   }
 
   final sharedPrefs = await SharedPreferences.getInstance();
-  
+
   // Load saved theme
   final savedTheme = sharedPrefs.getString('app_theme');
   if (savedTheme == 'dark') {
@@ -52,8 +67,6 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
- 
-
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (_, mode, __) {
@@ -85,7 +98,11 @@ class MyApp extends ConsumerWidget {
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               iconTheme: IconThemeData(color: Color(0xFF000000)),
-              titleTextStyle: TextStyle(color: Color(0xFF000000), fontSize: 20, fontWeight: FontWeight.bold),
+              titleTextStyle: TextStyle(
+                color: Color(0xFF000000),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             navigationBarTheme: NavigationBarThemeData(
               height: 60,
@@ -95,9 +112,7 @@ class MyApp extends ConsumerWidget {
               labelTextStyle: WidgetStateProperty.all(
                 const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
               ),
-              iconTheme: WidgetStateProperty.all(
-                const IconThemeData(size: 22),
-              ),
+              iconTheme: WidgetStateProperty.all(const IconThemeData(size: 22)),
             ),
             cardColor: Colors.white,
             dividerColor: Colors.grey[300],
@@ -110,7 +125,7 @@ class MyApp extends ConsumerWidget {
             canvasColor: const Color(0xFF121212),
             cardColor: const Color(0xFF1E1E1E),
             dividerColor: const Color(0xFF2C2C2C),
-            
+
             colorScheme: const ColorScheme.dark(
               primary: Colors.white,
               onPrimary: Colors.black,
@@ -120,42 +135,49 @@ class MyApp extends ConsumerWidget {
               onSecondary: Colors.black,
               error: Color(0xFFCF6679),
             ),
-             
+
             iconTheme: const IconThemeData(color: Colors.white),
             primaryIconTheme: const IconThemeData(color: Colors.white),
-            
+
             appBarTheme: const AppBarTheme(
               backgroundColor: Color(0xFF121212),
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               iconTheme: IconThemeData(color: Colors.white),
-              titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              titleTextStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            
+
             navigationBarTheme: NavigationBarThemeData(
               height: 60,
               backgroundColor: const Color(0xFF1E1E1E),
               surfaceTintColor: Colors.transparent,
               indicatorColor: Colors.white.withOpacity(0.1),
               labelTextStyle: WidgetStateProperty.all(
-                const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white70),
+                const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white70,
+                ),
               ),
               iconTheme: WidgetStateProperty.all(
                 const IconThemeData(size: 22, color: Colors.white70),
               ),
             ),
-            
+
             textTheme: TextTheme(
               bodyMedium: AppTextStyles.body.copyWith(color: Colors.white),
               bodyLarge: AppTextStyles.body.copyWith(color: Colors.white),
               titleLarge: AppTextStyles.heading1.copyWith(color: Colors.white),
               titleMedium: AppTextStyles.heading2.copyWith(color: Colors.white),
               labelLarge: AppTextStyles.button.copyWith(color: Colors.white),
-              displayLarge: AppTextStyles.largeNumber.copyWith(color: Colors.white),
-            ).apply(
-              bodyColor: Colors.white, 
-              displayColor: Colors.white,
-            ),
+              displayLarge: AppTextStyles.largeNumber.copyWith(
+                color: Colors.white,
+              ),
+            ).apply(bodyColor: Colors.white, displayColor: Colors.white),
 
             cardTheme: const CardThemeData(
               color: Color(0xFF1E1E1E),
@@ -163,27 +185,31 @@ class MyApp extends ConsumerWidget {
               elevation: 0,
               margin: EdgeInsets.all(0),
             ),
-            
+
             dialogTheme: DialogThemeData(
               backgroundColor: const Color(0xFF1E1E1E),
               surfaceTintColor: Colors.transparent,
-              titleTextStyle: AppTextStyles.heading2.copyWith(color: Colors.white),
-              contentTextStyle: AppTextStyles.body.copyWith(color: Colors.white70),
+              titleTextStyle: AppTextStyles.heading2.copyWith(
+                color: Colors.white,
+              ),
+              contentTextStyle: AppTextStyles.body.copyWith(
+                color: Colors.white70,
+              ),
             ),
-            
+
             bottomSheetTheme: const BottomSheetThemeData(
               backgroundColor: Color(0xFF1E1E1E),
               surfaceTintColor: Colors.transparent,
               modalBackgroundColor: Color(0xFF1E1E1E),
             ),
-            
+
             popupMenuTheme: PopupMenuThemeData(
               color: const Color(0xFF1E1E1E),
               surfaceTintColor: Colors.transparent,
               textStyle: AppTextStyles.body.copyWith(color: Colors.white),
               iconColor: Colors.white,
             ),
-            
+
             datePickerTheme: DatePickerThemeData(
               backgroundColor: const Color(0xFF1E1E1E),
               headerBackgroundColor: const Color(0xFF2C2C2C),
@@ -191,14 +217,16 @@ class MyApp extends ConsumerWidget {
               dayForegroundColor: WidgetStateProperty.all(Colors.white),
               yearForegroundColor: WidgetStateProperty.all(Colors.white),
               dayStyle: AppTextStyles.body,
-              weekdayStyle: AppTextStyles.smallLabel.copyWith(color: Colors.white70),
+              weekdayStyle: AppTextStyles.smallLabel.copyWith(
+                color: Colors.white70,
+              ),
             ),
 
             snackBarTheme: const SnackBarThemeData(
               backgroundColor: Color(0xFF333333),
               contentTextStyle: TextStyle(color: Colors.white),
             ),
-            
+
             inputDecorationTheme: const InputDecorationTheme(
               fillColor: Color(0xFF2C2C2C),
               filled: true,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/utils/design_system.dart';
-
+import 'package:physiq/main.dart';
 
 class PreferencesSheet extends ConsumerStatefulWidget {
   const PreferencesSheet({super.key});
@@ -41,26 +41,27 @@ class _PreferencesSheetState extends ConsumerState<PreferencesSheet> {
           const SizedBox(height: 24),
           Text('Preferences', style: AppTextStyles.heading2),
           const SizedBox(height: 16),
-          _buildDropdown(
-            'Theme',
-            _theme,
-            {'light': 'Light', 'dark': 'Dark'},
-            (val) => setState(() => _theme = val!),
-          ),
+          _buildDropdown('Theme', _theme, {'light': 'Light', 'dark': 'Dark'}, (
+            val,
+          ) async {
+            setState(() => _theme = val!);
+            await Future.delayed(const Duration(milliseconds: 100));
+            themeNotifier.value = val == 'dark'
+                ? ThemeMode.dark
+                : ThemeMode.light;
+          }),
           const SizedBox(height: 16),
-          _buildDropdown(
-            'Units',
-            _units,
-            {'metric': 'Metric (kg/cm)', 'imperial': 'Imperial (lbs/ft)'},
-            (val) => setState(() => _units = val!),
-          ),
+          _buildDropdown('Units', _units, {
+            'metric': 'Metric (kg/cm)',
+            'imperial': 'Imperial (lbs/ft)',
+          }, (val) => setState(() => _units = val!)),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // Save preferences via repository
+              onPressed: () async {
                 Navigator.pop(context);
+                await Future.delayed(const Duration(milliseconds: 100));
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Preferences saved')),
                 );
@@ -68,9 +69,14 @@ class _PreferencesSheetState extends ConsumerState<PreferencesSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: Text('Save', style: AppTextStyles.button.copyWith(color: Colors.white)),
+              child: Text(
+                'Save',
+                style: AppTextStyles.button.copyWith(color: Colors.white),
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -79,7 +85,12 @@ class _PreferencesSheetState extends ConsumerState<PreferencesSheet> {
     );
   }
 
-  Widget _buildDropdown(String label, String value, Map<String, String> items, ValueChanged<String?> onChanged) {
+  Widget _buildDropdown(
+    String label,
+    String value,
+    Map<String, String> items,
+    ValueChanged<String?> onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -97,7 +108,10 @@ class _PreferencesSheetState extends ConsumerState<PreferencesSheet> {
               value: value,
               isExpanded: true,
               items: items.entries.map((e) {
-                return DropdownMenuItem(value: e.key, child: Text(e.value, style: AppTextStyles.bodyMedium));
+                return DropdownMenuItem(
+                  value: e.key,
+                  child: Text(e.value, style: AppTextStyles.bodyMedium),
+                );
               }).toList(),
               onChanged: onChanged,
             ),

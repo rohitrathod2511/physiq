@@ -55,13 +55,15 @@ class AuthSubscription extends ChangeNotifier {
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   User? currentUser;
   String? resumeRoute;
-  bool? onboardingCompleted; // null = loading/unknown, false = new user, true = existing
+  bool?
+  onboardingCompleted; // null = loading/unknown, false = new user, true = existing
 
   AuthSubscription() {
     _loadResumeRoute();
 
     // 1. Initialize with current values if available synchronously
     currentUser = FirebaseAuth.instance.currentUser;
+    debugPrint('📡 AUTH_SUB: Initial user: ${currentUser?.uid}');
     if (currentUser != null) {
       _startUserSubscription(currentUser!);
     }
@@ -70,14 +72,19 @@ class AuthSubscription extends ChangeNotifier {
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((
       user,
     ) async {
-      if (currentUser?.uid != user?.uid || (user == null && currentUser != null)) {
+      debugPrint(
+        '📡 AUTH_SUB: Auth state changed - user: ${user?.uid}, previous: ${currentUser?.uid}',
+      );
+      if (currentUser?.uid != user?.uid ||
+          (user == null && currentUser != null)) {
         currentUser = user;
         if (user != null) {
           _startUserSubscription(user);
         } else {
+          debugPrint('📡 AUTH_SUB: User is null, cancelling user subscription');
           _userSubscription?.cancel();
           _userSubscription = null;
-          
+
           if (onboardingCompleted != null) {
             onboardingCompleted = null;
             notifyListeners();
@@ -106,25 +113,45 @@ class AuthSubscription extends ChangeNotifier {
   }
 
   void _startUserSubscription(User user) {
+    debugPrint(
+      '📡 AUTH_SUB: Starting Firestore subscription for user: ${user.uid}',
+    );
     _userSubscription?.cancel();
     _userSubscription = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .snapshots()
-        .listen((snapshot) {
-          if (snapshot.exists) {
-            final data = snapshot.data();
-            final completed = data?['onboardingCompleted'] ?? true;
-            if (onboardingCompleted != completed) {
-              onboardingCompleted = completed;
-              notifyListeners();
+        .listen(
+          (snapshot) {
+            debugPrint(
+              '📡 AUTH_SUB: Firestore snapshot received - exists: ${snapshot.exists}',
+            );
+            if (snapshot.exists) {
+              final data = snapshot.data();
+              final completed = data?['onboardingCompleted'] ?? true;
+              debugPrint(
+                '📡 AUTH_SUB: onboardingCompleted = $completed, previous = $onboardingCompleted',
+              );
+              if (onboardingCompleted != completed) {
+                onboardingCompleted = completed;
+                notifyListeners();
+              }
+            } else {
+              // Document missing. During account deletion, Firestore doc is deleted shortly
+              // before user.delete() completes. Do not update state or notify here, to
+              // prevent a conflicting double-redirect that causes widget crashes.
+              debugPrint(
+                '📡 AUTH_SUB: Document does not exist (likely deleted)',
+              );
             }
-          } else {
-             // Document missing. During account deletion, Firestore doc is deleted shortly 
-             // before user.delete() completes. Do not update state or notify here, to 
-             // prevent a conflicting double-redirect that causes widget crashes.
-          }
-        });
+          },
+          onError: (error) {
+            debugPrint('📡 AUTH_SUB: Firestore stream error: $error');
+          },
+          onDone: () {
+            debugPrint('📡 AUTH_SUB: Firestore stream done');
+          },
+        );
   }
 
   @override

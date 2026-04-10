@@ -19,17 +19,23 @@ class UserRepository {
   Stream<UserModel?> streamUser(String uid) {
     if (AppConfig.useMockBackend) {
       // Return mock stream
-      return Stream.value(UserModel(
-        uid: uid,
-        displayName: 'Mock User',
-        birthYear: 1995,
-        gender: 'male',
-        heightCm: 175,
-        weightKg: 70,
-        goalWeightKg: 75,
-        preferences: UserPreferences(),
-        invites: UserInvites(code: 'MOCK123', redeemedCount: 2, creditedAmount: 200),
-      ));
+      return Stream.value(
+        UserModel(
+          uid: uid,
+          displayName: 'Mock User',
+          birthYear: 1995,
+          gender: 'male',
+          heightCm: 175,
+          weightKg: 70,
+          goalWeightKg: 75,
+          preferences: UserPreferences(),
+          invites: UserInvites(
+            code: 'MOCK123',
+            redeemedCount: 2,
+            creditedAmount: 200,
+          ),
+        ),
+      );
     }
     return _firestore.collection('users').doc(uid).snapshots().map((doc) {
       if (doc.exists && doc.data() != null) {
@@ -61,13 +67,13 @@ class UserRepository {
     }
 
     final displayId = await _generateUniqueDisplayId(name);
-    
+
     // Parse onboarding data for partial usage
     final od = onboardingData ?? {};
     final currentPlan = od['currentPlan'] as Map<String, dynamic>? ?? {};
 
     final userDoc = _firestore.collection('users').doc(uid);
-    
+
     // Construct payload with nulls first
     final authMap = {
       'uid': uid,
@@ -100,10 +106,10 @@ class UserRepository {
     }..removeWhere((k, v) => v == null);
 
     final metaMap = {
-       'isAnonymous': authProvider == 'anonymous',
-       'onboardingCompleted': true,
+      'isAnonymous': authProvider == 'anonymous',
+      'onboardingCompleted': true,
     }..removeWhere((k, v) => v == null);
-    
+
     // Prepare final map
     final data = <String, dynamic>{};
     if (authMap.isNotEmpty) data['auth'] = authMap;
@@ -116,7 +122,7 @@ class UserRepository {
     if (name.isNotEmpty) data['name'] = name;
     if (email != null) data['email'] = email;
     data['uid'] = uid;
-    
+
     await userDoc.set(data, SetOptions(merge: true));
   }
 
@@ -124,14 +130,15 @@ class UserRepository {
   Future<String> _generateUniqueDisplayId(String name) async {
     // Sanitize name: remove spaces/special chars, keep generic
     final cleanName = name.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-    
+
     // Fallback if name becomes empty
     final baseName = cleanName.isEmpty ? 'User' : cleanName;
 
     int attempts = 0;
     while (attempts < 10) {
       // Generate random 4-6 digit number
-      final randomCode = (1000 + DateTime.now().microsecondsSinceEpoch % 90000).toString();
+      final randomCode = (1000 + DateTime.now().microsecondsSinceEpoch % 90000)
+          .toString();
       final candidateId = "${baseName}_$randomCode";
 
       // Check uniqueness
@@ -194,41 +201,57 @@ class UserRepository {
   // Re-authenticates the current user, refreshes the ID token, and then lets the
   // client delete Auth after the correct provider-specific re-authentication.
   Future<String> deleteAccount({String? currentPassword}) async {
+    debugPrint('🗑️ DELETE_ACCOUNT: Starting deletion process');
     if (AppConfig.useMockBackend) {
+      debugPrint('🗑️ DELETE_ACCOUNT: Using mock backend, returning success');
       return 'Mock account deletion completed successfully.';
     }
 
     final user = _auth.currentUser;
+    debugPrint('🗑️ DELETE_ACCOUNT: Current user: ${user?.uid}');
     if (user == null) {
       throw 'No authenticated user found.';
     }
 
     try {
-      debugPrint('Delete account request started for ${user.uid}.');
-      await _reauthenticateBeforeDelete(
-        user,
-        currentPassword: currentPassword,
+      debugPrint(
+        '🗑️ DELETE_ACCOUNT: Starting re-authentication for ${user.uid}.',
+      );
+      await _reauthenticateBeforeDelete(user, currentPassword: currentPassword);
+      debugPrint(
+        '🗑️ DELETE_ACCOUNT: Re-auth successful, deleting Firestore doc',
       );
 
-      await _firestore.collection('users').doc(user.uid).delete().catchError((_) {
-        debugPrint('User document already missing for ${user.uid}.');
+      await _firestore.collection('users').doc(user.uid).delete().catchError((
+        _,
+      ) {
+        debugPrint(
+          '🗑️ DELETE_ACCOUNT: User document already missing for ${user.uid}.',
+        );
       });
+      debugPrint(
+        '🗑️ DELETE_ACCOUNT: Firestore doc deleted, deleting Auth user',
+      );
 
       await user.delete();
+      debugPrint('🗑️ DELETE_ACCOUNT: Auth user deleted');
 
       if (await _googleSignIn.isSignedIn()) {
+        debugPrint('🗑️ DELETE_ACCOUNT: Signing out Google SignIn');
         await _googleSignIn.signOut();
       }
 
       return 'Account deleted successfully.';
     } on FirebaseAuthException catch (e) {
-      debugPrint('Delete account re-authentication failed: ${e.code}');
+      debugPrint(
+        '🗑️ DELETE_ACCOUNT: FirebaseAuthException: ${e.code} - ${e.message}',
+      );
       if (e.code == 'requires-recent-login') {
         throw 'Please re-login to confirm deletion.';
       }
       throw e.message ?? 'Please re-login to confirm deletion.';
     } catch (e) {
-      debugPrint('Delete account failed: $e');
+      debugPrint('🗑️ DELETE_ACCOUNT: Generic error: $e');
       if (e is String) {
         rethrow;
       }

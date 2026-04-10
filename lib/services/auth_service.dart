@@ -335,14 +335,18 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    debugPrint('🔐 AUTH_SERVICE: signOut called');
     try {
       await OnboardingStore.clearPersistedDraft();
       if (await _googleSignIn.isSignedIn()) {
+        debugPrint('🔐 AUTH_SERVICE: Google signed in, signing out');
         await _googleSignIn.signOut();
       }
+      debugPrint('🔐 AUTH_SERVICE: Calling Firebase signOut');
       await _firebaseAuth.signOut();
+      debugPrint('🔐 AUTH_SERVICE: signOut completed');
     } catch (e) {
-      debugPrint('Sign Out Error: $e');
+      debugPrint('🔐 AUTH_SERVICE: Sign Out Error: $e');
     }
   }
 

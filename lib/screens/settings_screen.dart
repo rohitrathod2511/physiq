@@ -23,6 +23,7 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    debugPrint('🏗️ SETTINGS_SCREEN: Building widget');
     // In a real app, we'd watch a user provider. For now, fetching stream.
     final authService = AuthService();
     final currentUser = authService.getCurrentUser();
@@ -272,21 +273,47 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {
+    debugPrint('🔍 DELETE_ACCOUNT: Button clicked');
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Account'),
         content: const Text('Are you sure? This action cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              debugPrint('🔍 DELETE_ACCOUNT: Dialog cancelled');
+              Navigator.pop(dialogContext);
+            },
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(userRepositoryProvider).deleteAccount();
-              // Handle logout/nav
+              debugPrint(
+                '🔍 DELETE_ACCOUNT: Dialog confirmed, starting delete',
+              );
+              Navigator.pop(dialogContext);
+              debugPrint('🔍 DELETE_ACCOUNT: Dialog closed');
+
+              await Future.delayed(const Duration(milliseconds: 50));
+
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                debugPrint(
+                  '🔍 DELETE_ACCOUNT: Starting deletion after frame callback',
+                );
+                try {
+                  final result = await ref
+                      .read(userRepositoryProvider)
+                      .deleteAccount();
+                  debugPrint(
+                    '🔍 DELETE_ACCOUNT: Firestore delete completed, result: $result',
+                  );
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  debugPrint('🔍 DELETE_ACCOUNT: All done');
+                } catch (e) {
+                  debugPrint('🔍 DELETE_ACCOUNT: Error during delete: $e');
+                }
+              });
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
