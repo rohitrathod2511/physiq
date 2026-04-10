@@ -19,32 +19,51 @@ class AiFoodService {
     String mealId,
     File imageFile,
   ) async {
-    try {
-      debugPrint('STEP 1: Starting meal analysis flow');
+    debugPrint('STEP 1: Starting meal analysis flow');
 
-      final imageUrl = await _uploadMealImage(userId, mealId, imageFile);
-      final jsonResponse = await _recognizeMeal(imageFile);
+    final imageUrl = await _uploadMealImage(userId, mealId, imageFile);
+    final jsonResponse = await _recognizeMeal(imageFile);
 
-      debugPrint('Parsed JSON (Gemini): $jsonResponse');
-      final initialMeal = _parseGeminiResponse(
-        mealId: mealId,
-        imageUrl: imageUrl,
-        jsonResponse: jsonResponse,
-      );
+    debugPrint('Parsed JSON (Gemini): $jsonResponse');
 
-      debugPrint(
-        'STEP 5: Parsed ${initialMeal.ingredients.length} ingredients for ${initialMeal.title}',
-      );
-
-      final enrichedMeal = await _buildEnrichedMeal(initialMeal);
-      await _saveMealToFirestore(userId, enrichedMeal);
-
-      debugPrint('Final calculated data: ${enrichedMeal.toJson()}');
-      return enrichedMeal;
-    } catch (error) {
-      debugPrint('Process and enrich error: $error');
-      return null;
+    if (jsonResponse['error'] != null) {
+      debugPrint('AI analysis failed: ${jsonResponse['error']}');
+      await _deleteMealFromFirestore(userId, mealId);
+      throw Exception(jsonResponse['error']);
     }
+
+    final items = jsonResponse['items'] ?? jsonResponse['ingredients'];
+    if (items == null || (items is List && items.isEmpty)) {
+      debugPrint('AI returned empty food items');
+      await _deleteMealFromFirestore(userId, mealId);
+      throw Exception(
+        'Unable to analyze this meal. Please try again or log it manually.',
+      );
+    }
+
+    final initialMeal = _parseGeminiResponse(
+      mealId: mealId,
+      imageUrl: imageUrl,
+      jsonResponse: jsonResponse,
+    );
+
+    if (initialMeal.ingredients.isEmpty) {
+      debugPrint('Parsed meal has no valid ingredients');
+      await _deleteMealFromFirestore(userId, mealId);
+      throw Exception(
+        'Unable to analyze this meal. Please try again or log it manually.',
+      );
+    }
+
+    debugPrint(
+      'STEP 5: Parsed ${initialMeal.ingredients.length} ingredients for ${initialMeal.title}',
+    );
+
+    final enrichedMeal = await _buildEnrichedMeal(initialMeal);
+    await _saveMealToFirestore(userId, enrichedMeal);
+
+    debugPrint('Final calculated data: ${enrichedMeal.toJson()}');
+    return enrichedMeal;
   }
 
   Future<String> _uploadMealImage(
@@ -54,7 +73,9 @@ class AiFoodService {
   ) async {
     try {
       debugPrint('STEP 2: Uploading image to Storage');
-      final storageRef = _storage.ref().child('meal_images/$userId/$mealId.jpg');
+      final storageRef = _storage.ref().child(
+        'meal_images/$userId/$mealId.jpg',
+      );
       final uploadTask = await storageRef.putFile(imageFile);
       final imageUrl = await uploadTask.ref.getDownloadURL();
       debugPrint('Image uploaded: $imageUrl');
@@ -70,12 +91,14 @@ class AiFoodService {
 
     try {
       debugPrint('STEP 3: Calling Gemini image recognition');
-      final jsonResponse = await _cloudFunctions.recognizeMealImage(base64Image);
+      final jsonResponse = await _cloudFunctions.recognizeMealImage(
+        base64Image,
+      );
       debugPrint('Gemini normalized response: $jsonResponse');
       return jsonResponse;
     } catch (error) {
-      debugPrint('Gemini analysis failed, using fallback response: $error');
-      return _buildFallbackResponse();
+      debugPrint('Gemini analysis failed, returning error response: $error');
+      return _buildErrorResponse();
     }
   }
 
@@ -115,9 +138,7 @@ class AiFoodService {
             proteinEstimate: _safeDouble(
               map['protein_estimate'] ?? map['protein'],
             ),
-            carbsEstimate: _safeDouble(
-              map['carbs_estimate'] ?? map['carbs'],
-            ),
+            carbsEstimate: _safeDouble(map['carbs_estimate'] ?? map['carbs']),
             fatEstimate: _safeDouble(map['fat_estimate'] ?? map['fat']),
             source: _safeString(map['source'], 'gemini_estimate'),
             estimatedGrams: _safeDouble(
@@ -128,17 +149,19 @@ class AiFoodService {
       }
 
       if (ingredients.isEmpty) {
-        return _buildFallbackMeal(
-          mealId: mealId,
-          imageUrl: imageUrl,
+        throw Exception(
+          'Unable to analyze this meal. Please try again or log it manually.',
         );
       }
 
       final detectedTitle = _safeString(
-        jsonResponse['meal_title'] ?? jsonResponse['mealName'] ?? jsonResponse['title'],
+        jsonResponse['meal_title'] ??
+            jsonResponse['mealName'] ??
+            jsonResponse['title'],
         '',
       );
-      final title = detectedTitle.isNotEmpty && !_isGenericIngredientName(detectedTitle)
+      final title =
+          detectedTitle.isNotEmpty && !_isGenericIngredientName(detectedTitle)
           ? detectedTitle
           : ingredients.map((ingredient) => ingredient.name).take(3).join(', ');
 
@@ -158,7 +181,7 @@ class AiFoodService {
       );
     } catch (error) {
       debugPrint('Error parsing Gemini response: $error');
-      return _buildFallbackMeal(mealId: mealId, imageUrl: imageUrl);
+      rethrow;
     }
   }
 
@@ -182,7 +205,9 @@ class AiFoodService {
         return '${_formatQuantity(quantity)} $servingLabel';
       }
 
-      return quantity == 1 ? '1 serving' : '${_formatQuantity(quantity)} servings';
+      return quantity == 1
+          ? '1 serving'
+          : '${_formatQuantity(quantity)} servings';
     }
 
     return '1 serving';
@@ -212,7 +237,9 @@ class AiFoodService {
     try {
       debugPrint('USDA/OFF lookup: ${ingredient.name}');
 
-      final nutritionData = await _cloudFunctions.enrichMealItem(ingredient.name);
+      final nutritionData = await _cloudFunctions.enrichMealItem(
+        ingredient.name,
+      );
       debugPrint('USDA/OFF response for ${ingredient.name}: $nutritionData');
 
       if (nutritionData == null) {
@@ -223,7 +250,8 @@ class AiFoodService {
         nutritionData['servingOptions'] ?? nutritionData['serving_options'],
       );
       final nutritionPer100g = _parseNutritionMap(
-        nutritionData['nutritionPer100g'] ?? nutritionData['nutrition_per_100g'],
+        nutritionData['nutritionPer100g'] ??
+            nutritionData['nutrition_per_100g'],
       );
       final estimatedGrams = _resolveEstimatedGrams(ingredient, servingOptions);
 
@@ -269,7 +297,10 @@ class AiFoodService {
     MealIngredient ingredient, {
     required String source,
   }) {
-    final estimatedGrams = _resolveEstimatedGrams(ingredient, const <ServingOption>[]);
+    final estimatedGrams = _resolveEstimatedGrams(
+      ingredient,
+      const <ServingOption>[],
+    );
 
     return MealIngredient(
       name: ingredient.name,
@@ -294,7 +325,9 @@ class AiFoodService {
 
     final options = raw
         .whereType<Map>()
-        .map((option) => ServingOption.fromJson(Map<String, dynamic>.from(option)))
+        .map(
+          (option) => ServingOption.fromJson(Map<String, dynamic>.from(option)),
+        )
         .where((option) => option.grams > 0)
         .toList();
 
@@ -302,10 +335,7 @@ class AiFoodService {
       return options;
     }
 
-    return [
-      const ServingOption(label: '100g', grams: 100),
-      ...options,
-    ];
+    return [const ServingOption(label: '100g', grams: 100), ...options];
   }
 
   Map<String, double> _parseNutritionMap(dynamic raw) {
@@ -325,7 +355,8 @@ class AiFoodService {
       nutritionMap[normalizedKey] = value;
     }
 
-    if (!nutritionMap.containsKey('calories') && nutritionMap.containsKey('energy')) {
+    if (!nutritionMap.containsKey('calories') &&
+        nutritionMap.containsKey('energy')) {
       nutritionMap['calories'] = nutritionMap['energy']!;
     }
 
@@ -430,7 +461,9 @@ class AiFoodService {
       }
     }
 
-    final numberMatch = RegExp(r'(^|\s)(\d+(?:\.\d+)?)(?=\s|$)').firstMatch(text);
+    final numberMatch = RegExp(
+      r'(^|\s)(\d+(?:\.\d+)?)(?=\s|$)',
+    ).firstMatch(text);
     if (numberMatch != null) {
       return double.tryParse(numberMatch.group(2) ?? '') ?? 1;
     }
@@ -554,29 +587,14 @@ class AiFoodService {
         normalized == 'food item';
   }
 
-  Map<String, dynamic> _buildFallbackResponse() {
+  Map<String, dynamic> _buildErrorResponse() {
     return {
-      'meal_title': 'Scanned Meal',
-      'serving_container': 'plate',
-      'items': [
-        {
-          'ingredient': 'Food item',
-          'estimated_amount': '1 serving',
-          'serving_size': '100g',
-          'calories_estimate': 200,
-          'protein_estimate': 8,
-          'carbs_estimate': 25,
-          'fat_estimate': 8,
-          'estimated_grams': 100,
-        },
-      ],
+      'error':
+          'Unable to analyze this meal. Please try again or log it manually.',
     };
   }
 
-  Meal _buildFallbackMeal({
-    String? mealId,
-    String imageUrl = '',
-  }) {
+  Meal _buildFallbackMeal({String? mealId, String imageUrl = ''}) {
     return Meal(
       id: mealId ?? _uuid.v4(),
       imageUrl: imageUrl,
@@ -639,6 +657,20 @@ class AiFoodService {
         .collection('meals')
         .doc(meal.id)
         .set(meal.toJson());
+  }
+
+  Future<void> _deleteMealFromFirestore(String userId, String mealId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('meals')
+          .doc(mealId)
+          .delete();
+      debugPrint('Deleted meal document: $mealId');
+    } catch (e) {
+      debugPrint('Failed to delete meal document: $e');
+    }
   }
 
   Future<void> updateMealBookmark(

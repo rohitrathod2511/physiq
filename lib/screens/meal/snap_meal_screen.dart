@@ -17,7 +17,8 @@ class SnapMealScreen extends ConsumerStatefulWidget {
   ConsumerState<SnapMealScreen> createState() => _SnapMealScreenState();
 }
 
-class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBindingObserver {
+class _SnapMealScreenState extends ConsumerState<SnapMealScreen>
+    with WidgetsBindingObserver {
   CameraController? _controller;
   List<CameraDescription> _cameras = [];
   bool _isCameraInitialized = false;
@@ -85,12 +86,12 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
     // Set logged: true so it appears immediately in "Today's logs"
     final loadingMeal = Meal(
       id: mealId,
-      imageUrl: file.path, 
+      imageUrl: file.path,
       title: 'Analyzing meal...',
       container: 'plate',
       ingredients: [],
       createdAt: DateTime.now(),
-      logged: true, 
+      logged: true,
     );
 
     try {
@@ -111,10 +112,18 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
     // Process using AI service in background
     try {
       // await geminiDetection, usdaProcessing, and calculations all inside this function
-      final meal = await _aiFoodService.processAndEnrichMealAsync(user.uid, mealId, file);
-      
+      final meal = await _aiFoodService.processAndEnrichMealAsync(
+        user.uid,
+        mealId,
+        file,
+      );
+
       if (meal == null) {
-        scaffoldMsg.showSnackBar(const SnackBar(content: Text('Failed to process meal.')));
+        await _deleteMealDoc(user.uid, mealId);
+        scaffoldMsg.showSnackBar(
+          const SnackBar(content: Text('Failed to process meal.')),
+        );
+        setState(() => _isProcessing = false);
         return;
       }
 
@@ -125,7 +134,8 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
       double totalFat = 0.0;
 
       for (final ingredient in meal.ingredients) {
-        totalCalories += (ingredient.caloriesEstimate as num?)?.toDouble() ?? 0.0;
+        totalCalories +=
+            (ingredient.caloriesEstimate as num?)?.toDouble() ?? 0.0;
         totalProtein += (ingredient.proteinEstimate as num?)?.toDouble() ?? 0.0;
         totalCarbs += (ingredient.carbsEstimate as num?)?.toDouble() ?? 0.0;
         totalFat += (ingredient.fatEstimate as num?)?.toDouble() ?? 0.0;
@@ -142,10 +152,14 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
         carbs: totalCarbs,
         fat: totalFat,
         source: 'gemini_vision',
-        aliases: meal.ingredients.map((i) => "${i.name} (${i.amount})").toList(),
+        aliases: meal.ingredients
+            .map((i) => "${i.name} (${i.amount})")
+            .toList(),
       );
 
-      print('🏁 STEP 8: All calculations done. Navigating to preview screen with ${meal.ingredients.length} ingredients.');
+      print(
+        '🏁 STEP 8: All calculations done. Navigating to preview screen with ${meal.ingredients.length} ingredients.',
+      );
       rootNav.push(
         MaterialPageRoute(
           builder: (_) => MealPreviewScreen(
@@ -157,28 +171,53 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
       );
     } catch (e) {
       debugPrint('Error: $e');
-      scaffoldMsg.showSnackBar(SnackBar(content: Text('Scan failed: $e')));
+      await _deleteMealDoc(user.uid, mealId);
+      scaffoldMsg.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to analyze this meal. Please try again or log it manually.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _deleteMealDoc(String userId, String mealId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('meals')
+          .doc(mealId)
+          .delete();
+    } catch (e) {
+      debugPrint('Failed to delete meal doc: $e');
     }
   }
 
   Future<void> _onSnap() async {
-    if (_controller == null || !_controller!.value.isInitialized || _isProcessing) return;
+    if (_controller == null ||
+        !_controller!.value.isInitialized ||
+        _isProcessing)
+      return;
 
     try {
       final imageFile = await _controller!.takePicture();
       await _processImage(File(imageFile.path));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Scan failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Scan failed: $e')));
       }
     }
   }
 
   Future<void> _pickGallery() async {
     if (_isProcessing) return;
-    
+
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
@@ -223,51 +262,62 @@ class _SnapMealScreenState extends ConsumerState<SnapMealScreen> with WidgetsBin
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+                  colors: [
+                    Colors.black.withValues(alpha: 0.8),
+                    Colors.transparent,
+                  ],
                 ),
               ),
-              child: _isProcessing 
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(color: Colors.white),
-                      const SizedBox(height: 16),
-                      Text(
-                        _currentStep,
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      const SizedBox(width: 48), // Placeholder for balance
-                      GestureDetector(
-                        onTap: _onSnap,
-                        child: Container(
-                          height: 84,
-                          width: 84,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 4),
-                            color: Colors.white.withValues(alpha: 0.2),
+              child: _isProcessing
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(color: Colors.white),
+                        const SizedBox(height: 16),
+                        Text(
+                          _currentStep,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        const SizedBox(width: 48), // Placeholder for balance
+                        GestureDetector(
+                          onTap: _onSnap,
                           child: Container(
-                            margin: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
+                            height: 84,
+                            width: 84,
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white,
+                              border: Border.all(color: Colors.white, width: 4),
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                            child: Container(
+                              margin: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.photo_library_outlined, color: Colors.white, size: 32),
-                        onPressed: _pickGallery,
-                      ),
-                    ],
-                  ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.photo_library_outlined,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          onPressed: _pickGallery,
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -348,7 +398,7 @@ class ScannerOverlayShape extends ShapeBorder {
 
     // Corner markers
     final path = Path();
-    
+
     // Top Left
     path.moveTo(cutOutRect.left, cutOutRect.top + borderLength);
     path.lineTo(cutOutRect.left, cutOutRect.top + borderRadius);
