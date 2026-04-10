@@ -62,7 +62,7 @@ class MotivationalMessageScreen extends ConsumerWidget {
 
               // Title
               Text(
-                "${(store.goal?.toLowerCase().contains('lose') ?? false) ? 'Lose' : 'Gain'} 10X weight with Physiq AI vs\non your own",
+                "${(store.goal?.toLowerCase().contains('lose') ?? false) ? 'Lose' : 'Gain'} weight easily with Physiq AI vs\non your own",
                 style: AppTextStyles.h1.copyWith(fontSize: 28),
                 textAlign: TextAlign.center,
               ),

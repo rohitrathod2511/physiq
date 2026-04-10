@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:physiq/config/app_config.dart';
 import 'package:physiq/providers/onboarding_provider.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/theme/design_system.dart';
@@ -37,6 +38,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   Future<String> _getNextRoute() async {
+    if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS) {
+      return isPaywallEnabled ? '/paywall' : '/home';
+    }
+
     final store = ref.read(onboardingProvider);
     var goal = _normalizeGoal(await store.getStoredGoal());
 
@@ -68,9 +73,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final nextRoute = await _getNextRoute();
     if (!mounted) return;
 
+    if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS && !isPaywallEnabled) {
+      await _authService.completeOnboarding();
+      if (!mounted) return;
+    }
+
     Future.microtask(() {
       if (!mounted) return;
-      context.pushReplacement(nextRoute);
+      context.go(nextRoute);
     });
   }
 

@@ -35,7 +35,7 @@ class LongTermResultsScreen extends StatelessWidget {
                       const _LongTermResultsCard(),
                       const SizedBox(height: 28),
                       Text(
-                        '80% of PhysiqAI users maintain their physique even after 6 months',
+                        'Physiq AI supports building habits for long-term consistency.',
                         style: AppTextStyles.bodyBold.copyWith(
                           color: AppColors.primaryText,
                           fontSize: 20,

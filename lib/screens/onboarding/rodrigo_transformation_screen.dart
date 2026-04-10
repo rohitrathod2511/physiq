@@ -26,7 +26,7 @@ class RodrigoTransformationScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 16),
                     Text(
-                      "Build a body like this",
+                      "Get inspired for your physique goals",
                       style: AppTextStyles.h1,
                       textAlign: TextAlign.center,
                     ),

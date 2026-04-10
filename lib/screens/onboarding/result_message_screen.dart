@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
@@ -15,12 +14,12 @@ class ResultMessageScreen extends ConsumerWidget {
     final current = store.weightKg ?? 0;
     final target = store.targetWeightKg ?? 0;
     final goal = (store.goal ?? '').toString().toLowerCase();
-    
+
     final bool isMaintain = goal.contains('maintain');
     final double diff = target - current;
     final bool isGain = diff >= 0;
     final double absDiff = diff.abs();
-    
+
     final String diffString = "${absDiff.toStringAsFixed(1)} kg";
     final String targetString = "${target.toStringAsFixed(1)} kg";
 
@@ -44,7 +43,10 @@ class ResultMessageScreen extends ConsumerWidget {
                     RichText(
                       textAlign: TextAlign.center,
                       text: TextSpan(
-                        style: AppTextStyles.h1.copyWith(fontSize: 32, height: 1.3),
+                        style: AppTextStyles.h1.copyWith(
+                          fontSize: 32,
+                          height: 1.3,
+                        ),
                         children: [
                           if (isMaintain) ...[
                             const TextSpan(text: "Maintaining "),
@@ -52,22 +54,30 @@ class ResultMessageScreen extends ConsumerWidget {
                               text: targetString,
                               style: const TextStyle(color: Color(0xFFD4A373)),
                             ),
-                            const TextSpan(text: " is a\nrealistic target. it's\nnot hard at all!"),
+                            const TextSpan(
+                              text:
+                                  " is a\nrealistic target. it's\nnot hard at all!",
+                            ),
                           ] else ...[
                             TextSpan(text: isGain ? "Gaining " : "Losing "),
                             TextSpan(
                               text: diffString,
-                              style: const TextStyle(color: Color(0xFFD4A373)), // Light brown/orange
+                              style: const TextStyle(
+                                color: Color(0xFFD4A373),
+                              ), // Light brown/orange
                             ),
-                            const TextSpan(text: " is a\nrealistic target. it's\nnot hard at all!"),
+                            const TextSpan(
+                              text:
+                                  " is a\nrealistic target. it's\nnot hard at all!",
+                            ),
                           ],
                         ],
                       ),
                     ),
                     const SizedBox(height: 34),
-                    
+
                     Text(
-                      "90% of users say that the change is obvious after using Physiq AI and it is not easy to rebound.",
+                      "Physiq AI helps users stay consistent and track their progress.",
                       style: AppTextStyles.h2.copyWith(
                         color: AppColors.primaryText,
                         height: 1.5,
@@ -78,7 +88,7 @@ class ResultMessageScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

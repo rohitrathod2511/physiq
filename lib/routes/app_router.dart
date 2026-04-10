@@ -50,6 +50,24 @@ bool _isPaywallRoute(String location) {
   return location == '/paywall' || location.startsWith('/onboarding/paywall');
 }
 
+bool _isTransformationOrSuccessRoute(String location) {
+  return location == '/rodrigo' ||
+      location == '/lucas' ||
+      location == '/success' ||
+      location == '/onboarding/transformation-rodrigo' ||
+      location == '/onboarding/transformation-lucas' ||
+      location == '/onboarding/success-stories';
+}
+
+String _hiddenTransformationAndSuccessFallback({
+  required bool isOnboardingComplete,
+}) {
+  if (isPaywallEnabled) {
+    return '/paywall';
+  }
+  return isOnboardingComplete ? '/home' : '/get-started';
+}
+
 class AuthSubscription extends ChangeNotifier {
   late final StreamSubscription<User?> _authSubscription;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
@@ -165,17 +183,30 @@ class AuthSubscription extends ChangeNotifier {
 final authSubscription = AuthSubscription();
 
 final GoRouter router = GoRouter(
-    navigatorKey: _rootNavigatorKey,
-    // Listens to auth changes and onboarding changes
-    refreshListenable: authSubscription,
-    initialLocation: '/',
-    redirect: (context, state) {
+  navigatorKey: _rootNavigatorKey,
+  // Listens to auth changes and onboarding changes
+  refreshListenable: authSubscription,
+  initialLocation: '/',
+  redirect: (context, state) {
     final isAuthenticated = authSubscription.currentUser != null;
     final isOnboardingComplete = authSubscription.onboardingCompleted;
     final location = state.uri.path;
     final resumeRoute = OnboardingStore.currentResumeRoute;
+    final hasCompletedOnboarding = isOnboardingComplete == true;
+
+    if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS &&
+        _isTransformationOrSuccessRoute(location)) {
+      return _hiddenTransformationAndSuccessFallback(
+        isOnboardingComplete: hasCompletedOnboarding,
+      );
+    }
 
     if (!isPaywallEnabled && _isPaywallRoute(location)) {
+      if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS) {
+        return _hiddenTransformationAndSuccessFallback(
+          isOnboardingComplete: hasCompletedOnboarding,
+        );
+      }
       return isOnboardingComplete == true
           ? '/home'
           : '/onboarding/success-stories';
@@ -306,6 +337,11 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/rodrigo',
       redirect: (context, state) {
+        if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS) {
+          return _hiddenTransformationAndSuccessFallback(
+            isOnboardingComplete: authSubscription.onboardingCompleted == true,
+          );
+        }
         return '/onboarding/transformation-rodrigo';
       },
       builder: (context, state) => const SizedBox.shrink(),
@@ -313,6 +349,11 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/lucas',
       redirect: (context, state) {
+        if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS) {
+          return _hiddenTransformationAndSuccessFallback(
+            isOnboardingComplete: authSubscription.onboardingCompleted == true,
+          );
+        }
         return '/onboarding/transformation-lucas';
       },
       builder: (context, state) => const SizedBox.shrink(),
@@ -320,6 +361,11 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/success',
       redirect: (context, state) {
+        if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS) {
+          return _hiddenTransformationAndSuccessFallback(
+            isOnboardingComplete: authSubscription.onboardingCompleted == true,
+          );
+        }
         return '/onboarding/success-stories';
       },
       builder: (context, state) => const SizedBox.shrink(),
@@ -328,6 +374,12 @@ final GoRouter router = GoRouter(
       path: '/paywall',
       redirect: (context, state) {
         if (!isPaywallEnabled) {
+          if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS) {
+            return _hiddenTransformationAndSuccessFallback(
+              isOnboardingComplete:
+                  authSubscription.onboardingCompleted == true,
+            );
+          }
           return '/onboarding/success-stories';
         }
         return '/onboarding/paywall-free';

@@ -26,7 +26,7 @@ class LucasTransformationScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 16),
                     Text(
-                      "Transform your body in 90 days",
+                      "Start your 90-day fitness journey with Physiq AI",
                       style: AppTextStyles.h1,
                       textAlign: TextAlign.center,
                     ),
