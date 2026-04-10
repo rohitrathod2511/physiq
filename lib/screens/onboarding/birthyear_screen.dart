@@ -38,7 +38,7 @@ class _BirthYearScreenState extends ConsumerState<BirthYearScreen> {
   @override
   Widget build(BuildContext context) {
     // Generate years in ascending order (e.g., 1924 to 2014)
-    final years = List.generate(101, (index) => (_currentYear - 110) + index);
+    final years = List.generate(97, (index) => 1916 + index);
     
     // Default day/month if not set
     // This is simple selection.
