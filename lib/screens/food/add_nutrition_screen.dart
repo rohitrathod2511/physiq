@@ -4,7 +4,7 @@ import 'package:physiq/services/custom_food_service.dart';
 import 'package:uuid/uuid.dart';
 
 class AddNutritionScreen extends StatefulWidget {
-  final String brandName;
+  final String brandName;     
   final String description;
   final String servingSize;
   final double servingPerContainer;
