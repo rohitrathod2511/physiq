@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:physiq/providers/onboarding_provider.dart';
 import 'package:physiq/services/onboarding_store.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'package:physiq/utils/health_score_calculator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:physiq/viewmodels/home_viewmodel.dart';
@@ -143,11 +144,12 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final store = ref.read(onboardingProvider);
+    final store = ref.watch(onboardingProvider);
     final p = int.tryParse(_proteinController.text) ?? 0;
     final f = int.tryParse(_fatController.text) ?? 0;
     final c = int.tryParse(_carbsController.text) ?? 0;
     final totalCal = (p * 4) + (f * 9) + (c * 4);
+    final healthScore = calculateHealthScore(store.data);
 
     // Fetch target data
     final targetWeightVal = store.data['targetWeightKg'];
@@ -374,7 +376,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                       style: AppTextStyles.bodyBold,
                                     ),
                                     Text(
-                                      "7/10",
+                                      "${healthScore.score.toStringAsFixed(1)}/10",
                                       style: AppTextStyles.h3.copyWith(
                                         fontSize: 16,
                                       ),
@@ -385,7 +387,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(4),
                                   child: LinearProgressIndicator(
-                                    value: 0.7,
+                                    value: (healthScore.score / 10).clamp(
+                                      0.0,
+                                      1.0,
+                                    ),
                                     backgroundColor: Colors.grey.shade100,
                                     color: Colors.green, // Visual match
                                     minHeight: 6,
