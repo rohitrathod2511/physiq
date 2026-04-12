@@ -48,6 +48,42 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:523807139910:android:53a9567f24d495dcb4c247",
+        "android_client_info": {
+          "package_name": "com.rohitrathod.physiqai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "523807139910-estoe8q4dgnp4dk8s0590p7oiiofs6mc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCC5rldWkKogvMnt5rCAZ2tWCKQZyoXY-g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "523807139910-estoe8q4dgnp4dk8s0590p7oiiofs6mc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "523807139910-ioohd84ujjdl01nqqntsmr9f4cnk8bth.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.physiq"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
