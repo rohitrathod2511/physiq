@@ -74,7 +74,7 @@ class GetStartedScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               // Headline
               Text(
-                'Build Your Strongest Self',
+                'Build Your Physique',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.h1.copyWith(
                   fontSize: 26,
