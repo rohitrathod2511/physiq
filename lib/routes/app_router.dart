@@ -652,7 +652,7 @@ class _TrackedOnboardingRouteState extends ConsumerState<_TrackedOnboardingRoute
     if (!store.isInitialized) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
