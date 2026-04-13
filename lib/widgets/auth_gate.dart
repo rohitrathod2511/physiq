@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/screens/home_screen.dart';
 import 'package:physiq/screens/onboarding/get_started_screen.dart';
-import 'package:physiq/screens/onboarding/splash_screen.dart';
+import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/widgets/scaffold_with_nav_bar.dart';
 
 class AuthGate extends StatelessWidget {
@@ -16,7 +16,7 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SplashScreen();
+          return const Scaffold(backgroundColor: AppColors.background, body: SizedBox.expand());
         }
 
         final user = snapshot.data;
@@ -28,7 +28,7 @@ class AuthGate extends StatelessWidget {
               context.go('/get-started');
             }
           });
-          return const SplashScreen();
+          return const Scaffold(backgroundColor: AppColors.background, body: SizedBox.expand());
         }
 
         // Optional: Check if Firestore user document exists before showing Home
@@ -36,7 +36,7 @@ class AuthGate extends StatelessWidget {
           future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
           builder: (context, docSnapshot) {
             if (docSnapshot.connectionState == ConnectionState.waiting) {
-              return const SplashScreen();
+              return const Scaffold(backgroundColor: AppColors.background, body: SizedBox.expand());
             }
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,7 +44,7 @@ class AuthGate extends StatelessWidget {
                 context.go('/home');
               }
             });
-            return const SplashScreen();
+            return const Scaffold(backgroundColor: AppColors.background, body: SizedBox.expand());
           },
         );
       },

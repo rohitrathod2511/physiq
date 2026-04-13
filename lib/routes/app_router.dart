@@ -9,7 +9,6 @@ import 'package:physiq/screens/progress_screen.dart';
 import 'package:physiq/screens/exercise/exercise_list_screen.dart';
 import 'package:physiq/screens/settings/settings_screen.dart';
 import 'package:physiq/screens/meal_history_screen.dart';
-import 'package:physiq/screens/onboarding/splash_screen.dart';
 import 'package:physiq/screens/onboarding/get_started_screen.dart';
 import 'package:physiq/screens/onboarding/sign_up_screen.dart';
 import 'package:physiq/screens/onboarding/gender_screen.dart';
@@ -42,6 +41,7 @@ import 'package:physiq/screens/onboarding/paywall_offer_screen.dart';
 import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/services/onboarding_store.dart';
 import 'package:physiq/widgets/scaffold_with_nav_bar.dart';
+import 'package:physiq/theme/design_system.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -312,7 +312,19 @@ final GoRouter router = GoRouter(
       ],
     ),
     // Standalone routes that sit outside the main shell
-    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(
+      path: '/',
+      builder: (context, state) => Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Image.asset(
+            'assets/physiqai_icon.png',
+            width: MediaQuery.of(context).size.width * 0.4, // Matches standard splash icon scale
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    ),
     GoRoute(
       path: '/get-started',
       builder: (context, state) => const _TrackedOnboardingRoute(
