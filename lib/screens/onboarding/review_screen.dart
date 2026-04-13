@@ -54,21 +54,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_initialized) {
-      final store = ref.read(onboardingProvider);
+    final store = ref.watch(onboardingProvider);
+    if (store.isInitialized && !_initialized) {
       final plan = store.data['currentPlan'] as Map<String, dynamic>?;
 
       _proteinController = TextEditingController(
-        text: (plan?['proteinG'] ?? 0).toString(),
+        text: (plan?['proteinG'] ?? plan?['protein'] ?? 0).toString(),
       );
       _fatController = TextEditingController(
-        text: (plan?['fatG'] ?? 0).toString(),
+        text: (plan?['fatG'] ?? plan?['fat'] ?? 0).toString(),
       );
       _carbsController = TextEditingController(
-        text: (plan?['carbsG'] ?? 0).toString(),
+        text: (plan?['carbsG'] ?? plan?['carbs'] ?? 0).toString(),
       );
       _caloriesController = TextEditingController(
-        text: (plan?['goalCalories'] ?? 0).toString(),
+        text: (plan?['goalCalories'] ?? plan?['calories'] ?? 0).toString(),
       );
       _initialized = true;
     }
@@ -88,6 +88,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final f = int.tryParse(_fatController.text) ?? 0;
     final c = int.tryParse(_carbsController.text) ?? 0;
     final cal = int.tryParse(_caloriesController.text) ?? 0;
+
+    // Validate: Prevent saving with invalid/zero calories
+    if (cal < 1200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Calories too low. Please adjust.')),
+      );
+      return;
+    }
 
     // Determine if edited
     final initialP = initialPlan['protein'] ?? initialPlan['proteinG'] ?? 0;
@@ -145,6 +153,15 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final store = ref.watch(onboardingProvider);
+
+    if (!store.isInitialized || !_initialized) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     final p = int.tryParse(_proteinController.text) ?? 0;
     final f = int.tryParse(_fatController.text) ?? 0;
     final c = int.tryParse(_carbsController.text) ?? 0;

@@ -379,7 +379,10 @@ class AuthService {
       await _firestore.collection('users').doc(user.uid).set({
         'onboardingCompleted': true,
       }, SetOptions(merge: true));
+      
+      // Clear all ephemeral onboarding state
       await OnboardingStore.clearResumeState();
+      await OnboardingStore.clearPersistedDraft();
     }
   }
 }

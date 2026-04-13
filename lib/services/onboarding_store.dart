@@ -39,6 +39,7 @@ class OnboardingStore extends ChangeNotifier {
     '/onboarding/paywall-offer': 27,
   };
   Map<String, dynamic> _data = {};
+  bool _isInitialized = false;
   late final Future<void> _loadFuture;
   static String? _currentResumeRoute;
   static int? _currentResumeStep;
@@ -48,6 +49,8 @@ class OnboardingStore extends ChangeNotifier {
   }
 
   Map<String, dynamic> get data => _data;
+  bool get isInitialized => _isInitialized;
+  Future<void> get initializationFuture => _loadFuture;
   static String? get currentResumeRoute => _currentResumeRoute;
   static int? get currentResumeStep => _currentResumeStep;
 
@@ -61,12 +64,13 @@ class OnboardingStore extends ChangeNotifier {
     final String? jsonString = prefs.getString(_storageKey);
     if (jsonString != null) {
       try {
-        _data = json.decode(jsonString);
-        notifyListeners();
+        _data = Map<String, dynamic>.from(json.decode(jsonString));
       } catch (e) {
         print('Error loading draft: $e');
       }
     }
+    _isInitialized = true;
+    notifyListeners();
   }
 
   Future<void> saveStepData(String stepKey, dynamic value) async {
@@ -150,8 +154,15 @@ class OnboardingStore extends ChangeNotifier {
   static Future<void> saveResumeRoute(String route) async {
     if (!isOnboardingRoute(route)) return;
 
-    _currentResumeRoute = route;
-    _currentResumeStep = _routeToStep[route];
+    final newStep = _routeToStep[route];
+    if (newStep == null) return;
+
+    // Only update to a later (greater) step. This prevents back navigation from
+    // overwriting the resume position with an earlier step.
+    if (_currentResumeStep == null || newStep > _currentResumeStep!) {
+      _currentResumeRoute = route;
+      _currentResumeStep = newStep;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     if (_currentResumeStep != null) {

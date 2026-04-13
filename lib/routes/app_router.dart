@@ -42,6 +42,8 @@ import 'package:physiq/screens/macro_adjustment_screen.dart';
 import 'package:physiq/services/onboarding_store.dart';
 import 'package:physiq/widgets/scaffold_with_nav_bar.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:physiq/providers/onboarding_provider.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -612,18 +614,18 @@ final GoRouter router = GoRouter(
   ],
 );
 
-class _TrackedOnboardingRoute extends StatefulWidget {
+class _TrackedOnboardingRoute extends ConsumerStatefulWidget {
   final String route;
   final Widget child;
 
   const _TrackedOnboardingRoute({required this.route, required this.child});
 
   @override
-  State<_TrackedOnboardingRoute> createState() =>
+  ConsumerState<_TrackedOnboardingRoute> createState() =>
       _TrackedOnboardingRouteState();
 }
 
-class _TrackedOnboardingRouteState extends State<_TrackedOnboardingRoute> {
+class _TrackedOnboardingRouteState extends ConsumerState<_TrackedOnboardingRoute> {
   @override
   void initState() {
     super.initState();
@@ -644,6 +646,18 @@ class _TrackedOnboardingRouteState extends State<_TrackedOnboardingRoute> {
 
   @override
   Widget build(BuildContext context) {
+    final store = ref.watch(onboardingProvider);
+
+    // If not initialized, show a brief loading state to prevent flickering with empty data
+    if (!store.isInitialized) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
     return widget.child;
   }
 }
