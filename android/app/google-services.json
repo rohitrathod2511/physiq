@@ -58,6 +58,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "523807139910-6fllittouft7gg18n57o12eu5v2d7n6q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rohitrathod.physiqai",
+            "certificate_hash": "bb7f10b20fb95f16df5aaf0e422aceeea43c9f20"
+          }
+        },
+        {
           "client_id": "523807139910-estoe8q4dgnp4dk8s0590p7oiiofs6mc.apps.googleusercontent.com",
           "client_type": 3
         }
