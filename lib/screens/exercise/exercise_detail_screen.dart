@@ -21,13 +21,13 @@ class ExerciseDetailScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ExerciseDetailScreen> createState() => _ExerciseDetailScreenState();
+  ConsumerState<ExerciseDetailScreen> createState() =>
+      _ExerciseDetailScreenState();
 }
 
-class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> with SingleTickerProviderStateMixin {
+class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
-
 
   // Manual State
   final List<Map<String, String>> _sets = [];
@@ -49,7 +49,10 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: widget.category == 'home' ? 2 : 1, vsync: this);
+    _tabController = TabController(
+      length: widget.category == 'home' ? 2 : 1,
+      vsync: this,
+    );
     _tabController.addListener(() {
       setState(() {});
     });
@@ -77,7 +80,9 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           } else {
             // Switch mode
             _isWork = !_isWork;
-            _timeLeft = _isWork ? _workDuration : _restDuration; // Customizable rest
+            _timeLeft = _isWork
+                ? _workDuration
+                : _restDuration; // Customizable rest
             if (_isWork) _rounds++;
           }
         });
@@ -90,9 +95,15 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
     showDialog(
       context: context,
       builder: (context) {
-        final workController = TextEditingController(text: _workDuration.toString());
-        final restController = TextEditingController(text: _restDuration.toString());
-        final roundsController = TextEditingController(text: _targetRounds.toString());
+        final workController = TextEditingController(
+          text: _workDuration.toString(),
+        );
+        final restController = TextEditingController(
+          text: _restDuration.toString(),
+        );
+        final roundsController = TextEditingController(
+          text: _targetRounds.toString(),
+        );
 
         return Dialog(
           backgroundColor: Colors.transparent,
@@ -109,14 +120,14 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
               children: [
                 Text('Timer Settings', style: AppTextStyles.heading2),
                 const SizedBox(height: 24),
-                
+
                 Row(
                   children: [
-                     Expanded(child: _buildInput('Work (s)', workController)),
-                     const SizedBox(width: 12),
-                     Expanded(child: _buildInput('Rest (s)', restController)),
-                     const SizedBox(width: 12),
-                     Expanded(child: _buildInput('Rounds', roundsController)),
+                    Expanded(child: _buildInput('Work (s)', workController)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildInput('Rest (s)', restController)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildInput('Rounds', roundsController)),
                   ],
                 ),
 
@@ -126,8 +137,15 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                     Expanded(
                       child: TextButton(
                         onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(foregroundColor: AppColors.secondaryText),
-                        child: Text('Cancel', style: AppTextStyles.button.copyWith(color: AppColors.secondaryText)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.secondaryText,
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: AppTextStyles.button.copyWith(
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -137,8 +155,13 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           final w = int.tryParse(workController.text);
                           final r = int.tryParse(restController.text);
                           final rnd = int.tryParse(roundsController.text);
-                          
-                          if (w != null && w > 0 && r != null && r >= 0 && rnd != null && rnd > 0) {
+
+                          if (w != null &&
+                              w > 0 &&
+                              r != null &&
+                              r >= 0 &&
+                              rnd != null &&
+                              rnd > 0) {
                             setState(() {
                               _workDuration = w;
                               _restDuration = r;
@@ -155,9 +178,16 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           backgroundColor: AppColors.primary,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                         ),
-                        child: Text('Save', style: AppTextStyles.button.copyWith(color: Colors.white)),
+                        child: Text(
+                          'Save',
+                          style: AppTextStyles.button.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -194,10 +224,10 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
 
   Future<void> _onSave() async {
     final viewModel = ref.read(exerciseViewModelProvider.notifier);
-    
+
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    
+
     // Fetch user weight
     final user = await ref.read(userRepositoryProvider).streamUser(uid).first;
     final double weightKg = (user?.weightKg ?? 70.0).toDouble();
@@ -205,11 +235,12 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
     int durationMin = 0;
     double calories = 0;
 
-    if (_tabController.index == (widget.category == 'home' ? 1 : -1)) { // Logic for timer tab index
-       // Re-evaluating index logic: 
-       // If Home: Tab 0 = Manual, Tab 1 = Timer.
-       // If Gym: Tab 0 = Manual. Timer tab not present.
-       // So if category == 'home' && index == 1, it's timer.
+    if (_tabController.index == (widget.category == 'home' ? 1 : -1)) {
+      // Logic for timer tab index
+      // Re-evaluating index logic:
+      // If Home: Tab 0 = Manual, Tab 1 = Timer.
+      // If Gym: Tab 0 = Manual. Timer tab not present.
+      // So if category == 'home' && index == 1, it's timer.
       // Timer mode
       durationMin = (_totalDurationSec / 60).ceil();
       calories = await viewModel.estimateCalories(
@@ -222,7 +253,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
       // Manual Sets mode (Index 0)
       // Estimate duration: sets * (reps * 3s + 60s rest)
       // Simple heuristic: 2 mins per set
-      durationMin = _sets.length * 2; 
+      durationMin = _sets.length * 2;
       calories = await viewModel.estimateCalories(
         exerciseType: widget.exerciseId, // Specific ID
         intensity: 'medium',
@@ -241,7 +272,9 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
               userId: uid,
               exerciseId: widget.exerciseId,
               name: widget.name,
-              type: widget.category == 'home' ? ExerciseType.home : ExerciseType.gym,
+              type: widget.category == 'home'
+                  ? ExerciseType.home
+                  : ExerciseType.gym,
               durationMinutes: durationMin,
               calories: finalCalories,
               intensity: 'medium',
@@ -253,14 +286,20 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
               isManualOverride: finalCalories != calories,
             );
             Navigator.popUntil(context, (route) => route.isFirst);
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Workout logged!')));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Workout logged!')));
           },
         ),
       ),
     );
   }
 
-  Widget _buildInput(String label, TextEditingController controller, {VoidCallback? onSuffixTap}) {
+  Widget _buildInput(
+    String label,
+    TextEditingController controller, {
+    VoidCallback? onSuffixTap,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -280,15 +319,18 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
             style: AppTextStyles.bodyBold,
             decoration: InputDecoration(
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0), // Centered vertically by default
-              suffixIcon: onSuffixTap != null 
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 0,
+              ), // Centered vertically by default
+              suffixIcon: onSuffixTap != null
                   ? IconButton(
-                      icon: const Icon(Icons.add, size: 16), 
+                      icon: const Icon(Icons.add, size: 16),
                       onPressed: onSuffixTap,
                       color: AppColors.primary,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                    ) 
+                    )
                   : null,
             ),
           ),
@@ -302,7 +344,12 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text((_tabController.length > 1 && _tabController.index == 1) ? 'Workout' : widget.name, style: AppTextStyles.heading2),
+        title: Text(
+          (_tabController.length > 1 && _tabController.index == 1)
+              ? 'Workout'
+              : widget.name,
+          style: AppTextStyles.heading2,
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: BackButton(color: AppColors.primaryText),
@@ -335,14 +382,27 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                         decoration: BoxDecoration(
                           color: AppColors.card,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.secondaryText.withOpacity(0.1)),
+                          border: Border.all(
+                            color: AppColors.secondaryText.withOpacity(0.1),
+                          ),
                         ),
                         child: ListTile(
-                          title: Text('Set ${index + 1}', style: AppTextStyles.bodyBold),
-                          subtitle: Text('${set['reps']} reps @ ${set['weight']} kg', style: AppTextStyles.body),
+                          title: Text(
+                            'Set ${index + 1}',
+                            style: AppTextStyles.bodyBold,
+                          ),
+                          subtitle: Text(
+                            '${set['reps']} reps @ ${set['weight']} kg',
+                            style: AppTextStyles.body,
+                          ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                            onPressed: () => setState(() => _sets.removeAt(index)),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
+                            onPressed: () =>
+                                setState(() => _sets.removeAt(index)),
                           ),
                         ),
                       );
@@ -356,19 +416,35 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                     color: AppColors.card,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                      ),
                     ],
                   ),
                   child: Column(
                     children: [
                       Row(
                         children: [
-                          Expanded(flex: 2, child: _buildInput('Sets', _setsController)),
+                          Expanded(
+                            flex: 2,
+                            child: _buildInput('Sets', _setsController),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(flex: 3, child: _buildInput('Reps', _repsController)),
+                          Expanded(
+                            flex: 3,
+                            child: _buildInput('Reps', _repsController),
+                          ),
                           if (widget.category != 'home') ...[
                             const SizedBox(width: 12),
-                            Expanded(flex: 3, child: _buildInput('Weight (kg)', _weightController, onSuffixTap: _incrementWeight)),
+                            Expanded(
+                              flex: 3,
+                              child: _buildInput(
+                                'Weight (kg)',
+                                _weightController,
+                                onSuffixTap: _incrementWeight,
+                              ),
+                            ),
                           ],
                         ],
                       ),
@@ -380,7 +456,9 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             side: BorderSide(color: AppColors.primary),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                           child: Text('Add Set', style: AppTextStyles.button),
                         ),
@@ -394,9 +472,12 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
           // Timer Tab (Now Second)
           if (widget.category == 'home')
             Container(
-              color: const Color(0xFFF5F5F4),
+              color: AppColors.background,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -412,16 +493,19 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           child: CircularProgressIndicator(
                             value: 1.0,
                             strokeWidth: 10,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.withOpacity(0.15)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.secondaryText.withOpacity(0.15),
+                            ),
                           ),
                         ),
                         // Animated progress ring
                         TweenAnimationBuilder<double>(
                           tween: Tween<double>(
                             begin: 1.0,
-                            end: (_isWork ? _workDuration : _restDuration) == 0 
-                                ? 0.0 
-                                : _timeLeft / (_isWork ? _workDuration : _restDuration),
+                            end: (_isWork ? _workDuration : _restDuration) == 0
+                                ? 0.0
+                                : _timeLeft /
+                                      (_isWork ? _workDuration : _restDuration),
                           ),
                           duration: const Duration(seconds: 1),
                           curve: Curves.linear,
@@ -432,7 +516,11 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                               value: value,
                               strokeWidth: 10,
                               backgroundColor: Colors.transparent,
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF16A34A)),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                _isWork
+                                    ? const Color(0xFF16A34A)
+                                    : AppColors.primary,
+                              ),
                               strokeCap: StrokeCap.round,
                             ),
                           ),
@@ -442,74 +530,81 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              '$_timeLeft', 
+                              '$_timeLeft',
                               style: AppTextStyles.largeNumber.copyWith(
                                 fontSize: 80,
                                 height: 1.0,
-                                color: const Color(0xFF1E1E1E),
+                                color: AppColors.primaryText,
                               ),
                             ),
                             Text(
-                              'SECONDS', 
+                              'SECONDS',
                               style: AppTextStyles.smallLabel.copyWith(
-                                fontSize: 13, 
-                                fontWeight: FontWeight.bold, 
-                                letterSpacing: 2.0, 
-                                color: Colors.grey,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2.0,
+                                color: AppColors.secondaryText,
                               ),
                             ),
                           ],
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 48),
-                    
+
                     // ROUND INDICATOR
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5E5E5).withOpacity(0.6),
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'ROUND $_rounds / $_targetRounds', 
+                        'ROUND $_rounds / $_targetRounds',
                         style: AppTextStyles.bodyBold.copyWith(
-                          color: const Color(0xFF4A4A4A), 
+                          color: AppColors.secondaryText,
                           fontSize: 14,
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // EXERCISE INFO
                     Text(
-                      widget.name, 
+                      widget.name,
                       style: AppTextStyles.heading1.copyWith(
-                        fontSize: 28, 
-                        color: Colors.black87,
+                        fontSize: 28,
+                        color: AppColors.primaryText,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: AppColors.secondaryText,
+                        ),
                         const SizedBox(width: 6),
                         Text(
-                          '${_restDuration}s Rest', 
+                          '${_restDuration}s Rest',
                           style: AppTextStyles.body.copyWith(
-                            fontSize: 15, 
-                            color: Colors.grey, 
+                            fontSize: 15,
+                            color: AppColors.secondaryText,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // PRIMARY BUTTON (CTA)
                     SizedBox(
                       width: double.infinity,
@@ -517,21 +612,26 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                       child: OutlinedButton(
                         onPressed: _toggleTimer,
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.black, width: 2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                          backgroundColor: AppColors.card,
+                          side: BorderSide(
+                            color: AppColors.primaryText,
+                            width: 2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(32),
+                          ),
                           elevation: 2,
-                          shadowColor: Colors.black.withOpacity(0.1),
+                          shadowColor: AppColors.shadow,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Spacer(flex: 3),
                             Text(
-                              _isRunning ? 'PAUSE SET' : 'START SET', 
+                              _isRunning ? 'PAUSE SET' : 'START SET',
                               style: AppTextStyles.button.copyWith(
-                                color: Colors.black, 
-                                fontSize: 18, 
+                                color: AppColors.primaryText,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -540,12 +640,15 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white,
-                                border: Border.all(color: Colors.black, width: 2),
+                                color: AppColors.card,
+                                border: Border.all(
+                                  color: AppColors.primaryText,
+                                  width: 2,
+                                ),
                               ),
                               child: Icon(
-                                _isRunning ? Icons.pause : Icons.play_arrow, 
-                                color: Colors.black, 
+                                _isRunning ? Icons.pause : Icons.play_arrow,
+                                color: AppColors.primaryText,
                                 size: 20,
                               ),
                             ),
@@ -554,9 +657,9 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // SECONDARY OPTIONS: Timer & Reset
                     Row(
                       children: [
@@ -564,15 +667,20 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                           child: OutlinedButton(
                             onPressed: _editSettings,
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.5),
-                              side: BorderSide(color: Colors.grey.shade300, width: 1),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              backgroundColor: AppColors.card.withOpacity(0.5),
+                              side: BorderSide(
+                                color: AppColors.secondaryText.withOpacity(0.3),
+                                width: 1,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             child: Text(
-                              'Timer', 
+                              'Timer',
                               style: AppTextStyles.bodyBold.copyWith(
-                                color: Colors.black87, 
+                                color: AppColors.primaryText,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -592,15 +700,20 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                               });
                             },
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.5),
-                              side: BorderSide(color: Colors.grey.shade300, width: 1),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              backgroundColor: AppColors.card.withOpacity(0.5),
+                              side: BorderSide(
+                                color: AppColors.secondaryText.withOpacity(0.3),
+                                width: 1,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             child: Text(
-                              'Reset', 
+                              'Reset',
                               style: AppTextStyles.bodyBold.copyWith(
-                                color: Colors.black87, 
+                                color: AppColors.primaryText,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -615,20 +728,29 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                       child: OutlinedButton(
                         onPressed: _onSave,
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.5),
-                          side: BorderSide(color: Colors.grey.shade300, width: 1),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          backgroundColor: AppColors.card.withOpacity(0.5),
+                          side: BorderSide(
+                            color: AppColors.secondaryText.withOpacity(0.3),
+                            width: 1,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.check_circle, color: Colors.black87, size: 20),
+                            Icon(
+                              Icons.check_circle,
+                              color: AppColors.primaryText,
+                              size: 20,
+                            ),
                             const SizedBox(width: 8),
                             Text(
-                              'Log Workout', 
+                              'Log Workout',
                               style: AppTextStyles.bodyBold.copyWith(
-                                color: Colors.black87, 
+                                color: AppColors.primaryText,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -636,15 +758,18 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                         ),
                       ),
                     ),
-                    const SizedBox(height: 100), // Extra space to clear global navbar
+                    const SizedBox(
+                      height: 100,
+                    ), // Extra space to clear global navbar
                   ],
                 ),
               ),
             ),
         ],
       ),
-      bottomNavigationBar: (_tabController.length > 1 && _tabController.index == 1) 
-          ? null 
+      bottomNavigationBar:
+          (_tabController.length > 1 && _tabController.index == 1)
+          ? null
           : Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 96), // Lifted up
               child: SizedBox(
@@ -654,9 +779,14 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> wit
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                   ),
-                  child: Text('Finish & Save', style: AppTextStyles.button.copyWith(color: Colors.white)),
+                  child: Text(
+                    'Finish & Save',
+                    style: AppTextStyles.button.copyWith(color: Colors.white),
+                  ),
                 ),
               ),
             ),
