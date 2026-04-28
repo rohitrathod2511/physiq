@@ -66,6 +66,14 @@
           }
         },
         {
+          "client_id": "523807139910-viuhvvmgla3b5catjkccse1t2p6h9p8d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rohitrathod.physiqai",
+            "certificate_hash": "8768d9308e97820dff2085baf9431a157e842af3"
+          }
+        },
+        {
           "client_id": "523807139910-estoe8q4dgnp4dk8s0590p7oiiofs6mc.apps.googleusercontent.com",
           "client_type": 3
         }
