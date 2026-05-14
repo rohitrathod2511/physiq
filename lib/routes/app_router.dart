@@ -645,18 +645,21 @@ class _TrackedOnboardingRouteState extends ConsumerState<_TrackedOnboardingRoute
   }
 
   @override
-  Widget build(BuildContext context) {
+Widget build(BuildContext context) {
     final store = ref.watch(onboardingProvider);
 
-    // If not initialized, show a brief loading state to prevent flickering with empty data
     if (!store.isInitialized) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(
+        body: const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
+
+    return widget.child;
+  }
+}
 
     return widget.child;
   }

@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:physiq/services/onboarding_store.dart';
+import 'package:physiq/services/revenuecat_service.dart';
 
 /// A simple configuration class to toggle between mock and real backends.
 class AppConfig {
@@ -115,6 +116,13 @@ class AuthService {
           credential.user!,
           authProvider: 'email',
         );
+
+        // Sync RevenueCat login
+        try {
+          await RevenueCatService.instance.loginUser(credential.user!.uid);
+        } catch (e) {
+          debugPrint('⚠️ RevenueCat login failed: $e');
+        }
       }
 
       return credential;
@@ -165,6 +173,13 @@ class AuthService {
           authProvider: 'email',
           onboardingData: onboardingData,
         );
+
+        // Sync RevenueCat login
+        try {
+          await RevenueCatService.instance.loginUser(user.uid);
+        } catch (e) {
+          debugPrint('⚠️ RevenueCat login failed: $e');
+        }
       }
 
       return credential;
@@ -222,6 +237,13 @@ class AuthService {
           authProvider: 'google',
           onboardingData: onboardingData,
         );
+
+        // Sync RevenueCat login
+        try {
+          await RevenueCatService.instance.loginUser(user.uid);
+        } catch (e) {
+          debugPrint('⚠️ RevenueCat login failed: $e');
+        }
       }
 
       return userCredential;
@@ -256,6 +278,13 @@ class AuthService {
           isAnonymous: true,
           onboardingData: onboardingData,
         );
+
+        // Sync RevenueCat login for anonymous users
+        try {
+          await RevenueCatService.instance.loginUser(user.uid);
+        } catch (e) {
+          debugPrint('⚠️ RevenueCat login failed for anonymous: $e');
+        }
       }
 
       return userCredential;
@@ -344,6 +373,8 @@ class AuthService {
       }
       debugPrint('🔐 AUTH_SERVICE: Calling Firebase signOut');
       await _firebaseAuth.signOut();
+      debugPrint('🔐 AUTH_SERVICE: Signing out of RevenueCat');
+      await RevenueCatService.instance.logout();
       debugPrint('🔐 AUTH_SERVICE: signOut completed');
     } catch (e) {
       debugPrint('🔐 AUTH_SERVICE: Sign Out Error: $e');

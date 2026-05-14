@@ -10,6 +10,7 @@ import 'package:physiq/routes/app_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/providers/preferences_provider.dart';
 import 'package:physiq/services/messaging_service.dart';
+import 'package:physiq/services/revenuecat_service.dart';
 import 'package:go_router/go_router.dart';
 import 'firebase_options.dart';
 
@@ -27,6 +28,13 @@ void main() async {
   };
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize RevenueCat
+  try {
+    await RevenueCatService.instance.initialize();
+  } catch (e) {
+    debugPrint('⚠️ RevenueCat initialization failed: $e');
+  }
 
   // Initialize Firebase Messaging
   await MessagingService().initialize();

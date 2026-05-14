@@ -3,6 +3,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
         android:label="Physiq AI"
@@ -50,4 +51,5 @@
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
+     
 </manifest>

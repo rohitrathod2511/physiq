@@ -1,2 +1,2 @@
-bool isPaywallEnabled = false;
-bool SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS = false;
+bool isPaywallEnabled = true;
+bool SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS = true;
