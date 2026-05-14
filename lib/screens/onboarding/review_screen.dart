@@ -157,7 +157,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     if (!store.isInitialized || !_initialized) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
