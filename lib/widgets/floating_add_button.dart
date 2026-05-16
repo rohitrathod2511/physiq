@@ -3,31 +3,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/screens/meal/meal_logging_flows.dart';
+import 'package:physiq/providers/subscription_provider.dart';
 
 class FloatingAddButton extends ConsumerWidget {
   const FloatingAddButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = true; // Hardcoded for UI-only task
+    final isPremiumAsync = ref.watch(isPremiumStreamProvider);
 
     return SizedBox(
-      width: 72, // Larger size
+      width: 72,
       height: 72,
       child: FloatingActionButton(
         onPressed: () {
-          if (isPremium) {
-            _showAddOptions(context, ref);
-          } else {
-            context.go('/paywall');
-          }
+          isPremiumAsync.when(
+            data: (isPremium) {
+              if (isPremium) {
+                _showAddOptions(context, ref);
+              } else {
+                context.push('/paywall');
+              }
+            },
+            loading: () {},
+            error: (_, __) => context.push('/paywall'),
+          );
         },
-        backgroundColor: const Color(0xFF111827), // Dark/Black color
+        backgroundColor: const Color(0xFF111827),
         foregroundColor: Colors.white,
         elevation: 10.0,
-        shape: const CircleBorder(), // Thinner plus icon
+        shape: const CircleBorder(),
         heroTag: null,
-        child: const Icon(Icons.add, size: 36, weight: 400), // Avoids tag conflicts
+        child: const Icon(Icons.add, size: 36),
       ),
     );
   }
@@ -51,25 +58,48 @@ class FloatingAddButton extends ConsumerWidget {
                 child: Text('Add a Meal', style: AppTextStyles.heading2),
               ),
               const SizedBox(height: 16),
-              // FIX: Passing 'context' (parent) instead of 'sheetContext' so it remains mounted after pop
-              // NEW OPTIONS per Prompt
-              _buildOptionTile(sheetContext, 'Snap Meal', Icons.camera_alt_outlined, () => showSnapMealFlow(context, ref)),
-              _buildOptionTile(sheetContext, 'Food Database', Icons.search, () => showFoodDatabaseFlow(context, ref)),
-              _buildOptionTile(sheetContext, 'Saved Foods', Icons.bookmark_border, () => showSavedFoodsFlow(context, ref)),
+              _buildOptionTile(
+                sheetContext,
+                'Snap Meal',
+                Icons.camera_alt_outlined,
+                () => showSnapMealFlow(context, ref),
+              ),
+              _buildOptionTile(
+                sheetContext,
+                'Food Database',
+                Icons.search,
+                () => showFoodDatabaseFlow(context, ref),
+              ),
+              _buildOptionTile(
+                sheetContext,
+                'Saved Foods',
+                Icons.bookmark_border,
+                () => showSavedFoodsFlow(context, ref),
+              ),
             ],
           ),
         );
       },
     );
-
   }
 
-  Widget _buildOptionTile(BuildContext context, String title, IconData icon, VoidCallback onTapAction) {
+  Widget _buildOptionTile(
+    BuildContext context,
+    String title,
+    IconData icon,
+    VoidCallback onTapAction,
+  ) {
     return ListTile(
       leading: Icon(icon, color: AppColors.primaryText, size: 28),
-      title: Text(title, style: AppTextStyles.label.copyWith(fontSize: 16, color: AppColors.primaryText)),
+      title: Text(
+        title,
+        style: AppTextStyles.label.copyWith(
+          fontSize: 16,
+          color: AppColors.primaryText,
+        ),
+      ),
       onTap: () {
-        Navigator.pop(context); // Close the bottom sheet first
+        Navigator.pop(context);
         onTapAction();
       },
       shape: RoundedRectangleBorder(

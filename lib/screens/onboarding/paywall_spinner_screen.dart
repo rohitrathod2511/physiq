@@ -17,7 +17,6 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
   int _spinCount = 0;
   bool _isSpinning = false;
 
-  // 6 specific segments: alternating colors
   final List<SpinSegment> _segments = [
     SpinSegment(
       text: "10% OFF",
@@ -82,25 +81,18 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
       _spinCount++;
     });
 
-    // We want to land on "80% OFF" which is index 4.
     int targetIndex = 4;
 
-    double segmentAngle = 2 * math.pi / _segments.length; // 60 degrees (pi/3)
+    double segmentAngle = 2 * math.pi / _segments.length;
 
-    // Calculate rotation to align targetIndex with Top Pointer.
-    // Pointer is at Top (1.5 * pi or 270 degrees).
-    // Center of segment i is (i + 0.5) * segmentAngle.
-    // (Center + TotalRotation) % 2pi = 1.5 * pi
     double segmentCenter = (targetIndex + 0.5) * segmentAngle;
     double targetRotation = (1.5 * math.pi) - segmentCenter;
 
-    // Add extra spins (5-7 full rotations) for a natural look
     double extraSpins = 6 * 2 * math.pi;
 
     double startAngle = _endAngle;
     _endAngle = startAngle + extraSpins;
 
-    // Adjust remainder to hit target
     double currentMod = _endAngle % (2 * math.pi);
     double targetMod = targetRotation % (2 * math.pi);
     if (targetMod < 0) targetMod += 2 * math.pi;
@@ -121,7 +113,6 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
   double _endAngle = 0;
 
   void _handleSpinResult() {
-    // Navigate directly to Paywall Offer Screen after 80% OFF result
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
         context.pushReplacement('/onboarding/paywall-offer');
@@ -142,7 +133,6 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // Title
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Text(
@@ -152,7 +142,6 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
               ),
             ),
             const SizedBox(height: 12),
-            // Subtitle
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
               child: Text(
@@ -163,14 +152,10 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                 textAlign: TextAlign.center,
               ),
             ),
-
             const Spacer(),
-
-            // Spinner System
             Stack(
               alignment: Alignment.center,
               children: [
-                // Outer Glow/Border
                 Container(
                   width: 340,
                   height: 340,
@@ -180,20 +165,19 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.white.withOpacity(0.2),
-                        Colors.black.withOpacity(0.1),
+                        Colors.white.withValues(alpha: 0.2),
+                        Colors.black.withValues(alpha: 0.1),
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 25,
                         spreadRadius: 2,
                       ),
                     ],
                   ),
                 ),
-                // Wheel
                 AnimatedBuilder(
                   animation: _controller,
                   builder: (context, child) {
@@ -215,8 +199,6 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                     );
                   },
                 ),
-
-                // Center Hub with premium styling
                 GestureDetector(
                   onTap: _spinWheel,
                   child: Container(
@@ -228,7 +210,7 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                       border: Border.all(color: Colors.white, width: 3),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.4),
+                          color: Colors.black.withValues(alpha: 0.4),
                           blurRadius: 15,
                           offset: const Offset(0, 4),
                         ),
@@ -239,8 +221,6 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                     ),
                   ),
                 ),
-
-                // Top Pointer (More premium arrow)
                 Positioned(
                   top: 0,
                   child: Transform.translate(
@@ -254,17 +234,13 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                 ),
               ],
             ),
-
             const SizedBox(height: 30),
-
-            // Helper Text
             Text(
               _isSpinning ? "Revealing your offer..." : "Tap the wheel to spin",
               style: AppTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600, // Medium-Bold
+                fontWeight: FontWeight.w600,
               ),
             ),
-
             const Spacer(),
             const SizedBox(height: 40),
           ],
@@ -305,12 +281,10 @@ class WheelPainter extends CustomPainter {
     for (int i = 0; i < segments.length; i++) {
       paint.color = segments[i].color;
 
-      // Draw Arc
       canvas.drawArc(rect, i * anglePerSegment, anglePerSegment, true, paint);
 
-      // Draw thin border between segments
       final borderPaint = Paint()
-        ..color = Colors.grey.withOpacity(0.2)
+        ..color = Colors.grey.withValues(alpha: 0.2)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5;
       canvas.drawArc(
@@ -321,13 +295,11 @@ class WheelPainter extends CustomPainter {
         borderPaint,
       );
 
-      // Draw Content (Text)
       canvas.save();
-      // Rotate to center of segment
       double rotationAngle = i * anglePerSegment + anglePerSegment / 2;
       canvas.translate(center.dx, center.dy);
       canvas.rotate(rotationAngle);
-      canvas.translate(radius * 0.68, 0); // Move out to text position
+      canvas.translate(radius * 0.68, 0);
 
       TextPainter textPainter = TextPainter(
         text: TextSpan(
@@ -344,7 +316,6 @@ class WheelPainter extends CustomPainter {
       );
       textPainter.layout();
 
-      // Rotate text to be radial
       canvas.rotate(math.pi / 2);
       textPainter.paint(
         canvas,
@@ -354,7 +325,6 @@ class WheelPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // Outer premium border
     paint
       ..color = Colors.black
       ..style = PaintingStyle.stroke
@@ -362,7 +332,7 @@ class WheelPainter extends CustomPainter {
     canvas.drawCircle(center, radius, paint);
 
     paint
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawCircle(center, radius - 4, paint);

@@ -1,8 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
-
 import 'package:physiq/services/auth_service.dart';
 
 class PaywallNotificationScreen extends StatefulWidget {
@@ -20,6 +18,10 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     await _authService.completeOnboarding();
+  }
+
+  void _navigateToNextPaywall() {
+    context.push('/onboarding/paywall-main');
   }
 
   @override
@@ -51,7 +53,6 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),
-            // Notification Bell Icon
             Stack(
               alignment: Alignment.topRight,
               children: [
@@ -82,7 +83,7 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => context.push('/onboarding/paywall-main'),
+                onPressed: _isLoading ? null : _navigateToNextPaywall,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -91,7 +92,13 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('Continue for FREE'),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('Continue for FREE'),
               ),
             ),
             const SizedBox(height: 16),

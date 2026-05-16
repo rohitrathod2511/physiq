@@ -1,14 +1,16 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
+import 'package:physiq/providers/subscription_provider.dart';
 
-class BottomNavBar extends StatelessWidget {
+class BottomNavBar extends ConsumerWidget {
   const BottomNavBar({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isCompact = screenWidth < 400;
@@ -34,7 +36,7 @@ class BottomNavBar extends StatelessWidget {
         outerHorizontalPadding,
         0,
         outerHorizontalPadding,
-        10, // Reduced from 18 to move it closer to bottom
+        10,
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -79,6 +81,7 @@ class BottomNavBar extends StatelessWidget {
                     Expanded(
                       child: _buildNavItem(
                         context,
+                        ref,
                         activeIcon: Icons.home_filled,
                         inactiveIcon: Icons.home_outlined,
                         label: 'Home',
@@ -93,6 +96,7 @@ class BottomNavBar extends StatelessWidget {
                     Expanded(
                       child: _buildNavItem(
                         context,
+                        ref,
                         activeIcon: Icons.bar_chart_rounded,
                         inactiveIcon: Icons.bar_chart_outlined,
                         label: 'Progress',
@@ -104,10 +108,11 @@ class BottomNavBar extends StatelessWidget {
                         unselectedContentColor: unselectedContentColor,
                       ),
                     ),
-                    SizedBox(width: fabSpace), // The space for the FAB
+                    SizedBox(width: fabSpace),
                     Expanded(
-                      child: _buildNavItem(
+                      child: _buildExerciseNavItem(
                         context,
+                        ref,
                         activeIcon: Icons.fitness_center,
                         inactiveIcon: Icons.fitness_center_outlined,
                         label: 'Exercise',
@@ -122,6 +127,7 @@ class BottomNavBar extends StatelessWidget {
                     Expanded(
                       child: _buildNavItem(
                         context,
+                        ref,
                         activeIcon: Icons.settings,
                         inactiveIcon: Icons.settings_outlined,
                         label: 'Settings',
@@ -144,7 +150,8 @@ class BottomNavBar extends StatelessWidget {
   }
 
   Widget _buildNavItem(
-    BuildContext context, {
+    BuildContext context,
+    WidgetRef ref, {
     required IconData activeIcon,
     required IconData inactiveIcon,
     required String label,
@@ -213,6 +220,120 @@ class BottomNavBar extends StatelessWidget {
                     : unselectedContentColor,
                 size: 28,
               ),
+            ),
+            const SizedBox(height: 1),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              style: AppTextStyles.label.copyWith(
+                fontSize: labelFontSize,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? selectedContentColor
+                    : unselectedContentColor,
+              ),
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExerciseNavItem(
+    BuildContext context,
+    WidgetRef ref, {
+    required IconData activeIcon,
+    required IconData inactiveIcon,
+    required String label,
+    required String route,
+    required bool isDark,
+    required double horizontalPadding,
+    required double labelFontSize,
+    required Color selectedContentColor,
+    required Color unselectedContentColor,
+  }) {
+    final String currentLocation = GoRouterState.of(context).matchedLocation;
+
+    final bool isSelected = currentLocation.startsWith(route);
+
+    final isPremium = ref.watch(isPremiumNotifierProvider);
+
+    return InkWell(
+      onTap: () {
+        if (isPremium) {
+          context.go(route);
+        } else {
+          context.push('/paywall');
+        }
+      },
+      borderRadius: BorderRadius.circular(30),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          vertical: 8,
+          horizontal: horizontalPadding,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : Colors.white.withValues(alpha: 0.28))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
+          border: isSelected
+              ? Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : Colors.white.withValues(alpha: 0.3),
+                )
+              : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.09),
+                    blurRadius: 12,
+                    spreadRadius: -4,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+              : const [],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Stack(
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeOutCubic,
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: Icon(
+                    isSelected ? activeIcon : inactiveIcon,
+                    key: ValueKey('${label}_$isSelected'),
+                    color: isSelected
+                        ? selectedContentColor
+                        : unselectedContentColor,
+                    size: 28,
+                  ),
+                ),
+                if (!isPremium)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 1),
             AnimatedDefaultTextStyle(

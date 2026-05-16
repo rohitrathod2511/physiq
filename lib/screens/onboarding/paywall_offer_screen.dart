@@ -1,28 +1,117 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/theme/design_system.dart';
-
 import 'package:physiq/services/auth_service.dart';
+import 'package:physiq/services/revenuecat_service.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
-class PaywallOfferScreen extends StatefulWidget {
+class PaywallOfferScreen extends ConsumerStatefulWidget {
   const PaywallOfferScreen({super.key});
 
   @override
-  State<PaywallOfferScreen> createState() => _PaywallOfferScreenState();
+  ConsumerState<PaywallOfferScreen> createState() => _PaywallOfferScreenState();
 }
 
-class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
+class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
+  bool _isRestoring = false;
+  
+  Package? _specialPackage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSpecialOffer();
+  }
+
+  Future<void> _loadSpecialOffer() async {
+    try {
+      await RevenueCatService.instance.getOfferings(forceRefresh: true);
+
+      if (mounted) {
+        setState(() {
+          _specialPackage = RevenueCatService.instance.getSpecialPackage();
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to load special offer: $e');
+    }
+  }
 
   Future<void> _completeOnboarding() async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     await _authService.completeOnboarding();
-    // No manual navigation needed; router will detect change and redirect to /home
+  }
+
+  Future<void> _purchaseSpecialOffer() async {
+    if (_isLoading || _specialPackage == null) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final success = await RevenueCatService.instance.purchasePackage(_specialPackage!);
+      
+      if (mounted) {
+        if (success) {
+          await _authService.completeOnboarding();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Purchase was cancelled')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Purchase failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _restorePurchases() async {
+    if (_isRestoring) return;
+    
+    setState(() => _isRestoring = true);
+    
+    try {
+      final restored = await RevenueCatService.instance.restorePurchases();
+      
+      if (mounted) {
+        if (restored) {
+          await _authService.completeOnboarding();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Purchase restored successfully!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No previous purchases found')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Restore failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRestoring = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final priceString = _specialPackage?.storeProduct.priceString ?? '₹1999.00';
+    
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -54,8 +143,6 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 30),
-
-                      // Offer Card
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(32),
@@ -64,7 +151,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -89,9 +176,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 34),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -107,23 +192,21 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            "₹166.58",
+                            priceString,
                             style: AppTextStyles.h1.copyWith(
                               color: Colors.redAccent,
                               fontSize: 32,
                             ),
                           ),
                           Text(
-                            " /mo",
+                            " /year",
                             style: AppTextStyles.h3.copyWith(
                               color: Colors.redAccent,
                             ),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 34),
-
                       _buildBenefitRow(
                         Icons.coffee,
                         "Less than a coffee for dream body.",
@@ -137,26 +220,20 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                         Icons.person,
                         "What are you waiting for?",
                       ),
-
                       const SizedBox(height: 10),
                     ],
                   ),
                 ),
               ),
-
-              // Fixed Bottom Section
               Container(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Free Trial Toggle Removed
-
-                    // Plan Summary Card
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.card, // Subtle contrast
+                        color: AppColors.card,
                         border: Border.all(
                           color: AppColors.primaryText,
                           width: 2,
@@ -164,9 +241,7 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(
-                              0.06,
-                            ), // Gentle elevation
+                            color: Colors.black.withValues(alpha: 0.06),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
@@ -179,19 +254,17 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text("Yearly Plan", style: AppTextStyles.h3),
-                              Text("₹166.58/mo", style: AppTextStyles.h3),
+                              Text(priceString, style: AppTextStyles.h3),
                             ],
                           ),
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 44),
-
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _completeOnboarding,
+                        onPressed: _isLoading ? null : _purchaseSpecialOffer,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
@@ -201,14 +274,30 @@ class _PaywallOfferScreenState extends State<PaywallOfferScreen> {
                           ),
                         ),
                         child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
                             : const Text('Start My Journey'),
                       ),
                     ),
-
-                    // Disclaimer Removed
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: _isRestoring ? null : _restorePurchases,
+                      child: _isRestoring
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              "Restore Purchases",
+                              style: AppTextStyles.body.copyWith(
+                                color: AppColors.secondaryText,
+                              ),
+                            ),
+                    ),
                   ],
                 ),
               ),

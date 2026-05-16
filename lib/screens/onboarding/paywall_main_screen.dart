@@ -1,36 +1,148 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
+import 'package:physiq/services/revenuecat_service.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
-class PaywallMainScreen extends StatefulWidget {
+class PaywallMainScreen extends ConsumerStatefulWidget {
   const PaywallMainScreen({super.key});
 
   @override
-  State<PaywallMainScreen> createState() => _PaywallMainScreenState();
+  ConsumerState<PaywallMainScreen> createState() => _PaywallMainScreenState();
 }
 
-class _PaywallMainScreenState extends State<PaywallMainScreen> {
+class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
-  String _selectedPlan = 'Yearly'; // Monthly or Yearly
+  String _selectedPlan = 'Yearly';
+
+  Package? _monthlyPackage;
+  Package? _yearlyPackage;
+  Package? _specialPackage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOfferings();
+  }
+
+  Future<void> _loadOfferings() async {
+    try {
+      await RevenueCatService.instance.getOfferings(forceRefresh: true);
+      if (!mounted) return;
+
+      setState(() {
+        _monthlyPackage = RevenueCatService.instance.getMonthlyPackage();
+        _yearlyPackage = RevenueCatService.instance.getYearlyPackage();
+        _specialPackage = RevenueCatService.instance.getSpecialPackage();
+
+        debugPrint('📱 Paywall: Loaded packages - Monthly: ${_monthlyPackage?.identifier}, Yearly: ${_yearlyPackage?.identifier}, Special: ${_specialPackage?.identifier}');
+      });
+    } catch (e) {
+      debugPrint('❌ Failed to load offerings: $e');
+    }
+  }
 
   Future<void> _completeOnboarding() async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     await _authService.completeOnboarding();
-    // No manual navigation needed; router will detect change and redirect to /home
   }
 
   void _handleBack() {
     context.push('/onboarding/paywall-spinner');
   }
 
+  Future<void> _purchasePlan(String planType) async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      Package? packageToPurchase;
+
+      switch (planType) {
+        case 'Monthly':
+          packageToPurchase = _monthlyPackage;
+          break;
+        case 'Yearly':
+          packageToPurchase = _yearlyPackage;
+          break;
+        case 'Special':
+          packageToPurchase = _specialPackage;
+          break;
+      }
+
+      if (packageToPurchase == null) {
+        throw Exception('Package not found. Plan: $planType. Please try again.');
+      }
+
+      debugPrint('🛒 Purchasing: ${packageToPurchase.identifier}');
+      final success = await RevenueCatService.instance.purchasePackage(packageToPurchase);
+
+      if (mounted) {
+        if (success) {
+          debugPrint('✅ Purchase successful!');
+          await _authService.completeOnboarding();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Purchase was cancelled or failed')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Purchase error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Purchase failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _restorePurchases() async {
+    setState(() => _isLoading = true);
+    try {
+      final restored = await RevenueCatService.instance.restorePurchases();
+      if (mounted) {
+        if (restored) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Purchases restored successfully!')),
+          );
+          await _authService.completeOnboarding();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No previous purchases found')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Restore failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final monthlyPrice = _monthlyPackage?.storeProduct.priceString ?? '...';
+    final yearlyMonthlyEquivalent = _yearlyPackage?.storeProduct.priceString ?? '...';
+
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBack();
       },
@@ -77,19 +189,28 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                 'Easy to Follow Workouts',
                 'Stay on track with our easy to follow workout plans',
               ),
-
               const Spacer(),
-
               Row(
                 children: [
                   Expanded(
-                    child: _buildPlanCard('Monthly', '₹990.00/mo', false),
+                    child: _buildPlanCard(
+                      'Monthly',
+                      monthlyPrice,
+                      false,
+                      onTap: () => setState(() => _selectedPlan = 'Monthly'),
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildPlanCard('Yearly', '₹250.00/mo', true)),
+                  Expanded(
+                    child: _buildPlanCard(
+                      'Yearly',
+                      yearlyMonthlyEquivalent,
+                      true,
+                      onTap: () => setState(() => _selectedPlan = 'Yearly'),
+                    ),
+                  ),
                 ],
               ),
-
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -106,7 +227,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _completeOnboarding,
+                  onPressed: _isLoading ? null : () => _purchasePlan(_selectedPlan),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -116,17 +237,24 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
                     ),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
                       : const Text('Start My Journey'),
                 ),
               ),
               const SizedBox(height: 16),
               Center(
-                child: Text(
-                  _selectedPlan == 'Yearly'
-                      ? "Just ₹250.00 per month"
-                      : "Just ₹990.00 per month",
-                  style: AppTextStyles.smallLabel,
+                child: TextButton(
+                  onPressed: _isLoading ? null : _restorePurchases,
+                  child: Text(
+                    'Restore Purchases',
+                    style: AppTextStyles.smallLabel.copyWith(
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -170,10 +298,10 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
     );
   }
 
-  Widget _buildPlanCard(String title, String price, bool isBestValue) {
+  Widget _buildPlanCard(String title, String price, bool isBestValue, {required VoidCallback onTap}) {
     final isSelected = _selectedPlan == title;
     return GestureDetector(
-      onTap: () => setState(() => _selectedPlan = title),
+      onTap: onTap,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -185,7 +313,7 @@ class _PaywallMainScreenState extends State<PaywallMainScreen> {
               border: Border.all(
                 color: isSelected
                     ? AppColors.primaryText
-                    : AppColors.secondaryText.withOpacity(0.3),
+                    : AppColors.secondaryText.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),

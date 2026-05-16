@@ -1,18 +1,19 @@
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
-
+import 'package:physiq/services/revenuecat_service.dart';
 import 'package:physiq/services/auth_service.dart';
+import 'package:physiq/providers/subscription_provider.dart';
 
-class PaywallFreeScreen extends StatefulWidget {
+class PaywallFreeScreen extends ConsumerStatefulWidget {
   const PaywallFreeScreen({super.key});
 
   @override
-  State<PaywallFreeScreen> createState() => _PaywallFreeScreenState();
+  ConsumerState<PaywallFreeScreen> createState() => _PaywallFreeScreenState();
 }
 
-class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
+class _PaywallFreeScreenState extends ConsumerState<PaywallFreeScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
@@ -20,6 +21,10 @@ class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     await _authService.completeOnboarding();
+  }
+
+  void _navigateToNextPaywall() {
+    context.push('/onboarding/paywall-notification');
   }
 
   @override
@@ -95,7 +100,7 @@ class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => context.push('/onboarding/paywall-notification'),
+                onPressed: _isLoading ? null : _navigateToNextPaywall,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -104,7 +109,13 @@ class _PaywallFreeScreenState extends State<PaywallFreeScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('Try for \$0.00'),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('Try for \$0.00'),
               ),
             ),
             const SizedBox(height: 16),
