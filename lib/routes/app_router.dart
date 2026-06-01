@@ -44,6 +44,7 @@ import 'package:physiq/widgets/scaffold_with_nav_bar.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:physiq/providers/onboarding_provider.dart';
+import 'package:physiq/services/revenuecat_service.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -184,10 +185,14 @@ class AuthSubscription extends ChangeNotifier {
 
 final authSubscription = AuthSubscription();
 
+final _routerRefreshListenable = Listenable.merge([
+  authSubscription,
+  premiumSubscription,
+]);
+
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  // Listens to auth changes and onboarding changes
-  refreshListenable: authSubscription,
+  refreshListenable: _routerRefreshListenable,
   initialLocation: '/',
   redirect: (context, state) {
     final isAuthenticated = authSubscription.currentUser != null;
@@ -195,6 +200,12 @@ final GoRouter router = GoRouter(
     final location = state.uri.path;
     final resumeRoute = OnboardingStore.currentResumeRoute;
     final hasCompletedOnboarding = isOnboardingComplete == true;
+
+    // If premium, automatically redirect away from paywall routes to /home
+    if (premiumSubscription.isPremium && _isPaywallRoute(location)) {
+      debugPrint('🔄 [DEBUG] GoRouter: Premium user on paywall route ($location). Redirecting to /home.');
+      return '/home';
+    }
 
     if (!SHOW_TRANSFORMATION_AND_SUCCESS_SCREENS &&
         _isTransformationOrSuccessRoute(location)) {
@@ -273,16 +284,28 @@ final GoRouter router = GoRouter(
     // 4. Authenticated AND Onboarding COMPLETE (Returning User)
     // ----------------------------------------------------
     if (isOnboardingComplete) {
-      // Redirect away from auth/onboarding screens to Home
+      if (location == '/paywall') {
+        return '/onboarding/paywall-free';
+      }
+
+      // Premium route guard for shell routes
+      if (!premiumSubscription.isPremium &&
+          location.startsWith('/exercise')) {
+        return '/onboarding/paywall-free?inApp=1';
+      }
+
+      // Redirect away from auth/onboarding screens — except paywall funnel
+      final isNonPaywallOnboarding =
+          location.startsWith('/onboarding') && !_isPaywallRoute(location);
+
       if (location == '/sign-in' ||
           location == '/signup' ||
           location == '/rodrigo' ||
           location == '/lucas' ||
           location == '/success' ||
-          location == '/paywall' ||
           location == '/get-started' ||
           location == '/' ||
-          location.startsWith('/onboarding') ||
+          isNonPaywallOnboarding ||
           location == '/review') {
         return '/home';
       }

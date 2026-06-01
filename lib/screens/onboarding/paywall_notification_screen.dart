@@ -1,31 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:physiq/navigation/paywall_navigator.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
+import 'package:physiq/services/revenuecat_service.dart';
 
 class PaywallNotificationScreen extends StatefulWidget {
   const PaywallNotificationScreen({super.key});
 
   @override
-  State<PaywallNotificationScreen> createState() => _PaywallNotificationScreenState();
+  State<PaywallNotificationScreen> createState() =>
+      _PaywallNotificationScreenState();
 }
 
 class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
+  String? _monthlyPriceLabel;
 
-  Future<void> _completeOnboarding() async {
+  @override
+  void initState() {
+    super.initState();
+    _loadPricing();
+  }
+
+  Future<void> _loadPricing() async {
+    await RevenueCatService.instance.getOfferings(forceRefresh: true);
+    if (!mounted) return;
+    setState(() {
+      _monthlyPriceLabel = RevenueCatService.instance.getMonthlyPriceLabel();
+    });
+  }
+
+  Future<void> _handleClose() async {
     if (_isLoading) return;
+
+    if (PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
+      PaywallNavigator.dismissInApp(context);
+      return;
+    }
+
     setState(() => _isLoading = true);
     await _authService.completeOnboarding();
   }
 
   void _navigateToNextPaywall() {
-    context.push('/onboarding/paywall-main');
+    PaywallNavigator.pushStep(context, '/onboarding/paywall-main');
   }
 
   @override
   Widget build(BuildContext context) {
+    final footerPrice = _monthlyPriceLabel ?? 'Loading price...';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -33,12 +59,12 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.grey),
-          onPressed: _completeOnboarding,
+          onPressed: _handleClose,
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.close, color: Colors.grey),
-            onPressed: _completeOnboarding,
+            onPressed: _handleClose,
           ),
         ],
       ),
@@ -65,7 +91,11 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
                   ),
                   child: const Text(
                     '1',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                 ),
               ],
@@ -96,14 +126,17 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text('Continue for FREE'),
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              "Just ₹250.00 per month",
+              _monthlyPriceLabel != null ? 'Just $footerPrice' : footerPrice,
               style: AppTextStyles.smallLabel,
             ),
             const SizedBox(height: 20),

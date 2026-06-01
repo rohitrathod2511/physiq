@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:physiq/navigation/paywall_navigator.dart';
+import 'package:physiq/providers/subscription_provider.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/revenuecat_service.dart';
@@ -37,22 +39,38 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
         _monthlyPackage = RevenueCatService.instance.getMonthlyPackage();
         _yearlyPackage = RevenueCatService.instance.getYearlyPackage();
         _specialPackage = RevenueCatService.instance.getSpecialPackage();
-
-        debugPrint('📱 Paywall: Loaded packages - Monthly: ${_monthlyPackage?.identifier}, Yearly: ${_yearlyPackage?.identifier}, Special: ${_specialPackage?.identifier}');
       });
     } catch (e) {
       debugPrint('❌ Failed to load offerings: $e');
     }
   }
 
-  Future<void> _completeOnboarding() async {
+  Future<void> _handleClose() async {
     if (_isLoading) return;
+
+    if (PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
+      PaywallNavigator.dismissInApp(context);
+      return;
+    }
+
     setState(() => _isLoading = true);
     await _authService.completeOnboarding();
   }
 
+  Future<void> _onPurchaseSuccess() async {
+    ref.read(isPremiumNotifierProvider.notifier).updatePremiumStatus(true);
+
+    if (!PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
+      await _authService.completeOnboarding();
+    }
+
+    if (mounted) {
+      PaywallNavigator.onPurchaseSuccess(context, ref);
+    }
+  }
+
   void _handleBack() {
-    context.push('/onboarding/paywall-spinner');
+    PaywallNavigator.pushStep(context, '/onboarding/paywall-spinner');
   }
 
   Future<void> _purchasePlan(String planType) async {
@@ -79,21 +97,15 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
         throw Exception('Package not found. Plan: $planType. Please try again.');
       }
 
-      debugPrint('🛒 Purchasing: ${packageToPurchase.identifier}');
-      final success = await RevenueCatService.instance.purchasePackage(packageToPurchase);
+      final success =
+          await RevenueCatService.instance.purchasePackage(packageToPurchase);
 
-      if (mounted) {
-        if (success) {
-          debugPrint('✅ Purchase successful!');
-          await _authService.completeOnboarding();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Purchase was cancelled or failed')),
-          );
-        }
+      if (!mounted) return;
+
+      if (success) {
+        await _onPurchaseSuccess();
       }
     } catch (e) {
-      debugPrint('❌ Purchase error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Purchase failed: ${e.toString()}')),
@@ -110,17 +122,17 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
     setState(() => _isLoading = true);
     try {
       final restored = await RevenueCatService.instance.restorePurchases();
-      if (mounted) {
-        if (restored) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Purchases restored successfully!')),
-          );
-          await _authService.completeOnboarding();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No previous purchases found')),
-          );
-        }
+      if (!mounted) return;
+
+      if (restored) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Purchases restored successfully!')),
+        );
+        await _onPurchaseSuccess();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No previous purchases found')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -138,7 +150,7 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
   @override
   Widget build(BuildContext context) {
     final monthlyPrice = _monthlyPackage?.storeProduct.priceString ?? '...';
-    final yearlyMonthlyEquivalent = _yearlyPackage?.storeProduct.priceString ?? '...';
+    final yearlyPrice = _yearlyPackage?.storeProduct.priceString ?? '...';
 
     return PopScope(
       canPop: false,
@@ -158,7 +170,7 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.close, color: Colors.grey),
-              onPressed: _completeOnboarding,
+              onPressed: _handleClose,
             ),
           ],
         ),
@@ -196,6 +208,7 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
                     child: _buildPlanCard(
                       'Monthly',
                       monthlyPrice,
+                      null,
                       false,
                       onTap: () => setState(() => _selectedPlan = 'Monthly'),
                     ),
@@ -204,7 +217,8 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
                   Expanded(
                     child: _buildPlanCard(
                       'Yearly',
-                      yearlyMonthlyEquivalent,
+                      yearlyPrice,
+                      'per year',
                       true,
                       onTap: () => setState(() => _selectedPlan = 'Yearly'),
                     ),
@@ -227,7 +241,8 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : () => _purchasePlan(_selectedPlan),
+                  onPressed:
+                      _isLoading ? null : () => _purchasePlan(_selectedPlan),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -240,7 +255,10 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
                       : const Text('Start My Journey'),
                 ),
@@ -298,7 +316,13 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
     );
   }
 
-  Widget _buildPlanCard(String title, String price, bool isBestValue, {required VoidCallback onTap}) {
+  Widget _buildPlanCard(
+    String title,
+    String price,
+    String? subtitle,
+    bool isBestValue, {
+    required VoidCallback onTap,
+  }) {
     final isSelected = _selectedPlan == title;
     return GestureDetector(
       onTap: onTap,
@@ -323,6 +347,15 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
                 Text(title, style: AppTextStyles.body),
                 const SizedBox(height: 8),
                 Text(price, style: AppTextStyles.h3),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.smallLabel.copyWith(
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,

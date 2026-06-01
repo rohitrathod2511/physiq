@@ -7,9 +7,16 @@ import 'package:physiq/screens/meal/meal_preview_screen.dart';
 import 'package:physiq/screens/meal/describe_meal_screen.dart';
 import 'package:physiq/screens/meal/my_meals_screen.dart';
 import 'package:physiq/models/food_model.dart';
+import 'package:physiq/services/premium_guard.dart';
+
+Future<bool> _guardMealFlow(BuildContext context, WidgetRef ref) {
+  return PremiumGuard.requirePremium(context, ref);
+}
 
 // 1. SNAP MEAL FLOW (Camera)
-void showSnapMealFlow(BuildContext context, WidgetRef ref) {
+void showSnapMealFlow(BuildContext context, WidgetRef ref) async {
+  if (!await _guardMealFlow(context, ref)) return;
+  if (!context.mounted) return;
   Navigator.push(
     context,
     MaterialPageRoute(builder: (context) => const SnapMealScreen()),
@@ -17,7 +24,9 @@ void showSnapMealFlow(BuildContext context, WidgetRef ref) {
 }
 
 // 2. FOOD DATABASE FLOW (Search)
-void showFoodDatabaseFlow(BuildContext context, WidgetRef ref) {
+void showFoodDatabaseFlow(BuildContext context, WidgetRef ref) async {
+  if (!await _guardMealFlow(context, ref)) return;
+  if (!context.mounted) return;
   Navigator.push(
     context,
     MaterialPageRoute(builder: (context) => const FoodDatabaseScreen()),
@@ -25,7 +34,9 @@ void showFoodDatabaseFlow(BuildContext context, WidgetRef ref) {
 }
 
 // 3. SAVED FOODS FLOW (Direct to Database -> Saved Tab?)
-void showSavedFoodsFlow(BuildContext context, WidgetRef ref) {
+void showSavedFoodsFlow(BuildContext context, WidgetRef ref) async {
+  if (!await _guardMealFlow(context, ref)) return;
+  if (!context.mounted) return;
   Navigator.push(
     context,
     MaterialPageRoute(

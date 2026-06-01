@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/providers/subscription_provider.dart';
+import 'package:physiq/services/premium_guard.dart';
 
 class BottomNavBar extends ConsumerWidget {
   const BottomNavBar({super.key});
@@ -257,14 +258,11 @@ class BottomNavBar extends ConsumerWidget {
 
     final bool isSelected = currentLocation.startsWith(route);
 
-    final isPremium = ref.watch(isPremiumNotifierProvider);
-
     return InkWell(
-      onTap: () {
-        if (isPremium) {
+      onTap: () async {
+        final allowed = await PremiumGuard.requirePremium(context, ref);
+        if (allowed && context.mounted) {
           context.go(route);
-        } else {
-          context.push('/paywall');
         }
       },
       borderRadius: BorderRadius.circular(30),
@@ -320,19 +318,6 @@ class BottomNavBar extends ConsumerWidget {
                     size: 28,
                   ),
                 ),
-                if (!isPremium)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
               ],
             ),
             const SizedBox(height: 1),

@@ -2,13 +2,30 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+
+/// Notifies [GoRouter] when premium status changes.
+class PremiumSubscription extends ChangeNotifier {
+  bool isPremium = false;
+
+  void update(bool value) {
+    if (isPremium == value) return;
+    isPremium = value;
+    notifyListeners();
+  }
+}
+
+final premiumSubscription = PremiumSubscription();
 
 class RevenueCatService {
   RevenueCatService._();
 
   static final RevenueCatService instance = RevenueCatService._();
+
+  static const String entitlementId = 'premium';
+  static const String defaultOfferingId = 'default';
 
   static const String _androidApiKey = 'goog_XAFupTgLMUsRleCsUqSZFkRVWJg';
   static const String _iosApiKey = '';
@@ -28,6 +45,8 @@ class RevenueCatService {
   Offerings? _cachedOfferings;
   Offerings? get cachedOfferings => _cachedOfferings;
 
+  void Function(CustomerInfo)? _customerInfoListener;
+
   Future<void> initialize() async {
     if (_isInitialized) return;
 
@@ -45,10 +64,11 @@ class RevenueCatService {
       _isInitialized = true;
       debugPrint('✅ RevenueCat initialized successfully');
 
-      Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+      _customerInfoListener = _onCustomerInfoUpdated;
+      Purchases.addCustomerInfoUpdateListener(_customerInfoListener!);
 
       await getOfferings(forceRefresh: true);
-      await _updatePremiumStatus();
+      await _updatePremiumStatus(emitAlways: true);
     } catch (e) {
       debugPrint('❌ RevenueCat initialization failed: $e');
     }
@@ -58,166 +78,286 @@ class RevenueCatService {
     _updatePremiumStatusFromInfo(customerInfo);
   }
 
-  void _updatePremiumStatusFromInfo(CustomerInfo customerInfo) {
+  void _updatePremiumStatusFromInfo(
+    CustomerInfo customerInfo, {
+    bool forceNotify = false,
+  }) {
     final wasPremium = _isPremium;
-    final entitlement = customerInfo.entitlements.all['premium'];
-    _isPremium = entitlement?.isActive == true;
+    final isEntitlementActive = customerInfo.entitlements.active.containsKey(entitlementId);
+    _isPremium = isEntitlementActive;
 
-    debugPrint('🔔 RevenueCat: Checking premium - isActive: ${entitlement?.isActive}');
+    debugPrint(
+      '🔔 [DEBUG] RevenueCat: CustomerInfo fetched. Premium entitlement status: $isEntitlementActive',
+    );
 
-    if (wasPremium != _isPremium) {
-      _premiumStatusController?.add(_isPremium);
-      debugPrint('🔔 RevenueCat: Premium status changed to $_isPremium');
+    if (forceNotify || wasPremium != _isPremium) {
+      _emitPremiumStatus();
     }
   }
 
-  Future<void> _updatePremiumStatus() async {
+  void _emitPremiumStatus() {
+    _premiumStatusController?.add(_isPremium);
+    premiumSubscription.update(_isPremium);
+    debugPrint('🔔 [DEBUG] RevenueCat: Premium status = $_isPremium');
+  }
+
+  Future<void> _updatePremiumStatus({bool emitAlways = false}) async {
     try {
       final customerInfo = await getCustomerInfo();
-      _updatePremiumStatusFromInfo(customerInfo);
+      _updatePremiumStatusFromInfo(customerInfo, forceNotify: emitAlways);
+      if (emitAlways) {
+        _emitPremiumStatus();
+      }
     } catch (e) {
-      debugPrint('❌ RevenueCat: Failed to update premium status: $e');
+      debugPrint('❌ [DEBUG] RevenueCat: Failed to update premium status: $e');
     }
   }
 
   Future<Offerings?> getOfferings({bool forceRefresh = false}) async {
+    if (!_isInitialized) return null;
+
     if (forceRefresh || _cachedOfferings == null) {
       try {
-        debugPrint('🔄 RevenueCat: Fetching offerings...');
+        debugPrint('🔄 [DEBUG] RevenueCat: Fetching offerings...');
         final offerings = await Purchases.getOfferings();
         _cachedOfferings = offerings;
 
-        debugPrint('📦 RevenueCat: Got ${offerings.all.length} offerings');
+        debugPrint('📦 [DEBUG] RevenueCat: Got ${offerings.all.length} offerings');
+        debugPrint('📦 [DEBUG] RevenueCat: current = ${offerings.current?.identifier}');
         for (final entry in offerings.all.entries) {
           debugPrint('  Offering: ${entry.key}');
           for (final pkg in entry.value.availablePackages) {
-            debugPrint('    - Package: ${pkg.identifier}, ProductId: ${pkg.storeProduct.identifier}');
+            debugPrint(
+              '    - Package: ${pkg.identifier}, type: ${pkg.packageType}, product: ${pkg.storeProduct.identifier}',
+            );
           }
         }
 
         return offerings;
       } catch (e) {
-        debugPrint('❌ RevenueCat getOfferings failed: $e');
-        return null;
+        debugPrint('❌ [DEBUG] RevenueCat getOfferings failed: $e');
+        return _cachedOfferings;
       }
     }
     return _cachedOfferings;
   }
 
+  Offering? _resolveOffering() {
+    final offerings = _cachedOfferings;
+    if (offerings == null) return null;
+    return offerings.current ?? offerings.getOffering(defaultOfferingId);
+  }
+
   Future<void> loginUser(String appUserId) async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ [DEBUG] RevenueCat: loginUser skipped — not initialized');
+      return;
+    }
+
     try {
       await Purchases.logIn(appUserId);
-      debugPrint('✅ RevenueCat: Logged in as $appUserId');
+      debugPrint('✅ [DEBUG] RevenueCat: Logged in as $appUserId');
       await getOfferings(forceRefresh: true);
-      await _updatePremiumStatus();
+      await _updatePremiumStatus(emitAlways: true);
     } catch (e) {
-      debugPrint('❌ RevenueCat login failed: $e');
+      debugPrint('❌ [DEBUG] RevenueCat login failed: $e');
     }
   }
 
   Future<void> logout() async {
+    if (!_isInitialized) return;
+
     try {
       await Purchases.logOut();
       _isPremium = false;
       _cachedOfferings = null;
-      _premiumStatusController?.add(false);
-      debugPrint('✅ RevenueCat: Logged out');
+      _emitPremiumStatus();
+      debugPrint('✅ [DEBUG] RevenueCat: Logged out');
     } catch (e) {
-      debugPrint('❌ RevenueCat logout failed: $e');
+      debugPrint('❌ [DEBUG] RevenueCat logout failed: $e');
     }
   }
 
   Future<CustomerInfo> getCustomerInfo() async {
-    try {
-      return await Purchases.getCustomerInfo();
-    } catch (e) {
-      debugPrint('❌ RevenueCat getCustomerInfo failed: $e');
-      rethrow;
+    if (!_isInitialized) {
+      throw StateError('RevenueCat not initialized');
     }
+    return await Purchases.getCustomerInfo();
   }
 
   Future<bool> purchasePackage(Package package) async {
-    try {
-      debugPrint('🛒 RevenueCat: Purchasing package: ${package.identifier}');
-      final result = await Purchases.purchasePackage(package);
-      _updatePremiumStatusFromInfo(result.customerInfo);
+    if (!_isInitialized) {
+      throw StateError('RevenueCat is not initialized');
+    }
 
-      if (_isPremium) {
-        debugPrint('✅ RevenueCat: Purchase successful!');
+    try {
+      debugPrint('🛒 [DEBUG] RevenueCat: Starting purchase for package: ${package.identifier}');
+      final result = await Purchases.purchasePackage(package);
+      
+      // Perform a fresh check to update global state
+      final isPremium = await isPremiumUser();
+      
+      if (isPremium) {
+        debugPrint('✅ [DEBUG] RevenueCat: Purchase successful! Premium entitlement status: true');
       } else {
-        debugPrint('⚠️ RevenueCat: Purchase completed but no active entitlement');
+        debugPrint('⚠️ [DEBUG] RevenueCat: Purchase completed but no active entitlement found.');
       }
 
-      return _isPremium;
+      return isPremium;
+    } on PlatformException catch (e) {
+      final errorCode = PurchasesErrorHelper.getErrorCode(e);
+      String errorMessage;
+
+      switch (errorCode) {
+        case PurchasesErrorCode.purchaseCancelledError:
+          debugPrint('ℹ️ [DEBUG] RevenueCat: Purchase cancelled by user');
+          return false;
+        case PurchasesErrorCode.networkError:
+          errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+          break;
+        case PurchasesErrorCode.storeProblemError:
+          errorMessage = 'Google Play Store / App Store encountered an issue. Please try again later.';
+          break;
+        case PurchasesErrorCode.purchaseNotAllowedError:
+          errorMessage = 'This purchase is not allowed on this account (e.g., parental controls).';
+          break;
+        case PurchasesErrorCode.productAlreadyPurchasedError:
+          errorMessage = 'You already have an active subscription for this product.';
+          break;
+        default:
+          errorMessage = 'Purchase failed: ${e.message ?? e.toString()}';
+          break;
+      }
+      
+      debugPrint('❌ [DEBUG] RevenueCat: Purchase failed. Code: $errorCode, Error: $errorMessage');
+      throw errorMessage;
     } catch (e) {
-      debugPrint('❌ RevenueCat purchasePackage failed: $e');
-      rethrow;
+      debugPrint('❌ [DEBUG] RevenueCat: Purchase failed with unexpected error: $e');
+      throw 'An unexpected error occurred during purchase: $e';
     }
   }
 
   Future<bool> restorePurchases() async {
+    if (!_isInitialized) {
+      throw StateError('RevenueCat is not initialized');
+    }
+
     try {
-      debugPrint('🔄 RevenueCat: Restoring purchases...');
+      debugPrint('🔄 [DEBUG] RevenueCat: Restoring purchases...');
       final customerInfo = await Purchases.restorePurchases();
-      _updatePremiumStatusFromInfo(customerInfo);
-      debugPrint('✅ RevenueCat: Restore completed, isPremium: $_isPremium');
-      return _isPremium;
+      
+      // Perform a fresh check to update global state
+      final isPremium = await isPremiumUser();
+      
+      if (isPremium) {
+        debugPrint('✅ [DEBUG] RevenueCat: Restore successful! Premium entitlement status: true');
+      } else {
+        debugPrint('⚠️ [DEBUG] RevenueCat: Restore completed but no active entitlement found.');
+      }
+      
+      return isPremium;
+    } on PlatformException catch (e) {
+      final errorCode = PurchasesErrorHelper.getErrorCode(e);
+      String errorMessage;
+
+      switch (errorCode) {
+        case PurchasesErrorCode.networkError:
+          errorMessage = 'Network connection failed. Please check your connection and try again.';
+          break;
+        case PurchasesErrorCode.storeProblemError:
+          errorMessage = 'Store issue encountered. Please try again later.';
+          break;
+        default:
+          errorMessage = 'Restore failed: ${e.message ?? e.toString()}';
+          break;
+      }
+      
+      debugPrint('❌ [DEBUG] RevenueCat: Restore failed. Code: $errorCode, Error: $errorMessage');
+      throw errorMessage;
     } catch (e) {
-      debugPrint('❌ RevenueCat restorePurchases failed: $e');
-      return false;
+      debugPrint('❌ [DEBUG] RevenueCat: Restore failed with unexpected error: $e');
+      throw 'An unexpected error occurred during restore: $e';
     }
   }
 
   Future<bool> isPremiumUser() async {
+    if (!_isInitialized) return _isPremium;
+
     try {
       final customerInfo = await getCustomerInfo();
-      final entitlement = customerInfo.entitlements.all['premium'];
-      final isPremium = entitlement?.isActive == true;
-      debugPrint('🔍 RevenueCat: isPremiumUser = $isPremium');
-      return isPremium;
+      _updatePremiumStatusFromInfo(customerInfo);
+      debugPrint('🔍 [DEBUG] RevenueCat: isPremiumUser = $_isPremium');
+      return _isPremium;
     } catch (e) {
-      debugPrint('❌ RevenueCat isPremiumUser failed: $e');
+      debugPrint('❌ [DEBUG] RevenueCat: isPremiumUser failed: $e');
       return _isPremium;
     }
   }
 
-  Package? getMonthlyPackage() {
-    return _findPackage(PackageType.monthly);
-  }
+  Package? getMonthlyPackage() => _findPackage(PackageType.monthly);
 
-  Package? getYearlyPackage() {
-    return _findPackage(PackageType.annual);
-  }
+  Package? getYearlyPackage() => _findPackage(PackageType.annual);
 
   Package? getSpecialPackage() {
+    final offering = _resolveOffering();
+    if (offering != null) {
+      for (final pkg in offering.availablePackages) {
+        if (_isSpecialPackage(pkg)) return pkg;
+      }
+    }
+
     if (_cachedOfferings == null) return null;
 
     for (final offering in _cachedOfferings!.all.values) {
       for (final pkg in offering.availablePackages) {
-        if (pkg.identifier.toLowerCase().contains('special') ||
-            pkg.storeProduct.identifier.toLowerCase().contains('special')) {
+        if (_isSpecialPackage(pkg)) {
           debugPrint('✅ RevenueCat: Found special package: ${pkg.identifier}');
           return pkg;
         }
       }
     }
+
+    debugPrint('⚠️ RevenueCat: No special package found');
     return null;
   }
 
-Package? _findPackage(PackageType type) {
-    if (_cachedOfferings == null) return null;
+  bool _isSpecialPackage(Package pkg) {
+    final id = pkg.identifier.toLowerCase();
+    final productId = pkg.storeProduct.identifier.toLowerCase();
+    return id.contains('special') || productId.contains('special');
+  }
 
-    final typeString = type.name;
-
-    for (final offering in _cachedOfferings!.all.values) {
+  Package? _findPackage(PackageType type) {
+    final offering = _resolveOffering();
+    if (offering != null) {
       for (final pkg in offering.availablePackages) {
         if (pkg.packageType == type) {
-          debugPrint('✅ RevenueCat: Found package for $typeString: ${pkg.identifier}');
+          debugPrint('✅ RevenueCat: Found $type in ${offering.identifier}: ${pkg.identifier}');
           return pkg;
         }
       }
     }
+
+    if (_cachedOfferings == null) return null;
+
+    for (final off in _cachedOfferings!.all.values) {
+      for (final pkg in off.availablePackages) {
+        if (pkg.packageType == type) {
+          debugPrint('✅ RevenueCat: Found $type in ${off.identifier}: ${pkg.identifier}');
+          return pkg;
+        }
+      }
+    }
+
+    debugPrint('⚠️ RevenueCat: No package for $type');
     return null;
+  }
+
+  /// Price label for paywall footers, e.g. "₹250.00 per month".
+  String? getMonthlyPriceLabel() {
+    final pkg = getMonthlyPackage();
+    if (pkg == null) return null;
+    return '${pkg.storeProduct.priceString} per month';
   }
 
   List<Package> getAllPackages({String? offeringId}) {
@@ -228,9 +368,8 @@ Package? _findPackage(PackageType type) {
       if (offeringId != null) {
         offering = _cachedOfferings!.getOffering(offeringId);
       } else {
-        offering = _cachedOfferings!.current;
+        offering = _resolveOffering();
       }
-
       return offering?.availablePackages ?? [];
     } catch (e) {
       debugPrint('❌ RevenueCat: Error getting all packages: $e');
@@ -239,6 +378,10 @@ Package? _findPackage(PackageType type) {
   }
 
   void dispose() {
+    if (_customerInfoListener != null) {
+      Purchases.removeCustomerInfoUpdateListener(_customerInfoListener!);
+      _customerInfoListener = null;
+    }
     _premiumStatusController?.close();
     _premiumStatusController = null;
   }
@@ -246,12 +389,4 @@ Package? _findPackage(PackageType type) {
 
 final revenueCatServiceProvider = Provider<RevenueCatService>((ref) {
   return RevenueCatService.instance;
-});
-
-final isPremiumProvider = StreamProvider<bool>((ref) {
-  return RevenueCatService.instance.premiumStatusStream;
-});
-
-final offeringsProvider = FutureProvider<Offerings?>((ref) async {
-  return await RevenueCatService.instance.getOfferings(forceRefresh: true);
 });

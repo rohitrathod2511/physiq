@@ -1,40 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/screens/meal/meal_logging_flows.dart';
 import 'package:physiq/providers/subscription_provider.dart';
+import 'package:physiq/services/premium_guard.dart';
 
 class FloatingAddButton extends ConsumerWidget {
   const FloatingAddButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremiumAsync = ref.watch(isPremiumStreamProvider);
-
     return SizedBox(
       width: 72,
       height: 72,
       child: FloatingActionButton(
-        onPressed: () {
-          isPremiumAsync.when(
-            data: (isPremium) {
-              if (isPremium) {
-                _showAddOptions(context, ref);
-              } else {
-                context.push('/paywall');
-              }
-            },
-            loading: () {},
-            error: (_, __) => context.push('/paywall'),
-          );
+        onPressed: () async {
+          final allowed = await PremiumGuard.requirePremium(context, ref);
+          if (allowed && context.mounted) {
+            _showAddOptions(context, ref);
+          }
         },
         backgroundColor: const Color(0xFF111827),
         foregroundColor: Colors.white,
         elevation: 10.0,
         shape: const CircleBorder(),
         heroTag: null,
-        child: const Icon(Icons.add, size: 36),
+        child: Stack(
+          alignment: Alignment.center,
+          children: const [
+            Icon(Icons.add, size: 36),
+          ],
+        ),
       ),
     );
   }

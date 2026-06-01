@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:physiq/navigation/paywall_navigator.dart';
+import 'package:physiq/providers/subscription_provider.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/revenuecat_service.dart';
@@ -16,8 +19,9 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
   bool _isRestoring = false;
-  
+
   Package? _specialPackage;
+  String? _referenceYearlyPrice;
 
   @override
   void initState() {
@@ -32,6 +36,8 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
       if (mounted) {
         setState(() {
           _specialPackage = RevenueCatService.instance.getSpecialPackage();
+          _referenceYearlyPrice =
+              RevenueCatService.instance.getYearlyPackage()?.storeProduct.priceString;
         });
       }
     } catch (e) {
@@ -39,28 +45,51 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
     }
   }
 
-  Future<void> _completeOnboarding() async {
+  Future<void> _handleClose() async {
     if (_isLoading) return;
+
+    if (PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
+      PaywallNavigator.dismissInApp(context);
+      return;
+    }
+
     setState(() => _isLoading = true);
     await _authService.completeOnboarding();
   }
 
+  Future<void> _onPurchaseSuccess() async {
+    ref.read(isPremiumNotifierProvider.notifier).updatePremiumStatus(true);
+
+    if (!PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
+      await _authService.completeOnboarding();
+    }
+
+    if (mounted) {
+      PaywallNavigator.onPurchaseSuccess(context, ref);
+    }
+  }
+
   Future<void> _purchaseSpecialOffer() async {
-    if (_isLoading || _specialPackage == null) return;
-    
+    if (_isLoading) return;
+
+    if (_specialPackage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Offer not available. Please try again.')),
+      );
+      await _loadSpecialOffer();
+      return;
+    }
+
     setState(() => _isLoading = true);
-    
+
     try {
-      final success = await RevenueCatService.instance.purchasePackage(_specialPackage!);
-      
-      if (mounted) {
-        if (success) {
-          await _authService.completeOnboarding();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Purchase was cancelled')),
-          );
-        }
+      final success =
+          await RevenueCatService.instance.purchasePackage(_specialPackage!);
+
+      if (!mounted) return;
+
+      if (success) {
+        await _onPurchaseSuccess();
       }
     } catch (e) {
       if (mounted) {
@@ -77,23 +106,23 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
 
   Future<void> _restorePurchases() async {
     if (_isRestoring) return;
-    
+
     setState(() => _isRestoring = true);
-    
+
     try {
       final restored = await RevenueCatService.instance.restorePurchases();
-      
-      if (mounted) {
-        if (restored) {
-          await _authService.completeOnboarding();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Purchase restored successfully!')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No previous purchases found')),
-          );
-        }
+
+      if (!mounted) return;
+
+      if (restored) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Purchase restored successfully!')),
+        );
+        await _onPurchaseSuccess();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No previous purchases found')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -110,13 +139,14 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final priceString = _specialPackage?.storeProduct.priceString ?? '₹1999.00';
-    
+    final priceString = _specialPackage?.storeProduct.priceString;
+    final strikethrough = _referenceYearlyPrice;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _completeOnboarding();
+        _handleClose();
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -125,7 +155,7 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.close, color: AppColors.primaryText),
-            onPressed: _completeOnboarding,
+            onPressed: _handleClose,
           ),
         ),
         body: SafeArea(
@@ -177,35 +207,43 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
                         ),
                       ),
                       const SizedBox(height: 34),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            "₹3000.00",
-                            style: TextStyle(
-                              decoration: TextDecoration.lineThrough,
-                              color: AppColors.secondaryText,
-                              fontSize: 20,
+                      if (priceString != null)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            if (strikethrough != null) ...[
+                              Text(
+                                strikethrough,
+                                style: TextStyle(
+                                  decoration: TextDecoration.lineThrough,
+                                  color: AppColors.secondaryText,
+                                  fontSize: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            Text(
+                              priceString,
+                              style: AppTextStyles.h1.copyWith(
+                                color: Colors.redAccent,
+                                fontSize: 32,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            priceString,
-                            style: AppTextStyles.h1.copyWith(
-                              color: Colors.redAccent,
-                              fontSize: 32,
+                            Text(
+                              " /year",
+                              style: AppTextStyles.h3.copyWith(
+                                color: Colors.redAccent,
+                              ),
                             ),
-                          ),
-                          Text(
-                            " /year",
-                            style: AppTextStyles.h3.copyWith(
-                              color: Colors.redAccent,
-                            ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        )
+                      else
+                        Text(
+                          'Loading offer...',
+                          style: AppTextStyles.body,
+                        ),
                       const SizedBox(height: 34),
                       _buildBenefitRow(
                         Icons.coffee,
@@ -253,8 +291,11 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text("Yearly Plan", style: AppTextStyles.h3),
-                              Text(priceString, style: AppTextStyles.h3),
+                              Text("Special Offer", style: AppTextStyles.h3),
+                              Text(
+                                priceString ?? '...',
+                                style: AppTextStyles.h3,
+                              ),
                             ],
                           ),
                         ],
@@ -277,9 +318,16 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               )
-                            : const Text('Start My Journey'),
+                            : Text(
+                                _specialPackage == null
+                                    ? 'Retry Loading Offer'
+                                    : 'Start My Journey',
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:physiq/navigation/paywall_navigator.dart';
 import 'package:physiq/theme/design_system.dart';
 
 class PaywallSpinnerScreen extends StatefulWidget {
@@ -115,7 +116,7 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
   void _handleSpinResult() {
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
-        context.pushReplacement('/onboarding/paywall-offer');
+        PaywallNavigator.replaceStep(context, '/onboarding/paywall-offer');
       }
     });
   }
