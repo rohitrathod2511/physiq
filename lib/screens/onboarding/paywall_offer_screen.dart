@@ -48,7 +48,10 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
     if (_isLoading) return;
 
     if (PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
-      PaywallNavigator.dismissInApp(context);
+      while (context.canPop()) {
+        context.pop();
+      }
+      context.go('/home');
       return;
     }
 
@@ -152,8 +155,7 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _handleClose();
+        // Stay on screen — user must use close button to exit
       },
       child: Scaffold(
         backgroundColor: AppColors.background,

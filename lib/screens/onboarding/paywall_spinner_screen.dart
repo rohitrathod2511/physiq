@@ -121,130 +121,144 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
     });
   }
 
+  void _handleBack() {
+    PaywallNavigator.pushStep(context, '/onboarding/paywall-main');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: BackButton(color: AppColors.primaryText),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Text(
-                "Spin to Unlock an Offer 🎁",
-                style: AppTextStyles.h1.copyWith(fontSize: 26),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Text(
-                "Spin once to reveal your special discount.",
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.secondaryText,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
+            onPressed: _handleBack,
+          ),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  "Spin to Unlock an Offer 🎁",
+                  style: AppTextStyles.h1.copyWith(fontSize: 26),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
-            ),
-            const Spacer(),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 340,
-                  height: 340,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.2),
-                        Colors.black.withValues(alpha: 0.1),
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 25,
-                        spreadRadius: 2,
-                      ),
-                    ],
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Text(
+                  "Spin once to reveal your special discount.",
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.secondaryText,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _animation.value,
-                      child: GestureDetector(
-                        onTap: _spinWheel,
-                        child: Container(
-                          width: 320,
-                          height: 320,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                          ),
-                          child: CustomPaint(
-                            painter: WheelPainter(segments: _segments),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                GestureDetector(
-                  onTap: _spinWheel,
-                  child: Container(
-                    width: 70,
-                    height: 70,
+              ),
+              const Spacer(),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 340,
+                    height: 340,
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.2),
+                          Colors.black.withValues(alpha: 0.1),
+                        ],
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 25,
+                          spreadRadius: 2,
                         ),
                       ],
                     ),
-                    child: const Center(
-                      child: Icon(Icons.bolt, color: Colors.white, size: 32),
+                  ),
+                  AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, child) {
+                      return Transform.rotate(
+                        angle: _animation.value,
+                        child: GestureDetector(
+                          onTap: _spinWheel,
+                          child: Container(
+                            width: 320,
+                            height: 320,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                            ),
+                            child: CustomPaint(
+                              painter: WheelPainter(segments: _segments),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  GestureDetector(
+                    onTap: _spinWheel,
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 15,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.bolt, color: Colors.white, size: 32),
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 0,
-                  child: Transform.translate(
-                    offset: const Offset(0, -15),
-                    child: const Icon(
-                      Icons.arrow_drop_down,
-                      size: 60,
-                      color: Color(0xFFFF3B30),
+                  Positioned(
+                    top: 0,
+                    child: Transform.translate(
+                      offset: const Offset(0, -15),
+                      child: const Icon(
+                        Icons.arrow_drop_down,
+                        size: 60,
+                        color: Color(0xFFFF3B30),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-            Text(
-              _isSpinning ? "Revealing your offer..." : "Tap the wheel to spin",
-              style: AppTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
+                ],
               ),
-            ),
-            const Spacer(),
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 30),
+              Text(
+                _isSpinning ? "Revealing your offer..." : "Tap the wheel to spin",
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

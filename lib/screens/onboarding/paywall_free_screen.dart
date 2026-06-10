@@ -52,105 +52,112 @@ class _PaywallFreeScreenState extends ConsumerState<PaywallFreeScreen> {
   Widget build(BuildContext context) {
     final footerPrice = _monthlyPriceLabel ?? 'Loading price...';
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.grey),
-          onPressed: _handleClose,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleClose();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.grey),
+            onPressed: _handleClose,
+          ),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Text(
-              "We want you to\ntry Physiq AI for free.",
-              style: AppTextStyles.h1.copyWith(fontSize: 32),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: Center(
-                child: FractionallySizedBox(
-                  widthFactor: 0.80,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 40,
-                          offset: const Offset(0, 15),
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Text(
+                "We want you to\ntry Physiq AI for free.",
+                style: AppTextStyles.h1.copyWith(fontSize: 32),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: Center(
+                  child: FractionallySizedBox(
+                    widthFactor: 0.80,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 40,
+                            offset: const Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: ShaderMask(
+                        shaderCallback: (rect) {
+                          return LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black,
+                              Colors.black,
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.85, 1.0],
+                          ).createShader(rect);
+                        },
+                        blendMode: BlendMode.dstIn,
+                        child: Image.asset(
+                          'assets/Physique.png',
+                          fit: BoxFit.contain,
                         ),
-                      ],
-                    ),
-                    child: ShaderMask(
-                      shaderCallback: (rect) {
-                        return LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black,
-                            Colors.black,
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.85, 1.0],
-                        ).createShader(rect);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: Image.asset(
-                        'assets/Physique.png',
-                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 28),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check, color: AppColors.primaryText),
-                const SizedBox(width: 8),
-                Text("No Payment Due Now", style: AppTextStyles.bodyBold),
-              ],
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _navigateToNextPaywall,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text('Try for \$0.00'),
+              const SizedBox(height: 28),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check, color: AppColors.primaryText),
+                  const SizedBox(width: 8),
+                  Text("No Payment Due Now", style: AppTextStyles.bodyBold),
+                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _monthlyPriceLabel != null ? 'Just $footerPrice' : footerPrice,
-              style: AppTextStyles.smallLabel,
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _navigateToNextPaywall,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Try for \$0.00'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _monthlyPriceLabel != null ? 'Just $footerPrice' : footerPrice,
+                style: AppTextStyles.smallLabel,
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

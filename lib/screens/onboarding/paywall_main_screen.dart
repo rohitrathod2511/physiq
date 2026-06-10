@@ -46,14 +46,11 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
 
   Future<void> _handleClose() async {
     if (_isLoading) return;
+    PaywallNavigator.pushStep(context, '/onboarding/paywall-spinner');
+  }
 
-    if (PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
-      PaywallNavigator.dismissInApp(context);
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    await _authService.completeOnboarding();
+  void _handleSystemBack() {
+    PaywallNavigator.pushStep(context, '/onboarding/paywall-notification');
   }
 
   Future<void> _onPurchaseSuccess() async {
@@ -67,10 +64,6 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
     if (mounted) {
       PaywallNavigator.onPurchaseSuccess(context, ref);
     }
-  }
-
-  void _handleBack() {
-    PaywallNavigator.pushStep(context, '/onboarding/paywall-spinner');
   }
 
   Future<void> _purchasePlan(String planType) async {
@@ -190,17 +183,14 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _handleBack();
+        _handleSystemBack();
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.grey),
-            onPressed: _handleBack,
-          ),
+          leading: const SizedBox.shrink(),
           actions: [
             IconButton(
               icon: const Icon(Icons.close, color: Colors.grey),
