@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/providers/subscription_provider.dart';
+import 'package:physiq/services/revenuecat_service.dart';
 
 /// Central paywall entry and post-purchase navigation.
 class PaywallNavigator {
@@ -19,8 +20,18 @@ class PaywallNavigator {
 
   /// After a successful purchase or restore — unlock UI and leave paywall.
   static void onPurchaseSuccess(BuildContext context, WidgetRef ref) {
-    ref.read(isPremiumNotifierProvider.notifier).updatePremiumStatus(true);
-    debugPrint('🔄 [DEBUG] PaywallNavigator: onPurchaseSuccess. Routing directly to /home.');
+    final isPremium = RevenueCatService.instance.isPremium;
+    ref
+        .read(isPremiumNotifierProvider.notifier)
+        .updatePremiumStatus(isPremium);
+
+    debugPrint(
+      '🔄 [DEBUG] PaywallNavigator: onPurchaseSuccess (premium=$isPremium). Routing to /home.',
+    );
+
+    while (context.canPop()) {
+      context.pop();
+    }
     context.go('/home');
   }
 
@@ -45,7 +56,9 @@ class PaywallNavigator {
   static String _withInAppQuery(BuildContext context, String path) {
     final state = GoRouterState.of(context);
     if (isInAppSession(state)) {
-      return path.contains('?') ? '$path&$inAppQueryKey=1' : '$path?$inAppQueryKey=1';
+      return path.contains('?')
+          ? '$path&$inAppQueryKey=1'
+          : '$path?$inAppQueryKey=1';
     }
     return path;
   }

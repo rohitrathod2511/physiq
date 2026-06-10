@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/navigation/paywall_navigator.dart';
-import 'package:physiq/providers/subscription_provider.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/revenuecat_service.dart';
@@ -58,8 +57,6 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
   }
 
   Future<void> _onPurchaseSuccess() async {
-    ref.read(isPremiumNotifierProvider.notifier).updatePremiumStatus(true);
-
     if (!PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
       await _authService.completeOnboarding();
     }
@@ -90,6 +87,16 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
 
       if (success) {
         await _onPurchaseSuccess();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Payment received, but premium is not active yet. '
+              'Try Restore Purchases or restart the app in a moment.',
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

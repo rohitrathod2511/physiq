@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,8 +11,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 class PremiumSubscription extends ChangeNotifier {
   bool isPremium = false;
 
-  void update(bool value) {
-    if (isPremium == value) return;
+  void update(bool value, {bool force = false}) {
+    if (!force && isPremium == value) return;
     isPremium = value;
     notifyListeners();
   }
@@ -69,45 +70,81 @@ class RevenueCatService {
 
       await getOfferings(forceRefresh: true);
       await _updatePremiumStatus(emitAlways: true);
+      await syncFirebaseUserIfSignedIn();
     } catch (e) {
       debugPrint('❌ RevenueCat initialization failed: $e');
     }
   }
 
-  void _onCustomerInfoUpdated(CustomerInfo customerInfo) {
-    _updatePremiumStatusFromInfo(customerInfo);
+  /// Links RevenueCat to the current Firebase user on cold start.
+  Future<void> syncFirebaseUserIfSignedIn() async {
+    if (!_isInitialized) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await loginUser(user.uid);
   }
 
-  void _updatePremiumStatusFromInfo(
+  void _onCustomerInfoUpdated(CustomerInfo customerInfo) {
+    _applyCustomerInfo(customerInfo);
+  }
+
+  /// Public check: does the given [customerInfo] have an active premium entitlement?
+  bool hasActivePremiumEntitlement(CustomerInfo customerInfo) =>
+      _isPremiumFromCustomerInfo(customerInfo);
+
+  bool _isPremiumFromCustomerInfo(CustomerInfo customerInfo) {
+    if (customerInfo.entitlements.active.containsKey(entitlementId)) {
+      return true;
+    }
+    final entitlement = customerInfo.entitlements.all[entitlementId];
+    return entitlement?.isActive == true;
+  }
+
+  void _logEntitlementDiagnostics(CustomerInfo customerInfo) {
+    debugPrint(
+      '🔍 [DEBUG] RevenueCat: active entitlements: ${customerInfo.entitlements.active.keys.toList()}',
+    );
+    final premium = customerInfo.entitlements.all[entitlementId];
+    debugPrint(
+      '🔍 [DEBUG] RevenueCat: "$entitlementId" in all: isActive=${premium?.isActive}, '
+      'productId=${premium?.productIdentifier}',
+    );
+  }
+
+  bool _applyCustomerInfo(
     CustomerInfo customerInfo, {
     bool forceNotify = false,
   }) {
     final wasPremium = _isPremium;
-    final isEntitlementActive = customerInfo.entitlements.active.containsKey(entitlementId);
-    _isPremium = isEntitlementActive;
+    _isPremium = _isPremiumFromCustomerInfo(customerInfo);
 
     debugPrint(
-      '🔔 [DEBUG] RevenueCat: CustomerInfo fetched. Premium entitlement status: $isEntitlementActive',
+      '🔔 [DEBUG] RevenueCat: CustomerInfo applied. Premium entitlement status: $_isPremium',
     );
+
+    if (!_isPremium) {
+      _logEntitlementDiagnostics(customerInfo);
+    }
 
     if (forceNotify || wasPremium != _isPremium) {
       _emitPremiumStatus();
     }
+
+    return _isPremium;
   }
 
   void _emitPremiumStatus() {
     _premiumStatusController?.add(_isPremium);
-    premiumSubscription.update(_isPremium);
+    premiumSubscription.update(_isPremium, force: true);
     debugPrint('🔔 [DEBUG] RevenueCat: Premium status = $_isPremium');
   }
 
   Future<void> _updatePremiumStatus({bool emitAlways = false}) async {
     try {
       final customerInfo = await getCustomerInfo();
-      _updatePremiumStatusFromInfo(customerInfo, forceNotify: emitAlways);
-      if (emitAlways) {
-        _emitPremiumStatus();
-      }
+      _applyCustomerInfo(customerInfo, forceNotify: emitAlways);
     } catch (e) {
       debugPrint('❌ [DEBUG] RevenueCat: Failed to update premium status: $e');
     }
@@ -155,10 +192,10 @@ class RevenueCatService {
     }
 
     try {
-      await Purchases.logIn(appUserId);
+      final result = await Purchases.logIn(appUserId);
       debugPrint('✅ [DEBUG] RevenueCat: Logged in as $appUserId');
+      _applyCustomerInfo(result.customerInfo, forceNotify: true);
       await getOfferings(forceRefresh: true);
-      await _updatePremiumStatus(emitAlways: true);
     } catch (e) {
       debugPrint('❌ [DEBUG] RevenueCat login failed: $e');
     }
@@ -185,22 +222,77 @@ class RevenueCatService {
     return await Purchases.getCustomerInfo();
   }
 
+  /// CRITICAL: Invalidate cache and fetch fresh CustomerInfo.
+  /// Must be called after purchase/restore to get latest entitlement status.
+  Future<CustomerInfo> invalidateAndFetchCustomerInfo() async {
+    debugPrint('🔄 [DEBUG] RevenueCat: Invalidating cache and fetching fresh CustomerInfo...');
+    await Purchases.invalidateCustomerInfoCache();
+    final info = await getCustomerInfo();
+    _applyCustomerInfo(info, forceNotify: true);
+    return info;
+  }
+
+  Future<bool> _resolvePremiumAfterTransaction(CustomerInfo initialInfo) async {
+    var isPremium = _applyCustomerInfo(initialInfo, forceNotify: true);
+
+    if (isPremium) return true;
+
+    // CRITICAL: Invalidate cache first - this is often the missing step!
+    debugPrint('🔄 [DEBUG] RevenueCat: Invalidating cache after purchase...');
+    await Purchases.invalidateCustomerInfoCache();
+
+    // Allow RevenueCat time to propagate entitlement after Play billing.
+    // Sandbox mode can have delays up to 5-10 seconds, so we use longer delays.
+    final delays = [500, 1000, 2000, 3000, 5000]; // Total: 11.5 seconds max
+    
+    for (final delayMs in delays) {
+      debugPrint('🔄 [DEBUG] RevenueCat: Waiting ${delayMs}ms before retry...');
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
+      
+      final customerInfo = await getCustomerInfo();
+      isPremium = _applyCustomerInfo(customerInfo, forceNotify: true);
+      
+      if (isPremium) {
+        debugPrint(
+          '✅ [DEBUG] RevenueCat: Premium became active after ${delayMs}ms retry',
+        );
+        return true;
+      }
+      
+      debugPrint(
+        '⚠️ [DEBUG] RevenueCat: Still no premium after ${delayMs}ms. '
+        'Active entitlements: ${customerInfo.entitlements.active.keys.toList()}',
+      );
+    }
+
+    debugPrint(
+      '⚠️ [DEBUG] RevenueCat: Premium not active after all retries. '
+      'This may be a sandbox delay - user should try Restore Purchases.',
+    );
+    return false;
+  }
+
   Future<bool> purchasePackage(Package package) async {
     if (!_isInitialized) {
       throw StateError('RevenueCat is not initialized');
     }
 
     try {
-      debugPrint('🛒 [DEBUG] RevenueCat: Starting purchase for package: ${package.identifier}');
-      final result = await Purchases.purchasePackage(package);
-      
-      // Perform a fresh check to update global state
-      final isPremium = await isPremiumUser();
-      
+      debugPrint(
+        '🛒 [DEBUG] RevenueCat: Starting purchase for package: ${package.identifier}',
+      );
+      final purchaseResult = await Purchases.purchasePackage(package);
+      final isPremium =
+          await _resolvePremiumAfterTransaction(purchaseResult.customerInfo);
+
       if (isPremium) {
-        debugPrint('✅ [DEBUG] RevenueCat: Purchase successful! Premium entitlement status: true');
+        debugPrint(
+          '✅ [DEBUG] RevenueCat: Purchase successful! Premium entitlement status: true',
+        );
       } else {
-        debugPrint('⚠️ [DEBUG] RevenueCat: Purchase completed but no active entitlement found.');
+        debugPrint(
+          '⚠️ [DEBUG] RevenueCat: Purchase completed but no active entitlement found.',
+        );
       }
 
       return isPremium;
@@ -213,23 +305,29 @@ class RevenueCatService {
           debugPrint('ℹ️ [DEBUG] RevenueCat: Purchase cancelled by user');
           return false;
         case PurchasesErrorCode.networkError:
-          errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+          errorMessage =
+              'Network connection failed. Please check your internet connection and try again.';
           break;
         case PurchasesErrorCode.storeProblemError:
-          errorMessage = 'Google Play Store / App Store encountered an issue. Please try again later.';
+          errorMessage =
+              'Google Play Store / App Store encountered an issue. Please try again later.';
           break;
         case PurchasesErrorCode.purchaseNotAllowedError:
-          errorMessage = 'This purchase is not allowed on this account (e.g., parental controls).';
+          errorMessage =
+              'This purchase is not allowed on this account (e.g., parental controls).';
           break;
         case PurchasesErrorCode.productAlreadyPurchasedError:
-          errorMessage = 'You already have an active subscription for this product.';
+          errorMessage =
+              'You already have an active subscription for this product.';
           break;
         default:
           errorMessage = 'Purchase failed: ${e.message ?? e.toString()}';
           break;
       }
-      
-      debugPrint('❌ [DEBUG] RevenueCat: Purchase failed. Code: $errorCode, Error: $errorMessage');
+
+      debugPrint(
+        '❌ [DEBUG] RevenueCat: Purchase failed. Code: $errorCode, Error: $errorMessage',
+      );
       throw errorMessage;
     } catch (e) {
       debugPrint('❌ [DEBUG] RevenueCat: Purchase failed with unexpected error: $e');
@@ -246,15 +344,20 @@ class RevenueCatService {
       debugPrint('🔄 [DEBUG] RevenueCat: Restoring purchases...');
       final customerInfo = await Purchases.restorePurchases();
       
-      // Perform a fresh check to update global state
-      final isPremium = await isPremiumUser();
-      
+      // CRITICAL: Invalidate cache and fetch fresh info
+      final freshInfo = await invalidateAndFetchCustomerInfo();
+      final isPremium = await _resolvePremiumAfterTransaction(freshInfo);
+
       if (isPremium) {
-        debugPrint('✅ [DEBUG] RevenueCat: Restore successful! Premium entitlement status: true');
+        debugPrint(
+          '✅ [DEBUG] RevenueCat: Restore successful! Premium entitlement status: true',
+        );
       } else {
-        debugPrint('⚠️ [DEBUG] RevenueCat: Restore completed but no active entitlement found.');
+        debugPrint(
+          '⚠️ [DEBUG] RevenueCat: Restore completed but no active entitlement found.',
+        );
       }
-      
+
       return isPremium;
     } on PlatformException catch (e) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
@@ -262,7 +365,8 @@ class RevenueCatService {
 
       switch (errorCode) {
         case PurchasesErrorCode.networkError:
-          errorMessage = 'Network connection failed. Please check your connection and try again.';
+          errorMessage =
+              'Network connection failed. Please check your connection and try again.';
           break;
         case PurchasesErrorCode.storeProblemError:
           errorMessage = 'Store issue encountered. Please try again later.';
@@ -271,8 +375,10 @@ class RevenueCatService {
           errorMessage = 'Restore failed: ${e.message ?? e.toString()}';
           break;
       }
-      
-      debugPrint('❌ [DEBUG] RevenueCat: Restore failed. Code: $errorCode, Error: $errorMessage');
+
+      debugPrint(
+        '❌ [DEBUG] RevenueCat: Restore failed. Code: $errorCode, Error: $errorMessage',
+      );
       throw errorMessage;
     } catch (e) {
       debugPrint('❌ [DEBUG] RevenueCat: Restore failed with unexpected error: $e');
@@ -285,7 +391,7 @@ class RevenueCatService {
 
     try {
       final customerInfo = await getCustomerInfo();
-      _updatePremiumStatusFromInfo(customerInfo);
+      _applyCustomerInfo(customerInfo);
       debugPrint('🔍 [DEBUG] RevenueCat: isPremiumUser = $_isPremium');
       return _isPremium;
     } catch (e) {
@@ -332,7 +438,9 @@ class RevenueCatService {
     if (offering != null) {
       for (final pkg in offering.availablePackages) {
         if (pkg.packageType == type) {
-          debugPrint('✅ RevenueCat: Found $type in ${offering.identifier}: ${pkg.identifier}');
+          debugPrint(
+            '✅ RevenueCat: Found $type in ${offering.identifier}: ${pkg.identifier}',
+          );
           return pkg;
         }
       }
@@ -343,7 +451,9 @@ class RevenueCatService {
     for (final off in _cachedOfferings!.all.values) {
       for (final pkg in off.availablePackages) {
         if (pkg.packageType == type) {
-          debugPrint('✅ RevenueCat: Found $type in ${off.identifier}: ${pkg.identifier}');
+          debugPrint(
+            '✅ RevenueCat: Found $type in ${off.identifier}: ${pkg.identifier}',
+          );
           return pkg;
         }
       }

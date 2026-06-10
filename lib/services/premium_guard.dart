@@ -10,8 +10,13 @@ class PremiumGuard {
     return ref.read(isPremiumNotifierProvider);
   }
 
-  /// Refreshes from RevenueCat.
+  /// Refreshes from RevenueCat when local state is not already premium.
   static Future<bool> ensurePremium(WidgetRef ref) async {
+    final cached = ref.read(isPremiumNotifierProvider);
+    if (cached && RevenueCatService.instance.isPremium) {
+      return true;
+    }
+
     final fresh = await RevenueCatService.instance.isPremiumUser();
     ref.read(isPremiumNotifierProvider.notifier).updatePremiumStatus(fresh);
     return fresh;

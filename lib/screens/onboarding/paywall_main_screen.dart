@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/navigation/paywall_navigator.dart';
-import 'package:physiq/providers/subscription_provider.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/revenuecat_service.dart';
@@ -58,8 +57,9 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
   }
 
   Future<void> _onPurchaseSuccess() async {
-    ref.read(isPremiumNotifierProvider.notifier).updatePremiumStatus(true);
-
+    // CRITICAL: Force refresh CustomerInfo before navigating
+    await RevenueCatService.instance.invalidateAndFetchCustomerInfo();
+    
     if (!PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
       await _authService.completeOnboarding();
     }
@@ -104,6 +104,30 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
 
       if (success) {
         await _onPurchaseSuccess();
+      } else {
+        // Purchase flow completed but entitlement not immediately active
+        // This can happen in sandbox mode with processing delays
+        debugPrint('⚠️ [DEBUG] Purchase completed but entitlement not immediately active. Fetching fresh status...');
+        
+        // Force a fresh fetch to check if entitlement is now active
+        final freshInfo = await RevenueCatService.instance.invalidateAndFetchCustomerInfo();
+        final isPremium = RevenueCatService.instance.hasActivePremiumEntitlement(freshInfo);
+        
+        if (isPremium) {
+          debugPrint('✅ [DEBUG] Entitlement now active after fresh fetch!');
+          await _onPurchaseSuccess();
+        } else if (mounted) {
+          // Still not active - show helpful message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Payment received! Premium may take a moment to activate.\n'
+                'Try tapping "Restore Purchases" or restart the app.',
+              ),
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -130,9 +154,19 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
         );
         await _onPurchaseSuccess();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No previous purchases found')),
-        );
+        // Restore returned false - try one more fetch in case of timing issue
+        debugPrint('⚠️ [DEBUG] Restore returned false, attempting fresh fetch...');
+        final freshInfo = await RevenueCatService.instance.invalidateAndFetchCustomerInfo();
+        final isPremium = RevenueCatService.instance.hasActivePremiumEntitlement(freshInfo);
+        
+        if (isPremium) {
+          debugPrint('✅ [DEBUG] Entitlement found after fresh fetch!');
+          await _onPurchaseSuccess();
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No previous purchases found')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
