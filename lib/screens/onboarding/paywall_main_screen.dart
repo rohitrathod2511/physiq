@@ -6,6 +6,7 @@ import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/revenuecat_service.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:intl/intl.dart';
 
 class PaywallMainScreen extends ConsumerStatefulWidget {
   const PaywallMainScreen({super.key});
@@ -174,10 +175,28 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
     }
   }
 
+  String _getMonthlyEquivalent(Package? package) {
+    if (package == null) return '...';
+    final double yearlyPrice = package.storeProduct.price;
+    if (yearlyPrice <= 0) return package.storeProduct.priceString;
+    
+    final double monthlyPrice = yearlyPrice / 12.0;
+    final String priceStr = package.storeProduct.priceString;
+    
+    final symbol = priceStr.replaceAll(RegExp(r'[0-9\s\.,]'), '');
+    final currencySymbol = symbol.isNotEmpty ? symbol : '₹';
+    
+    final truncated = (monthlyPrice * 100).truncateToDouble() / 100;
+    final parts = truncated.toStringAsFixed(2).split('.');
+    final intPart = int.parse(parts[0]);
+    final formattedInt = NumberFormat.decimalPattern().format(intPart);
+    return '$currencySymbol$formattedInt.${parts[1]}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final monthlyPrice = _monthlyPackage?.storeProduct.priceString ?? '...';
-    final yearlyPrice = _yearlyPackage?.storeProduct.priceString ?? '...';
+    final yearlyPrice = _getMonthlyEquivalent(_yearlyPackage);
 
     return PopScope(
       canPop: false,
@@ -242,7 +261,7 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
                     child: _buildPlanCard(
                       'Yearly',
                       yearlyPrice,
-                      'per year',
+                      'per month',
                       true,
                       onTap: () => setState(() => _selectedPlan = 'Yearly'),
                     ),

@@ -288,9 +288,13 @@ final GoRouter router = GoRouter(
         return '/onboarding/paywall-free';
       }
 
-      // Premium route guard for shell routes
+      // Premium route guard — non-premium users cannot access any app screen
       if (!premiumSubscription.isPremium &&
-          location.startsWith('/exercise')) {
+          (location.startsWith('/home') ||
+           location.startsWith('/settings') ||
+           location.startsWith('/progress') ||
+           location.startsWith('/exercise') ||
+           location.startsWith('/meal-history'))) {
         return '/onboarding/paywall-free?inApp=1';
       }
 

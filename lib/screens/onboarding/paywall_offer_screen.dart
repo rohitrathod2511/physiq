@@ -6,6 +6,7 @@ import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/revenuecat_service.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:intl/intl.dart';
 
 class PaywallOfferScreen extends ConsumerStatefulWidget {
   const PaywallOfferScreen({super.key});
@@ -44,19 +45,8 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
     }
   }
 
-  Future<void> _handleClose() async {
-    if (_isLoading) return;
-
-    if (PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
-      while (context.canPop()) {
-        context.pop();
-      }
-      context.go('/home');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    await _authService.completeOnboarding();
+  void _handleBack() {
+    PaywallNavigator.pushStep(context, '/onboarding/paywall-main');
   }
 
   Future<void> _onPurchaseSuccess() async {
@@ -147,15 +137,67 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
     }
   }
 
+  String _getMonthlyEquivalent(Package? package) {
+    if (package == null) return '...';
+    final double yearlyPrice = package.storeProduct.price;
+    if (yearlyPrice <= 0) return package.storeProduct.priceString;
+    
+    final double monthlyPrice = yearlyPrice / 12.0;
+    final String priceStr = package.storeProduct.priceString;
+    
+    final symbol = priceStr.replaceAll(RegExp(r'[0-9\s\.,]'), '');
+    final currencySymbol = symbol.isNotEmpty ? symbol : '₹';
+    
+    if (monthlyPrice % 1 == 0) {
+      return '$currencySymbol${NumberFormat.decimalPattern().format(monthlyPrice.toInt())}';
+    }
+    
+    final truncated = (monthlyPrice * 100).truncateToDouble() / 100;
+    if (truncated % 1 == 0) {
+      return '$currencySymbol${NumberFormat.decimalPattern().format(truncated.toInt())}';
+    }
+    
+    final parts = truncated.toStringAsFixed(2).split('.');
+    final intPart = int.parse(parts[0]);
+    final formattedInt = NumberFormat.decimalPattern().format(intPart);
+    return '$currencySymbol$formattedInt.${parts[1]}';
+  }
+
+  String _getFullPriceFormatted(Package? package) {
+    if (package == null) return '...';
+    final double price = package.storeProduct.price;
+    if (price <= 0) return package.storeProduct.priceString;
+    
+    final String priceStr = package.storeProduct.priceString;
+    final symbol = priceStr.replaceAll(RegExp(r'[0-9\s\.,]'), '');
+    final currencySymbol = symbol.isNotEmpty ? symbol : '₹';
+    
+    if (price % 1 == 0) {
+      return '$currencySymbol${NumberFormat.decimalPattern().format(price.toInt())}';
+    }
+    
+    final truncated = (price * 100).truncateToDouble() / 100;
+    if (truncated % 1 == 0) {
+      return '$currencySymbol${NumberFormat.decimalPattern().format(truncated.toInt())}';
+    }
+    
+    final parts = truncated.toStringAsFixed(2).split('.');
+    final intPart = int.parse(parts[0]);
+    final formattedInt = NumberFormat.decimalPattern().format(intPart);
+    return '$currencySymbol$formattedInt.${parts[1]}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final priceString = _specialPackage?.storeProduct.priceString;
-    final strikethrough = _referenceYearlyPrice;
+    final priceString = _specialPackage != null ? _getMonthlyEquivalent(_specialPackage) : null;
+    final yearlyPkg = RevenueCatService.instance.getYearlyPackage();
+    final strikethrough = yearlyPkg != null ? _getFullPriceFormatted(yearlyPkg) : null;
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        // Stay on screen — user must use close button to exit
+        if (didPop) return;
+        _handleBack();
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -163,8 +205,8 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.close, color: AppColors.primaryText),
-            onPressed: _handleClose,
+            icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
+            onPressed: _handleBack,
           ),
         ),
         body: SafeArea(
@@ -241,7 +283,7 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
                               ),
                             ),
                             Text(
-                              " /year",
+                              " /month",
                               style: AppTextStyles.h3.copyWith(
                                 color: Colors.redAccent,
                               ),
@@ -256,11 +298,11 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
                       const SizedBox(height: 34),
                       _buildBenefitRow(
                         Icons.coffee,
-                        "Less than a coffee for dream body.",
+                        "Less than a coffee for your Dream Body.",
                       ),
                       _buildBenefitRow(
                         Icons.warning_amber_rounded,
-                        "Close this screen? This price is gone",
+                        "Only 3 days left! Limited-time offer.",
                         isWarning: true,
                       ),
                       _buildBenefitRow(
@@ -302,7 +344,7 @@ class _PaywallOfferScreenState extends ConsumerState<PaywallOfferScreen> {
                             children: [
                               Text("Special Offer", style: AppTextStyles.h3),
                               Text(
-                                priceString ?? '...',
+                                priceString != null ? '$priceString/month' : '...',
                                 style: AppTextStyles.h3,
                               ),
                             ],

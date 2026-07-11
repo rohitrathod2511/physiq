@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:physiq/navigation/paywall_navigator.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/revenuecat_service.dart';
-import 'package:physiq/services/auth_service.dart';
 
 class PaywallFreeScreen extends ConsumerStatefulWidget {
   const PaywallFreeScreen({super.key});
@@ -14,7 +12,6 @@ class PaywallFreeScreen extends ConsumerStatefulWidget {
 }
 
 class _PaywallFreeScreenState extends ConsumerState<PaywallFreeScreen> {
-  final AuthService _authService = AuthService();
   bool _isLoading = false;
   String? _monthlyPriceLabel;
 
@@ -32,16 +29,8 @@ class _PaywallFreeScreenState extends ConsumerState<PaywallFreeScreen> {
     });
   }
 
-  Future<void> _handleClose() async {
-    if (_isLoading) return;
-
-    if (PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
-      PaywallNavigator.dismissInApp(context);
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    await _authService.completeOnboarding();
+  void _handleBack() {
+    Navigator.pop(context);
   }
 
   void _navigateToNextPaywall() {
@@ -56,7 +45,7 @@ class _PaywallFreeScreenState extends ConsumerState<PaywallFreeScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _handleClose();
+        _handleBack();
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -64,8 +53,8 @@ class _PaywallFreeScreenState extends ConsumerState<PaywallFreeScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.grey),
-            onPressed: _handleClose,
+            icon: const Icon(Icons.arrow_back, color: Colors.grey),
+            onPressed: _handleBack,
           ),
         ),
         body: Padding(

@@ -18,7 +18,10 @@ class PaywallNavigator {
     return state.uri.queryParameters[inAppQueryKey] == '1';
   }
 
-  /// After a successful purchase or restore — unlock UI and leave paywall.
+  /// After a successful purchase or restore — unlock UI.
+  /// RevenueCat's internal listener already updates [premiumSubscription],
+  /// which triggers GoRouter's redirect (premium on paywall → /home).
+  /// This method only updates local Riverpod state for UI widgets.
   static void onPurchaseSuccess(BuildContext context, WidgetRef ref) {
     final isPremium = RevenueCatService.instance.isPremium;
     ref
@@ -26,22 +29,9 @@ class PaywallNavigator {
         .updatePremiumStatus(isPremium);
 
     debugPrint(
-      '🔄 [DEBUG] PaywallNavigator: onPurchaseSuccess (premium=$isPremium). Routing to /home.',
+      '🔄 [DEBUG] PaywallNavigator: onPurchaseSuccess (premium=$isPremium). '
+      'GoRouter redirect will handle navigation from paywall to /home.',
     );
-
-    while (context.canPop()) {
-      context.pop();
-    }
-    context.go('/home');
-  }
-
-  /// Close without subscribing during an in-app paywall session.
-  static void dismissInApp(BuildContext context) {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go('/home');
-    }
   }
 
   /// Push the next funnel step, preserving in-app query when applicable.
