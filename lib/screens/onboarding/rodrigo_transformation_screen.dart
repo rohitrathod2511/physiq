@@ -26,18 +26,12 @@ class RodrigoTransformationScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 16),
                     Text(
-                      "Get inspired for your physique goals",
+                      "Gain Muscle.        Transform Your Physique with Physiq AI",
                       style: AppTextStyles.h1,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Gain muscle and transform your physique with Physiq AI",
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.secondaryText,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    const SizedBox(height: 40),
+                    
                     Container(
                       margin: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(

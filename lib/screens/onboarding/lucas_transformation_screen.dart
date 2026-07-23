@@ -26,18 +26,12 @@ class LucasTransformationScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 16),
                     Text(
-                      "Start your 90-day fitness journey with Physiq AI",
+                      "Lose Fat and Get Lean with Physiq AI",
                       style: AppTextStyles.h1,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Lose fat and get lean with your AI-powered plan",
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.secondaryText,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    const SizedBox(height: 40),
+                    
                     Container(
                       margin: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(

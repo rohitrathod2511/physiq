@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:physiq/navigation/paywall_navigator.dart';
+import 'package:physiq/routes/app_router.dart';
 import 'package:physiq/theme/design_system.dart';
 import 'package:physiq/services/auth_service.dart';
 import 'package:physiq/services/revenuecat_service.dart';
@@ -55,15 +56,13 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
   }
 
   Future<void> _onPurchaseSuccess() async {
-    // CRITICAL: Force refresh CustomerInfo before navigating
-    await RevenueCatService.instance.invalidateAndFetchCustomerInfo();
-    
     if (!PaywallNavigator.isInAppSession(GoRouterState.of(context))) {
       await _authService.completeOnboarding();
+      authSubscription.markOnboardingComplete();
     }
 
     if (mounted) {
-      PaywallNavigator.onPurchaseSuccess(context, ref);
+      await PaywallNavigator.onPurchaseSuccess(context, ref);
     }
   }
 

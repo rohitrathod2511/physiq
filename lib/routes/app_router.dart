@@ -53,6 +53,14 @@ bool _isPaywallRoute(String location) {
   return location == '/paywall' || location.startsWith('/onboarding/paywall');
 }
 
+bool _isProtectedAppRoute(String location) {
+  return location.startsWith('/home') ||
+      location.startsWith('/settings') ||
+      location.startsWith('/progress') ||
+      location.startsWith('/exercise') ||
+      location.startsWith('/meal-history');
+}
+
 bool _isTransformationOrSuccessRoute(String location) {
   return location == '/rodrigo' ||
       location == '/lucas' ||
@@ -133,6 +141,14 @@ class AuthSubscription extends ChangeNotifier {
     // DO NOT notifyListeners() here. Updating the tracker shouldn't rebuild the entire Router.
   }
 
+  /// Sync local onboarding flag immediately (Firestore listener may lag).
+  void markOnboardingComplete() {
+    if (onboardingCompleted != true) {
+      onboardingCompleted = true;
+      notifyListeners();
+    }
+  }
+
   void _startUserSubscription(User user) {
     debugPrint(
       '📡 AUTH_SUB: Starting Firestore subscription for user: ${user.uid}',
@@ -201,9 +217,17 @@ final GoRouter router = GoRouter(
     final resumeRoute = OnboardingStore.currentResumeRoute;
     final hasCompletedOnboarding = isOnboardingComplete == true;
 
-    // If premium, automatically redirect away from paywall routes to /home
-    if (premiumSubscription.isPremium && _isPaywallRoute(location)) {
-      debugPrint('🔄 [DEBUG] GoRouter: Premium user on paywall route ($location). Redirecting to /home.');
+    // Subscribed users on app screens — stay put (never bounce back to paywall).
+    if (premiumSubscription.isPremium && _isProtectedAppRoute(location)) {
+      return null;
+    }
+
+    // Subscribed users reopening paywall after onboarding — send home.
+    // During an in-flight purchase (onboarding not yet marked complete), the
+    // purchase callback navigates once; do not redirect here to avoid loops.
+    if (premiumSubscription.isPremium &&
+        _isPaywallRoute(location) &&
+        hasCompletedOnboarding) {
       return '/home';
     }
 
@@ -229,16 +253,8 @@ final GoRouter router = GoRouter(
     // 1. If NOT authenticated
     // ----------------------------------------------------
     if (!isAuthenticated) {
-      // Protected routes logic
-      final isProtected =
-          location.startsWith('/home') ||
-          location.startsWith('/settings') ||
-          location.startsWith('/progress') ||
-          location.startsWith('/exercise') ||
-          location.startsWith('/meal-history');
-
       // If trying to access protected route, kick to Get Started
-      if (isProtected) {
+      if (_isProtectedAppRoute(location)) {
         return '/get-started';
       }
       if (location == '/') {
@@ -263,15 +279,8 @@ final GoRouter router = GoRouter(
     // 3. Authenticated AND Onboarding INCOMPLETE (New User)
     // ----------------------------------------------------
     if (!isOnboardingComplete) {
-      final isProtected =
-          location.startsWith('/home') ||
-          location.startsWith('/settings') ||
-          location.startsWith('/progress') ||
-          location.startsWith('/exercise') ||
-          location.startsWith('/meal-history');
-
       // Keep incomplete users in the onboarding flow instead of jumping ahead to paywall.
-      if (isProtected || location == '/') {
+      if (_isProtectedAppRoute(location) || location == '/') {
         if (resumeRoute != null && resumeRoute != location) {
           return resumeRoute;
         }
@@ -289,12 +298,7 @@ final GoRouter router = GoRouter(
       }
 
       // Premium route guard — non-premium users cannot access any app screen
-      if (!premiumSubscription.isPremium &&
-          (location.startsWith('/home') ||
-           location.startsWith('/settings') ||
-           location.startsWith('/progress') ||
-           location.startsWith('/exercise') ||
-           location.startsWith('/meal-history'))) {
+      if (!premiumSubscription.isPremium && _isProtectedAppRoute(location)) {
         return '/onboarding/paywall-free?inApp=1';
       }
 
