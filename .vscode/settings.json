@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "C:/Users/rdrat/Desktop/physiq/windows/runner"
+  "cmake.sourceDirectory": "C:/Users/rdrat/Desktop/physiq/windows/runner",
+  "java.configuration.updateBuildConfiguration": "disabled"
 }
