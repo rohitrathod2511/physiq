@@ -353,11 +353,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
 
   Widget _buildHeroImage(BuildContext context) {
     final theme = Theme.of(context);
+    final heroHeight = MediaQuery.sizeOf(context).height * 0.45;
 
     if ((widget.imagePath == null || widget.imagePath!.isEmpty) &&
         (_currentMeal?.imageUrl.isEmpty ?? true)) {
       return Container(
-        height: 380,
+        height: heroHeight,
         color: theme.colorScheme.surfaceContainerHighest,
         child: Center(
           child: Icon(
@@ -370,7 +371,7 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     }
 
     return SizedBox(
-      height: 380,
+      height: heroHeight,
       width: double.infinity,
       child: widget.imagePath != null && widget.imagePath!.isNotEmpty
           ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
@@ -462,11 +463,12 @@ class _MealPreviewScreenState extends ConsumerState<MealPreviewScreen> {
     int carbs,
     int fat,
   ) {
+    final heroHeight = MediaQuery.sizeOf(context).height * 0.45;
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
-          const SizedBox(height: 320),
+          SizedBox(height: heroHeight - 60),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 140),

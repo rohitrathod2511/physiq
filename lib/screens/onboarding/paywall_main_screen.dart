@@ -216,110 +216,124 @@ class _PaywallMainScreenState extends ConsumerState<PaywallMainScreen> {
             ),
           ],
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Unlock Physiq AI to get your Dream Body.",
-                style: AppTextStyles.h1.copyWith(fontSize: 28),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 34),
-              _buildFeatureItem(
-                'Get your Dream Body',
-                'We keep it simple to make getting results easy',
-              ),
-              _buildFeatureItem(
-                'Track your Progress',
-                'Stay on track with personalized insights and smart reminders',
-              ),
-              _buildFeatureItem(
-                'Easy Food Scanning',
-                'Track your calories with our easy to use food scanner',
-              ),
-              _buildFeatureItem(
-                'Easy to Follow Workouts',
-                'Stay on track with our easy to follow workout plans',
-              ),
-              const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPlanCard(
-                      'Monthly',
-                      monthlyPrice,
-                      null,
-                      false,
-                      onTap: () => setState(() => _selectedPlan = 'Monthly'),
+        body: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Unlock Physiq AI to get your Dream Body.",
+                      style: AppTextStyles.h1.copyWith(fontSize: 28),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildPlanCard(
-                      'Yearly',
-                      yearlyPrice,
-                      'per month',
-                      true,
-                      onTap: () => setState(() => _selectedPlan = 'Yearly'),
+                    const SizedBox(height: 34),
+                    _buildFeatureItem(
+                      'Get your Dream Body',
+                      'We keep it simple to make getting results easy',
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check, color: AppColors.primaryText, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    "No Commitment - Cancel Anytime",
-                    style: AppTextStyles.bodyBold,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed:
-                      _isLoading ? null : () => _purchasePlan(_selectedPlan),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                    _buildFeatureItem(
+                      'Track your Progress',
+                      'Stay on track with personalized insights and smart reminders',
                     ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                    _buildFeatureItem(
+                      'Easy Food Scanning',
+                      'Track your calories with our easy to use food scanner',
+                    ),
+                    _buildFeatureItem(
+                      'Easy to Follow Workouts',
+                      'Stay on track with our easy to follow workout plans',
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildPlanCard(
+                            'Monthly',
+                            monthlyPrice,
+                            null,
+                            false,
+                            onTap: () => setState(() => _selectedPlan = 'Monthly'),
                           ),
-                        )
-                      : const Text('Start My Journey'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: TextButton(
-                  onPressed: _isLoading ? null : _restorePurchases,
-                  child: Text(
-                    'Restore Purchases',
-                    style: AppTextStyles.smallLabel.copyWith(
-                      decoration: TextDecoration.underline,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildPlanCard(
+                            'Yearly',
+                            yearlyPrice,
+                            'per month',
+                            true,
+                            onTap: () => setState(() => _selectedPlan = 'Yearly'),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check, color: AppColors.primaryText, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          "No Commitment - Cancel Anytime",
+                          style: AppTextStyles.bodyBold,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed:
+                            _isLoading ? null : () => _purchasePlan(_selectedPlan),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Get Started',
+                                style: AppTextStyles.button.copyWith(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: TextButton(
+                        onPressed: _isLoading ? null : _restorePurchases,
+                        child: Text(
+                          'Restore Purchases',
+                          style: AppTextStyles.body.copyWith(
+                            color: AppColors.secondaryText,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

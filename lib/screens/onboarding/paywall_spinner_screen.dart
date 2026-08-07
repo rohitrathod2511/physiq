@@ -166,12 +166,18 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                 ),
               ),
               const Spacer(),
-              Stack(
-                alignment: Alignment.center,
-                children: [
+              Builder(
+                builder: (context) {
+                  final screenWidth = MediaQuery.sizeOf(context).width;
+                  final wheelSize = (screenWidth * 0.85).clamp(250.0, 340.0);
+                  final innerWheelSize = wheelSize - 20.0;
+                  
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
                   Container(
-                    width: 340,
-                    height: 340,
+                    width: wheelSize,
+                    height: wheelSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
@@ -199,8 +205,8 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                         child: GestureDetector(
                           onTap: _spinWheel,
                           child: Container(
-                            width: 320,
-                            height: 320,
+                            width: innerWheelSize,
+                            height: innerWheelSize,
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                             ),
@@ -246,6 +252,8 @@ class _PaywallSpinnerScreenState extends State<PaywallSpinnerScreen>
                     ),
                   ),
                 ],
+              );
+                },
               ),
               const SizedBox(height: 30),
               Text(

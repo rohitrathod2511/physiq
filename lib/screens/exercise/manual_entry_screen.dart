@@ -25,69 +25,76 @@ class _ManualEntryScreenState extends ConsumerState<ManualEntryScreen> {
         elevation: 0,
         leading: BackButton(color: AppColors.primaryText),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            const Spacer(),
-            Center(
-              child: Stack(
-                alignment: Alignment.center,
+      body: CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
                 children: [
-                  SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: CircularProgressIndicator(
-                      value: 1.0,
-                      strokeWidth: 16,
-                      color: AppColors.primary,
-                      backgroundColor: AppColors.secondaryText.withOpacity(0.1),
+                  const Spacer(),
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 200,
+                          height: 200,
+                          child: CircularProgressIndicator(
+                            value: 1.0,
+                            strokeWidth: 16,
+                            color: AppColors.primary,
+                            backgroundColor: AppColors.secondaryText.withOpacity(0.1),
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 120,
+                                  child: TextField(
+                                    controller: _controller,
+                                    keyboardType: TextInputType.number,
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: '0',
+                                    ),
+                                  ),
+                                ),
+                                Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
+                              ],
+                            ),
+                            Text('Calories', style: AppTextStyles.bodyMedium),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 120,
-                            child: TextField(
-                              controller: _controller,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.largeNumber.copyWith(fontSize: 48),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                hintText: '0',
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
-                        ],
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _onLog,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
-                      Text('Calories', style: AppTextStyles.bodyMedium),
-                    ],
+                      child: Text('Log', style: AppTextStyles.button.copyWith(color: Colors.white)),
+                    ),
                   ),
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _onLog,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-                child: Text('Log', style: AppTextStyles.button.copyWith(color: Colors.white)),
-              ),
-            ),
-            const SizedBox(height: 80),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

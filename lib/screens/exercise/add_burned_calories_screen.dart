@@ -34,72 +34,79 @@ class _AddBurnedCaloriesScreenState extends State<AddBurnedCaloriesScreen> {
         elevation: 0,
         leading: BackButton(color: AppColors.primaryText),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            const Spacer(),
-            Center(
-              child: Stack(
-                alignment: Alignment.center,
+      body: CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
                 children: [
-                  SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: CircularProgressIndicator(
-                      value: 1.0,
-                      strokeWidth: 16,
-                      color: AppColors.primary,
-                      backgroundColor: Colors.grey[200],
+                  const Spacer(),
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 200,
+                          height: 200,
+                          child: CircularProgressIndicator(
+                            value: 1.0,
+                            strokeWidth: 16,
+                            color: AppColors.primary,
+                            backgroundColor: Colors.grey[200],
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Burned', style: AppTextStyles.bodyMedium),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 100,
+                                  child: TextField(
+                                    controller: _controller,
+                                    keyboardType: TextInputType.number,
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.largeNumber.copyWith(fontSize: 40),
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                    ),
+                                  ),
+                                ),
+                                Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
+                              ],
+                            ),
+                            Text('kcal', style: AppTextStyles.bodyMedium),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Burned', style: AppTextStyles.bodyMedium),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 100,
-                            child: TextField(
-                              controller: _controller,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.largeNumber.copyWith(fontSize: 40),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.edit, size: 20, color: AppColors.secondaryText),
-                        ],
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final val = double.tryParse(_controller.text) ?? widget.initialCalories;
+                        widget.onLog(val);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
-                      Text('kcal', style: AppTextStyles.bodyMedium),
-                    ],
+                      child: Text('Log Workout', style: AppTextStyles.button.copyWith(color: Colors.white)),
+                    ),
                   ),
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  final val = double.tryParse(_controller.text) ?? widget.initialCalories;
-                  widget.onLog(val);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-                child: Text('Log Workout', style: AppTextStyles.button.copyWith(color: Colors.white)),
-              ),
-            ),
-            const SizedBox(height: 80),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

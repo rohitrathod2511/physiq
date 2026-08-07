@@ -101,8 +101,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 4), 
                     DateSlider(onDateSelected: homeViewModel.selectDate),
                     const SizedBox(height: 12), // Reduced spacing
-                    SizedBox(
-                      height: 390, // Adjusted height for new compact design
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: 320,
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.45 < 350 ? 350 : MediaQuery.sizeOf(context).height * 0.45,
+                      ),
                       child: homeState.dailySummary != null
                           ? PageView(
                               controller: _pageController,

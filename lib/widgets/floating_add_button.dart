@@ -42,37 +42,42 @@ class FloatingAddButton extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.bigCard)),
       ),
+      isScrollControlled: true,
       builder: (sheetContext) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text('Add a Meal', style: AppTextStyles.heading2),
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text('Add a Meal', style: AppTextStyles.heading2),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildOptionTile(
+                    sheetContext,
+                    'Snap Meal',
+                    Icons.camera_alt_outlined,
+                    () => showSnapMealFlow(context, ref),
+                  ),
+                  _buildOptionTile(
+                    sheetContext,
+                    'Food Database',
+                    Icons.search,
+                    () => showFoodDatabaseFlow(context, ref),
+                  ),
+                  _buildOptionTile(
+                    sheetContext,
+                    'Saved Foods',
+                    Icons.bookmark_border,
+                    () => showSavedFoodsFlow(context, ref),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildOptionTile(
-                sheetContext,
-                'Snap Meal',
-                Icons.camera_alt_outlined,
-                () => showSnapMealFlow(context, ref),
-              ),
-              _buildOptionTile(
-                sheetContext,
-                'Food Database',
-                Icons.search,
-                () => showFoodDatabaseFlow(context, ref),
-              ),
-              _buildOptionTile(
-                sheetContext,
-                'Saved Foods',
-                Icons.bookmark_border,
-                () => showSavedFoodsFlow(context, ref),
-              ),
-            ],
+            ),
           ),
         );
       },

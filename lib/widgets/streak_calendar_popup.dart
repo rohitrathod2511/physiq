@@ -34,28 +34,32 @@ class _StreakCalendarPopupState extends State<StreakCalendarPopup> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.card,
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Streak Calendar', style: AppTextStyles.heading1.copyWith(fontSize: 20)),
-            const SizedBox(height: 16),
-            _buildCalendar(),
-            const SizedBox(height: 24),
-            if (_selectedDay != null) _buildDaySummaryPanel(),
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'You have a 24-hour grace period to edit your entries.',
-                style: AppTextStyles.subheading,
-                textAlign: TextAlign.center,
-              ),
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Container(
+          color: AppColors.card,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Streak Calendar', style: AppTextStyles.heading1.copyWith(fontSize: 20)),
+                const SizedBox(height: 16),
+                _buildCalendar(),
+                const SizedBox(height: 24),
+                if (_selectedDay != null) _buildDaySummaryPanel(),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    'You have a 24-hour grace period to edit your entries.',
+                    style: AppTextStyles.subheading,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
