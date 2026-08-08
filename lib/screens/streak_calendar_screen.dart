@@ -23,10 +23,19 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
   DateTime? _userStartDate;
   bool _isLoading = true;
 
+  final ScrollController _calendarScrollController = ScrollController();
+  bool _hasScrolledToCurrentMonth = false;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _calendarScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -216,6 +225,30 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
         month: DateTime(year, month, 1).difference(gridStart).inDays ~/ 7,
     };
 
+    // Position the calendar on the current month when the screen opens.
+    // The heatmap's horizontal scroll view naturally starts at offset 0
+    // (January); this one-time jump centers the current month instead.
+    if (!_hasScrolledToCurrentMonth) {
+      _hasScrolledToCurrentMonth = true;
+      final double currentMonthOffset =
+          monthStartColumn[_today.month]! * (cellSize + columnSpacing);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (!_calendarScrollController.hasClients) {
+          _hasScrolledToCurrentMonth = false;
+          return;
+        }
+        final double viewportWidth =
+            _calendarScrollController.position.viewportDimension;
+        final double maxExtent =
+            _calendarScrollController.position.maxScrollExtent;
+        final double target = (currentMonthOffset - viewportWidth / 2)
+            .clamp(0.0, maxExtent)
+            .toDouble();
+        _calendarScrollController.jumpTo(target);
+      });
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -259,6 +292,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
               const SizedBox(width: dayLabelGap),
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _calendarScrollController,
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
                     width: totalGridWidth,
