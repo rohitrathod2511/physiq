@@ -68,6 +68,12 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
     });
   }
 
+  /// Rounds a value to the 0.1 grid so the ruler's major-tick modulo
+  /// detection (based on the 0.1 step) can land on even weight labels.
+  double _roundToTenth(double value) {
+    return double.parse(value.toStringAsFixed(1));
+  }
+
   void _onContinue() {
     ref.read(onboardingProvider).saveStepData('targetWeightKg', _targetWeight);
     context.push('/onboarding/result-message');
@@ -102,8 +108,12 @@ class _TargetWeightScreenState extends ConsumerState<TargetWeightScreen> {
                     children: [
                       SliderWeight(
                         value: displayVal,
-                        min: isMetric ? 30.0 : Conversions.kgToLbs(30.0),
-                        max: isMetric ? 200.0 : Conversions.kgToLbs(200.0),
+                        min: isMetric
+                            ? 30.0
+                            : _roundToTenth(Conversions.kgToLbs(30.0)),
+                        max: isMetric
+                            ? 200.0
+                            : _roundToTenth(Conversions.kgToLbs(200.0)),
                         unit: unit,
                         onChanged: (value) {
                           setState(() {
