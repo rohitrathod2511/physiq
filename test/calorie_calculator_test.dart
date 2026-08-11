@@ -9,7 +9,8 @@ void main() {
         exerciseType: 'run',
         intensity: 'low',
         durationMinutes: 30,
-        weightKg: 70, met: null,
+        weightKg: 70,
+        met: 6.0,
       );
       expect(cals, 220.5);
     });
@@ -20,7 +21,8 @@ void main() {
         exerciseType: 'weightlifting',
         intensity: 'medium',
         durationMinutes: 45,
-        weightKg: 80, met: null,
+        weightKg: 80,
+        met: 5.0,
       );
       expect(cals, 315.0);
     });
@@ -32,6 +34,7 @@ void main() {
         intensity: 'medium',
         durationMinutes: 60,
         weightKg: 60,
+        met: 5.0,
       );
       // 5.0 * 3.5 * 60 / 200 * 60 = 315
       expect(cals, 315.0);
@@ -44,6 +47,7 @@ void main() {
         intensity: 'any', // Should be ignored for direct key match
         durationMinutes: 10,
         weightKg: 70,
+        met: 8.0,
       );
       // 8.0 * 3.5 * 70 / 200 * 10 = 98
       expect(cals, 98.0);

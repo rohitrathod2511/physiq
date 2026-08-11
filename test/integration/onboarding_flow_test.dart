@@ -14,7 +14,12 @@ void main() {
     );
 
     // Verify Splash Screen is shown
-    expect(find.byType(SplashScreen), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget.runtimeType.toString() == 'SplashScreen',
+      ),
+      findsOneWidget,
+    );
 
     // Wait for animation/delay
     await tester.pumpAndSettle(const Duration(seconds: 3));
