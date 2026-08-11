@@ -64,14 +64,18 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
               const Spacer(),
               Text(
                 "We'll send you\na reminder before your\nfree trial ends",
-                style: AppTextStyles.h1.copyWith(fontSize: 28),
+                style: AppTextStyles.h1.copyWith(fontSize: 30),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 60),
               Stack(
                 alignment: Alignment.topRight,
                 children: [
-                  Icon(Icons.notifications, size: 120, color: Colors.grey.shade300),
+                  Icon(
+                    Icons.notifications,
+                    size: 180,
+                    color: Colors.grey.shade300,
+                  ),
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
