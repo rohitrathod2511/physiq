@@ -124,9 +124,19 @@ class _PaywallNotificationScreenState extends State<PaywallNotificationScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                _monthlyPriceLabel != null ? 'Just $footerPrice' : footerPrice,
-                style: AppTextStyles.smallLabel,
+              // Price line intentionally hidden; space preserved so layout stays identical.
+              Visibility(
+                visible: false,
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                maintainInteractivity: true,
+                child: Text(
+                  _monthlyPriceLabel != null
+                      ? 'Just $footerPrice'
+                      : footerPrice,
+                  style: AppTextStyles.smallLabel,
+                ),
               ),
               const SizedBox(height: 20),
             ],
