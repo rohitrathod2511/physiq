@@ -396,6 +396,45 @@ function buildUnavailableNutrition(query: string, reason: string): NormalizedFoo
     };
 }
 
+function extractBasicNutrients(food: any): { calories?: number; protein?: number; carbs?: number; fat?: number } {
+    const nutrients = food.foodNutrients || food.nutrients || [];
+
+    const findNutrient = (matcher: string | number) => {
+        const normalizedMatcher = matcher.toString().toLowerCase();
+        return nutrients.find((nutrient: any) =>
+            nutrient.nutrientId === matcher ||
+            nutrient.nutrientNumber === matcher ||
+            (typeof matcher === 'number' &&
+                (nutrient.nutrient?.id === matcher ||
+                    Number.parseInt(String(nutrient.nutrient?.number ?? ''), 10) === matcher)) ||
+            (typeof matcher === 'string' &&
+                ((safeString(nutrient.name).toLowerCase().includes(normalizedMatcher)) ||
+                    (safeString(nutrient.nutrient?.name).toLowerCase().includes(normalizedMatcher))))
+        );
+    };
+
+    const getValue = (ids: number[], aliases: string[] = []): number | undefined => {
+        for (const id of ids) {
+            const nutrient = findNutrient(id);
+            const amount = toNullableNumber(nutrient?.amount ?? nutrient?.value);
+            if (amount !== null) return amount;
+        }
+        for (const alias of aliases) {
+            const nutrient = findNutrient(alias);
+            const amount = toNullableNumber(nutrient?.amount ?? nutrient?.value);
+            if (amount !== null) return amount;
+        }
+        return undefined;
+    };
+
+    return {
+        calories: getValue([1008, 208], ['energy', 'kcal']),
+        protein: getValue([1003], ['protein']),
+        carbs: getValue([1005], ['carbohydrate', 'carbohydrate, by difference']),
+        fat: getValue([1004], ['total lipid', 'fat']),
+    };
+}
+
 function normalizeUSDAResponse(food: any): NormalizedFood {
     const nutrients = food.foodNutrients || food.nutrients || [];
 
@@ -435,6 +474,25 @@ function normalizeUSDAResponse(food: any): NormalizedFood {
 
     const isNumericPortionCode = (value: string) => /^\d+$/.test(value.trim());
 
+    // Metric weight/volume units carry no real-world picture on their own —
+    // "75 gram" doesn't tell anyone what that looks like on a plate. Only
+    // treat a measure unit as usable when it's an actual household unit.
+    const BARE_WEIGHT_UNITS = new Set([
+        'gram', 'grams', 'g',
+        'kilogram', 'kilograms', 'kg',
+        'milliliter', 'milliliters', 'ml',
+        'liter', 'liters', 'l',
+        'undetermined',
+    ]);
+    const isBareWeightText = (value: string) =>
+        /^\d+(?:\.\d+)?\s*(g|gram|grams|kg|ml|milliliter|milliliters|l|liter|liters)?$/i.test(value.trim());
+    const GENERIC_PLACEHOLDERS = new Set(['quantity not specified', 'unspecified', 'serving']);
+    const isGenericPlaceholder = (value: string) =>
+        GENERIC_PLACEHOLDERS.has(value.trim().toLowerCase());
+
+    const isUsableText = (value: string) =>
+        !!value && !isNumericPortionCode(value) && !isBareWeightText(value) && !isGenericPlaceholder(value);
+
     const servingOptions: { label: string; grams: number }[] = [{ label: '100g', grams: 100 }];
     if (Array.isArray(food.foodPortions)) {
         for (const portion of food.foodPortions) {
@@ -443,27 +501,31 @@ function normalizeUSDAResponse(food: any): NormalizedFood {
 
             const description = safeString(portion?.portionDescription);
             const modifier = safeString(portion?.modifier);
-            const measureUnitName = portion?.measureUnit?.name;
-            const composedMeasure =
-                measureUnitName && measureUnitName !== 'undetermined'
-                    ? safeString(`${portion?.amount ?? ''} ${measureUnitName}`.trim())
-                    : '';
+            const measureUnitNameRaw = safeString(portion?.measureUnit?.name);
+            const measureUnitName = measureUnitNameRaw.toLowerCase();
+            const isMeasureUnitDescriptive =
+                measureUnitName.length > 0 && !BARE_WEIGHT_UNITS.has(measureUnitName);
+            const composedMeasure = isMeasureUnitDescriptive
+                ? safeString(`${portion?.amount ?? ''} ${measureUnitNameRaw}`.trim())
+                : '';
 
-            let label: string;
-            if (description && !isNumericPortionCode(description)) {
+            let label = '';
+            if (isUsableText(description)) {
                 // FNDDS (Survey) foods: portionDescription is the real household
-                // measure, e.g. "1 cup". Prefer it whenever present.
+                // measure, e.g. "1 cup".
                 label = description;
-            } else if (modifier && !isNumericPortionCode(modifier)) {
+            } else if (isUsableText(modifier)) {
                 // SR Legacy / Foundation foods: modifier is descriptive text
-                // (e.g. "cup, diced"). FNDDS foods put a numeric portion CODE
-                // here instead (e.g. "90000") — that numeric case is skipped.
+                // (e.g. "cup, diced", "oz", "cake").
                 label = modifier;
-            } else if (composedMeasure) {
+            } else if (composedMeasure && isUsableText(composedMeasure)) {
                 label = composedMeasure;
-            } else {
-                label = 'Custom serving';
             }
+
+            // No real-world description available for this portion (e.g. a
+            // bare "75 gram" entry) — skip it. The 100g option + amount
+            // stepper already covers any custom weight the user wants.
+            if (!label) continue;
 
             servingOptions.push({ label, grams });
         }
@@ -808,7 +870,11 @@ export const searchFoodUSDA = onRequest({ region: REGION, secrets: [USDA_API_KEY
                 },
                 { timeout: 10000 }
             );
-            res.send(response.data.foods || []);
+            const foods = (response.data.foods || []).map((food: any) => ({
+                ...food,
+                nutritionPer100g: extractBasicNutrients(food),
+            }));
+            res.send(foods);
         } catch (error) {
             logger.error('searchFoodUSDA error', { error, query, normalizedQuery });
             res.status(500).send({ error: 'Search failed.' });
@@ -826,7 +892,7 @@ export const getFoodDetailsUSDA = onRequest({ region: REGION, secrets: [USDA_API
 
         try {
             const apiKey = USDA_API_KEY.value();
-            const response = await axios.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 10000 });
+            const response = await axios.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 15000 });
             logger.info('USDA DETAILS RESPONSE', { data: response.data });
             res.send(normalizeUSDAResponse(response.data));
         } catch (error) {

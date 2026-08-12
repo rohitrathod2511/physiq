@@ -299,8 +299,47 @@ function buildUnavailableNutrition(query, reason) {
         error: reason,
     };
 }
+function extractBasicNutrients(food) {
+    const nutrients = food.foodNutrients || food.nutrients || [];
+    const findNutrient = (matcher) => {
+        const normalizedMatcher = matcher.toString().toLowerCase();
+        return nutrients.find((nutrient) => {
+            var _a, _b, _c, _d;
+            return nutrient.nutrientId === matcher ||
+                nutrient.nutrientNumber === matcher ||
+                (typeof matcher === 'number' &&
+                    (((_a = nutrient.nutrient) === null || _a === void 0 ? void 0 : _a.id) === matcher ||
+                        Number.parseInt(String((_c = (_b = nutrient.nutrient) === null || _b === void 0 ? void 0 : _b.number) !== null && _c !== void 0 ? _c : ''), 10) === matcher)) ||
+                (typeof matcher === 'string' &&
+                    ((safeString(nutrient.name).toLowerCase().includes(normalizedMatcher)) ||
+                        (safeString((_d = nutrient.nutrient) === null || _d === void 0 ? void 0 : _d.name).toLowerCase().includes(normalizedMatcher))));
+        });
+    };
+    const getValue = (ids, aliases = []) => {
+        var _a, _b;
+        for (const id of ids) {
+            const nutrient = findNutrient(id);
+            const amount = toNullableNumber((_a = nutrient === null || nutrient === void 0 ? void 0 : nutrient.amount) !== null && _a !== void 0 ? _a : nutrient === null || nutrient === void 0 ? void 0 : nutrient.value);
+            if (amount !== null)
+                return amount;
+        }
+        for (const alias of aliases) {
+            const nutrient = findNutrient(alias);
+            const amount = toNullableNumber((_b = nutrient === null || nutrient === void 0 ? void 0 : nutrient.amount) !== null && _b !== void 0 ? _b : nutrient === null || nutrient === void 0 ? void 0 : nutrient.value);
+            if (amount !== null)
+                return amount;
+        }
+        return undefined;
+    };
+    return {
+        calories: getValue([1008, 208], ['energy', 'kcal']),
+        protein: getValue([1003], ['protein']),
+        carbs: getValue([1005], ['carbohydrate', 'carbohydrate, by difference']),
+        fat: getValue([1004], ['total lipid', 'fat']),
+    };
+}
 function normalizeUSDAResponse(food) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c;
     const nutrients = food.foodNutrients || food.nutrients || [];
     const findNutrient = (matcher) => {
         const normalizedMatcher = matcher.toString().toLowerCase();
@@ -334,13 +373,54 @@ function normalizeUSDAResponse(food) {
         }
         return null;
     };
+    const isNumericPortionCode = (value) => /^\d+$/.test(value.trim());
+    // Metric weight/volume units carry no real-world picture on their own —
+    // "75 gram" doesn't tell anyone what that looks like on a plate. Only
+    // treat a measure unit as usable when it's an actual household unit.
+    const BARE_WEIGHT_UNITS = new Set([
+        'gram', 'grams', 'g',
+        'kilogram', 'kilograms', 'kg',
+        'milliliter', 'milliliters', 'ml',
+        'liter', 'liters', 'l',
+        'undetermined',
+    ]);
+    const isBareWeightText = (value) => /^\d+(?:\.\d+)?\s*(g|gram|grams|kg|ml|milliliter|milliliters|l|liter|liters)?$/i.test(value.trim());
+    const GENERIC_PLACEHOLDERS = new Set(['quantity not specified', 'unspecified', 'serving']);
+    const isGenericPlaceholder = (value) => GENERIC_PLACEHOLDERS.has(value.trim().toLowerCase());
+    const isUsableText = (value) => !!value && !isNumericPortionCode(value) && !isBareWeightText(value) && !isGenericPlaceholder(value);
     const servingOptions = [{ label: '100g', grams: 100 }];
     if (Array.isArray(food.foodPortions)) {
         for (const portion of food.foodPortions) {
             const grams = toNumber(portion === null || portion === void 0 ? void 0 : portion.gramWeight);
             if (grams <= 0)
                 continue;
-            const label = safeString((_b = (_a = portion === null || portion === void 0 ? void 0 : portion.modifier) !== null && _a !== void 0 ? _a : portion === null || portion === void 0 ? void 0 : portion.portionDescription) !== null && _b !== void 0 ? _b : `${(_c = portion === null || portion === void 0 ? void 0 : portion.amount) !== null && _c !== void 0 ? _c : ''} ${(_e = (_d = portion === null || portion === void 0 ? void 0 : portion.measureUnit) === null || _d === void 0 ? void 0 : _d.name) !== null && _e !== void 0 ? _e : 'serving'}`, 'Custom serving');
+            const description = safeString(portion === null || portion === void 0 ? void 0 : portion.portionDescription);
+            const modifier = safeString(portion === null || portion === void 0 ? void 0 : portion.modifier);
+            const measureUnitNameRaw = safeString((_a = portion === null || portion === void 0 ? void 0 : portion.measureUnit) === null || _a === void 0 ? void 0 : _a.name);
+            const measureUnitName = measureUnitNameRaw.toLowerCase();
+            const isMeasureUnitDescriptive = measureUnitName.length > 0 && !BARE_WEIGHT_UNITS.has(measureUnitName);
+            const composedMeasure = isMeasureUnitDescriptive
+                ? safeString(`${(_b = portion === null || portion === void 0 ? void 0 : portion.amount) !== null && _b !== void 0 ? _b : ''} ${measureUnitNameRaw}`.trim())
+                : '';
+            let label = '';
+            if (isUsableText(description)) {
+                // FNDDS (Survey) foods: portionDescription is the real household
+                // measure, e.g. "1 cup".
+                label = description;
+            }
+            else if (isUsableText(modifier)) {
+                // SR Legacy / Foundation foods: modifier is descriptive text
+                // (e.g. "cup, diced", "oz", "cake").
+                label = modifier;
+            }
+            else if (composedMeasure && isUsableText(composedMeasure)) {
+                label = composedMeasure;
+            }
+            // No real-world description available for this portion (e.g. a
+            // bare "75 gram" entry) — skip it. The 100g option + amount
+            // stepper already covers any custom weight the user wants.
+            if (!label)
+                continue;
             servingOptions.push({ label, grams });
         }
     }
@@ -369,7 +449,7 @@ function normalizeUSDAResponse(food) {
     setNutrient('calcium', getNutrientValue([1087], ['calcium']));
     setNutrient('iron', getNutrientValue([1089], ['iron']));
     return {
-        name: safeString((_f = food.description) !== null && _f !== void 0 ? _f : food.lowercaseDescription, 'Unknown Food'),
+        name: safeString((_c = food.description) !== null && _c !== void 0 ? _c : food.lowercaseDescription, 'Unknown Food'),
         nutritionPer100g,
         servingOptions: uniqueServingOptions,
         source: 'usda',
@@ -627,7 +707,8 @@ exports.searchFoodUSDA = (0, https_1.onRequest)({ region: REGION, secrets: [USDA
                 pageSize: 20,
                 dataType: ['Foundation', 'SR Legacy', 'Survey (FNDDS)'],
             }, { timeout: 10000 });
-            res.send(response.data.foods || []);
+            const foods = (response.data.foods || []).map((food) => (Object.assign(Object.assign({}, food), { nutritionPer100g: extractBasicNutrients(food) })));
+            res.send(foods);
         }
         catch (error) {
             logger.error('searchFoodUSDA error', { error, query, normalizedQuery });
@@ -645,7 +726,7 @@ exports.getFoodDetailsUSDA = (0, https_1.onRequest)({ region: REGION, secrets: [
         }
         try {
             const apiKey = USDA_API_KEY.value();
-            const response = await axios_1.default.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 10000 });
+            const response = await axios_1.default.get(`${USDA_DETAILS_URL}/${fdcId}?api_key=${apiKey}`, { timeout: 15000 });
             logger.info('USDA DETAILS RESPONSE', { data: response.data });
             res.send(normalizeUSDAResponse(response.data));
         }
