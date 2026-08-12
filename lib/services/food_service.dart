@@ -476,6 +476,8 @@ class FoodService {
         final List<Food> foods = [];
         for (final item in usdaResults) {
           final map = Map<String, dynamic>.from(item);
+          final basicNutrition =
+              Map<String, dynamic>.from(map['nutritionPer100g'] ?? {});
           foods.add(Food(
             id: 'usda_${map['fdcId']}',
             fdcId: map['fdcId'].toString(),
@@ -483,11 +485,15 @@ class FoodService {
             category: map['brandOwner'] ?? map['brandName'] ?? 'USDA',
             unit: '100g',
             baseWeightG: 100,
-            calories: 0, // Nutrient details fetched on selection
-            protein: 0,
-            carbs: 0,
-            fat: 0,
+            calories: _toDouble(basicNutrition['calories']),
+            protein: _toDouble(basicNutrition['protein']),
+            carbs: _toDouble(basicNutrition['carbs']),
+            fat: _toDouble(basicNutrition['fat']),
             source: 'usda',
+            // Still "partial": the detail screen will still try to fetch
+            // full serving options. But calories/macros above are already
+            // real numbers when USDA's search response included them, so
+            // the UI is never stuck at a fake 0 while waiting.
             isPartial: true,
           ));
         }

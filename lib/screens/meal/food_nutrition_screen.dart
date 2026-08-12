@@ -62,7 +62,10 @@ class _FoodNutritionScreenState extends ConsumerState<FoodNutritionScreen> {
     if (detailedFood == null) {
       setState(() {
         _isLoadingDetails = false;
-        _detailsError = 'Nutrition not available';
+        // We already have usable nutrition from the search step (USDA's
+        // search response includes a nutrient snapshot). Only show the
+        // error banner if we truly have nothing to display.
+        _detailsError = _hasNutritionData ? null : 'Nutrition not available';
       });
       return;
     }

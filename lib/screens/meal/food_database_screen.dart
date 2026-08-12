@@ -100,6 +100,13 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
           _searchResults = results;
           _isLoading = false;
           _hasSearched = true;
+          // Seed anything USDA's search response already gave us a real
+          // calorie count for — no need to wait on a second request.
+          for (final food in results) {
+            if (food.source == 'usda' && food.calories > 0) {
+              _usdaCaloriesById[food.id] = food.calories;
+            }
+          }
         });
         _hydrateUsdaCalories(results, currentVersion);
       } catch (error) {
@@ -122,11 +129,12 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
   }
 
   Future<void> _hydrateUsdaCalories(List<Food> results, int version) async {
-    const batchSize = 5;
+    const batchSize = 3;
 
     final toFetch = results.where((food) =>
         food.source == 'usda' &&
         food.isPartial &&
+        food.calories <= 0 &&
         (food.fdcId ?? '').isNotEmpty &&
         !_usdaCaloriesById.containsKey(food.id)).toList();
 
