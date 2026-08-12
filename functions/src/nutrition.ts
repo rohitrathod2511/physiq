@@ -433,18 +433,37 @@ function normalizeUSDAResponse(food: any): NormalizedFood {
         return null;
     };
 
+    const isNumericPortionCode = (value: string) => /^\d+$/.test(value.trim());
+
     const servingOptions: { label: string; grams: number }[] = [{ label: '100g', grams: 100 }];
     if (Array.isArray(food.foodPortions)) {
         for (const portion of food.foodPortions) {
             const grams = toNumber(portion?.gramWeight);
             if (grams <= 0) continue;
 
-            const label = safeString(
-                portion?.modifier ??
-                portion?.portionDescription ??
-                `${portion?.amount ?? ''} ${portion?.measureUnit?.name ?? 'serving'}`,
-                'Custom serving'
-            );
+            const description = safeString(portion?.portionDescription);
+            const modifier = safeString(portion?.modifier);
+            const measureUnitName = portion?.measureUnit?.name;
+            const composedMeasure =
+                measureUnitName && measureUnitName !== 'undetermined'
+                    ? safeString(`${portion?.amount ?? ''} ${measureUnitName}`.trim())
+                    : '';
+
+            let label: string;
+            if (description && !isNumericPortionCode(description)) {
+                // FNDDS (Survey) foods: portionDescription is the real household
+                // measure, e.g. "1 cup". Prefer it whenever present.
+                label = description;
+            } else if (modifier && !isNumericPortionCode(modifier)) {
+                // SR Legacy / Foundation foods: modifier is descriptive text
+                // (e.g. "cup, diced"). FNDDS foods put a numeric portion CODE
+                // here instead (e.g. "90000") — that numeric case is skipped.
+                label = modifier;
+            } else if (composedMeasure) {
+                label = composedMeasure;
+            } else {
+                label = 'Custom serving';
+            }
 
             servingOptions.push({ label, grams });
         }

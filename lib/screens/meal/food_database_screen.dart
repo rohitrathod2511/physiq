@@ -95,7 +95,7 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
       final currentVersion = ++_searchVersion;
       try {
         final results = await _foodService.searchFoods(query);
-        if (!mounted) return;
+        if (!mounted || currentVersion != _searchVersion) return;
         setState(() {
           _searchResults = results;
           _isLoading = false;
@@ -122,17 +122,30 @@ class _FoodDatabaseScreenState extends ConsumerState<FoodDatabaseScreen>
   }
 
   Future<void> _hydrateUsdaCalories(List<Food> results, int version) async {
-    for (final food in results) {
-      if (version != _searchVersion || !mounted) return;
-      if (food.source != 'usda' || !food.isPartial) continue;
-      if ((food.fdcId ?? '').isEmpty) continue;
-      if (_usdaCaloriesById.containsKey(food.id)) continue;
+    const batchSize = 5;
 
-      final detailedFood = await _foodService.getFoodDetails(food.fdcId!);
+    final toFetch = results.where((food) =>
+        food.source == 'usda' &&
+        food.isPartial &&
+        (food.fdcId ?? '').isNotEmpty &&
+        !_usdaCaloriesById.containsKey(food.id)).toList();
+
+    for (var i = 0; i < toFetch.length; i += batchSize) {
+      if (version != _searchVersion || !mounted) return;
+
+      final end = (i + batchSize).clamp(0, toFetch.length);
+      final batch = toFetch.sublist(i, end);
+
+      final detailedFoods = await Future.wait(
+        batch.map((food) => _foodService.getFoodDetails(food.fdcId!)),
+      );
+
       if (!mounted || version != _searchVersion) return;
 
       setState(() {
-        _usdaCaloriesById[food.id] = detailedFood?.calories ?? 0;
+        for (var j = 0; j < batch.length; j++) {
+          _usdaCaloriesById[batch[j].id] = detailedFoods[j]?.calories ?? 0;
+        }
       });
     }
   }

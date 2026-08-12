@@ -30,6 +30,8 @@ class _ParsedUserInput {
 }
 
 class FoodService {
+  static final Map<String, Food> _detailsCache = {};
+
   static const String _searchBaseUrl =
       'https://world.openfoodfacts.org/cgi/search.pl';
   static const String _barcodeBaseUrl =
@@ -596,11 +598,15 @@ class FoodService {
   }
 
   Future<Food?> getFoodDetails(String fdcId) async {
+    final cached = _detailsCache[fdcId];
+    if (cached != null) return cached;
+
     try {
       final details = await _functions.getFoodDetailsUSDA(fdcId);
       if (details == null) return null;
-      debugPrint('Food details: $details');
-      return Food.fromJson(details, 'usda_$fdcId');
+      final food = Food.fromJson(details, 'usda_$fdcId');
+      _detailsCache[fdcId] = food;
+      return food;
     } catch (e) {
       debugPrint('Error fetching USDA details: $e');
       return null;
